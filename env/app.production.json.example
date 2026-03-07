@@ -1,0 +1,7 @@
+{
+  "PLAN_BACKEND_BASE_URL": "https://api.seudominio.com",
+  "PLAN_PRODUCTION_MODE": "true",
+  "PLAN_PLAY_PRODUCT_ID_SMART": "smart_mensal",
+  "PLAN_PLAY_PRODUCT_ID_PRO": "pro_mensal",
+  "PLAN_PLAY_PRODUCT_ID_ELITE": "elite_mensal"
+}

@@ -1,0 +1,201 @@
+{
+  "updatedAt": "2026-03-03T22:25:38.741222Z",
+  "subscriptions": {
+    "user-001": {
+      "userId": "user-001",
+      "activePlanKey": "smart",
+      "startsAt": "2026-03-03T22:25:38.513639Z",
+      "expiresAt": "2026-04-03T21:13:56.755369Z",
+      "status": "active",
+      "monthlyPrice": "R$ 4,90"
+    },
+    "user-rotation": {
+      "userId": "user-rotation",
+      "activePlanKey": "pro",
+      "startsAt": "2026-03-03T21:21:02.251995Z",
+      "expiresAt": "2026-04-03T21:21:02.251995Z",
+      "status": "active"
+    }
+  },
+  "charges": {
+    "pix_pro_1772572368256_4548": {
+      "chargeId": "pix_pro_1772572368256_4548",
+      "userId": "user-001",
+      "planKey": "pro",
+      "monthlyPrice": "9.90",
+      "copyPasteCode": "00020126360014BR.GOV.BCB.PIX0114spacegym.app52040000530398654009905802BR5910SPACEGYM6009SAOPAULO62070503***63044548PLANpro",
+      "status": "paid",
+      "createdAt": "2026-03-03T21:12:48.256376Z",
+      "expiresAt": "2026-03-03T21:32:48.256376Z",
+      "paidAt": "2026-03-03T21:12:48.317304Z"
+    },
+    "pix_pro_1772572436125_1760": {
+      "chargeId": "pix_pro_1772572436125_1760",
+      "userId": "user-001",
+      "planKey": "pro",
+      "monthlyPrice": "9.90",
+      "copyPasteCode": "00020126360014BR.GOV.BCB.PIX0114spacegym.app52040000530398654009905802BR5910SPACEGYM6009SAOPAULO62070503***63041760PLANpro",
+      "status": "paid",
+      "createdAt": "2026-03-03T21:13:56.125363Z",
+      "expiresAt": "2026-03-03T21:33:56.125363Z",
+      "paidAt": "2026-03-03T21:13:56.740370Z"
+    },
+    "pix_pro_1772572862202_5421": {
+      "chargeId": "pix_pro_1772572862202_5421",
+      "userId": "user-rotation",
+      "planKey": "pro",
+      "monthlyPrice": "9.90",
+      "copyPasteCode": "00020126360014BR.GOV.BCB.PIX0114spacegym.app52040000530398654009905802BR5910SPACEGYM6009SAOPAULO62070503***63045421PLANpro",
+      "status": "paid",
+      "createdAt": "2026-03-03T21:21:02.202994Z",
+      "expiresAt": "2026-03-03T21:41:02.202994Z",
+      "paidAt": "2026-03-03T21:21:02.243993Z"
+    },
+    "pix_smart_1772576738405_2292": {
+      "chargeId": "pix_smart_1772576738405_2292",
+      "userId": "user-001",
+      "planKey": "smart",
+      "monthlyPrice": "R$ 0,00",
+      "copyPasteCode": "",
+      "status": "paid",
+      "createdAt": "2026-03-03T22:25:38.405118Z",
+      "expiresAt": "2026-03-03T22:45:38.405118Z",
+      "paidAt": "2026-03-03T22:25:38.405118Z",
+      "amountDueCents": 0,
+      "targetPlanMonthlyPriceCents": 490,
+      "targetPlanMonthlyPrice": "R$ 4,90",
+      "isProratedMigration": true,
+      "creditCents": 988,
+      "previousPlanKey": "pro",
+      "preserveExpiresAt": "2026-04-03T21:13:56.755369Z"
+    },
+    "pix_pro_1772576738685_4615": {
+      "chargeId": "pix_pro_1772576738685_4615",
+      "userId": "user-001",
+      "planKey": "pro",
+      "monthlyPrice": "R$ 5,00",
+      "copyPasteCode": "00020126360014BR.GOV.BCB.PIX0114spacegym.app52040000530398654005005802BR5910SPACEGYM6009SAOPAULO62070503***63044615PLANpro",
+      "status": "pending",
+      "createdAt": "2026-03-03T22:25:38.685050Z",
+      "expiresAt": "2026-03-03T22:45:38.685050Z",
+      "paidAt": null,
+      "amountDueCents": 500,
+      "targetPlanMonthlyPriceCents": 990,
+      "targetPlanMonthlyPrice": "R$ 9,90",
+      "isProratedMigration": true,
+      "creditCents": 490,
+      "previousPlanKey": "smart",
+      "preserveExpiresAt": "2026-04-03T21:13:56.755369Z"
+    },
+    "pix_smart_1772576738741_6851": {
+      "chargeId": "pix_smart_1772576738741_6851",
+      "userId": "user-001",
+      "planKey": "smart",
+      "monthlyPrice": "R$ 4,90",
+      "copyPasteCode": "00020126360014BR.GOV.BCB.PIX0114spacegym.app52040000530398654004905802BR5910SPACEGYM6009SAOPAULO62070503***63046851PLANsmart",
+      "status": "pending",
+      "createdAt": "2026-03-03T22:25:38.741222Z",
+      "expiresAt": "2026-03-03T22:45:38.741222Z",
+      "paidAt": null,
+      "amountDueCents": 490,
+      "targetPlanMonthlyPriceCents": 490,
+      "targetPlanMonthlyPrice": "R$ 4,90",
+      "isProratedMigration": false,
+      "creditCents": 0,
+      "previousPlanKey": null,
+      "preserveExpiresAt": null
+    }
+  },
+  "processedWebhookEvents": {
+    "evt-smoke-001": {
+      "eventId": "evt-smoke-001",
+      "chargeId": "pix_pro_1772572368256_4548",
+      "status": "paid",
+      "processedAt": "2026-03-03T21:12:48.348655Z",
+      "result": {
+        "accepted": true,
+        "eventId": "evt-smoke-001",
+        "result": {
+          "charge": {
+            "chargeId": "pix_pro_1772572368256_4548",
+            "userId": "user-001",
+            "planKey": "pro",
+            "monthlyPrice": "9.90",
+            "copyPasteCode": "00020126360014BR.GOV.BCB.PIX0114spacegym.app52040000530398654009905802BR5910SPACEGYM6009SAOPAULO62070503***63044548PLANpro",
+            "status": "paid",
+            "createdAt": "2026-03-03T21:12:48.256376Z",
+            "expiresAt": "2026-03-03T21:32:48.256376Z",
+            "paidAt": "2026-03-03T21:12:48.317304Z"
+          },
+          "subscription": {
+            "userId": "user-001",
+            "activePlanKey": "pro",
+            "startsAt": "2026-03-03T21:12:48.326309Z",
+            "expiresAt": "2026-04-03T21:12:48.326309Z",
+            "status": "active"
+          }
+        }
+      }
+    },
+    "evt-smoke-002": {
+      "eventId": "evt-smoke-002",
+      "chargeId": "pix_pro_1772572436125_1760",
+      "status": "paid",
+      "processedAt": "2026-03-03T21:13:56.790833Z",
+      "response": {
+        "accepted": true,
+        "eventId": "evt-smoke-002",
+        "result": {
+          "charge": {
+            "chargeId": "pix_pro_1772572436125_1760",
+            "userId": "user-001",
+            "planKey": "pro",
+            "monthlyPrice": "9.90",
+            "copyPasteCode": "00020126360014BR.GOV.BCB.PIX0114spacegym.app52040000530398654009905802BR5910SPACEGYM6009SAOPAULO62070503***63041760PLANpro",
+            "status": "paid",
+            "createdAt": "2026-03-03T21:13:56.125363Z",
+            "expiresAt": "2026-03-03T21:33:56.125363Z",
+            "paidAt": "2026-03-03T21:13:56.740370Z"
+          },
+          "subscription": {
+            "userId": "user-001",
+            "activePlanKey": "pro",
+            "startsAt": "2026-03-03T21:13:56.755369Z",
+            "expiresAt": "2026-04-03T21:13:56.755369Z",
+            "status": "active"
+          }
+        }
+      }
+    },
+    "evt-rotation-001": {
+      "eventId": "evt-rotation-001",
+      "chargeId": "pix_pro_1772572862202_5421",
+      "status": "paid",
+      "processedAt": "2026-03-03T21:21:02.266885Z",
+      "response": {
+        "accepted": true,
+        "eventId": "evt-rotation-001",
+        "result": {
+          "charge": {
+            "chargeId": "pix_pro_1772572862202_5421",
+            "userId": "user-rotation",
+            "planKey": "pro",
+            "monthlyPrice": "9.90",
+            "copyPasteCode": "00020126360014BR.GOV.BCB.PIX0114spacegym.app52040000530398654009905802BR5910SPACEGYM6009SAOPAULO62070503***63045421PLANpro",
+            "status": "paid",
+            "createdAt": "2026-03-03T21:21:02.202994Z",
+            "expiresAt": "2026-03-03T21:41:02.202994Z",
+            "paidAt": "2026-03-03T21:21:02.243993Z"
+          },
+          "subscription": {
+            "userId": "user-rotation",
+            "activePlanKey": "pro",
+            "startsAt": "2026-03-03T21:21:02.251995Z",
+            "expiresAt": "2026-04-03T21:21:02.251995Z",
+            "status": "active"
+          }
+        }
+      }
+    }
+  }
+}
