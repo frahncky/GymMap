@@ -92,6 +92,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   static const LatLng _fallbackMapCenter = LatLng(-23.5615, -46.6560);
   static const String _localReporterId = 'local-device-user';
   static const String _mapTutorialSeenPrefKey = 'gymmap_map_tutorial_seen_v1';
+  static const String _favoriteGymIdsPrefKey = 'gymmap_favorite_gym_ids_v1';
+  static const String _communityPointsPrefKey = 'gymmap_community_points_v1';
   static const double _defaultCoverageRadiusMeters = 50000;
   static const double _eliteCoverageRadiusMeters = 6000000;
   static const double _mapPoiReloadMinDistanceMeters = 1800;
@@ -142,6 +144,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   bool _isSyncingCrowdReports = false;
   bool _isSubmittingCrowdReport = false;
   int _communityPoints = 0;
+  final Set<String> _favoriteGymIds = <String>{};
   final Set<String> _pendingCrowdSyncGymIds = <String>{};
   final GymMapSearchStateController _mapSearchState =
       GymMapSearchStateController();
@@ -213,6 +216,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     unawaited(_loadMapTutorialState());
+    unawaited(_loadFavoriteGymIds());
+    unawaited(_loadCommunityPoints());
     unawaited(_initializeGymLocationCache());
     unawaited(_initializeCrowdRemoteService());
     unawaited(_initializePlanSubscription());
@@ -1031,6 +1036,85 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     _maybeShowMapTutorialOverlay();
   }
 
+  Future<void> _loadFavoriteGymIds() async {
+    List<String> ids = const <String>[];
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      ids = prefs.getStringList(_favoriteGymIdsPrefKey) ?? const <String>[];
+    } catch (_) {
+      // Falha local nao impede uso dos favoritos na sessao atual.
+    }
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _favoriteGymIds
+        ..clear()
+        ..addAll(ids.map((id) => id.trim()).where((id) => id.isNotEmpty));
+    });
+  }
+
+  Future<void> _persistFavoriteGymIds() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final ids = _favoriteGymIds.toList(growable: false)..sort();
+      await prefs.setStringList(_favoriteGymIdsPrefKey, ids);
+    } catch (_) {
+      // Falha local de persistencia nao deve interromper fluxo.
+    }
+  }
+
+  Future<void> _loadCommunityPoints() async {
+    var points = 0;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      points = prefs.getInt(_communityPointsPrefKey) ?? 0;
+    } catch (_) {
+      // Falha local nao bloqueia uso.
+    }
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _communityPoints = points.clamp(0, 1000000);
+    });
+  }
+
+  Future<void> _persistCommunityPoints() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_communityPointsPrefKey, _communityPoints);
+    } catch (_) {
+      // Falha local nao bloqueia uso.
+    }
+  }
+
+  bool _isFavoriteGymId(String gymId) => _favoriteGymIds.contains(gymId.trim());
+
+  void _toggleFavoriteGym(Gym gym) {
+    final id = gym.id.trim();
+    if (id.isEmpty) {
+      return;
+    }
+    late final bool added;
+    setState(() {
+      if (_favoriteGymIds.contains(id)) {
+        _favoriteGymIds.remove(id);
+        added = false;
+      } else {
+        _favoriteGymIds.add(id);
+        added = true;
+      }
+    });
+    HapticFeedback.lightImpact();
+    _showMapSnack(
+      added
+          ? '${gym.name} adicionada aos favoritos.'
+          : '${gym.name} removida dos favoritos.',
+    );
+    unawaited(_persistFavoriteGymIds());
+  }
+
   void _maybeShowMapTutorialOverlay() {
     if (!_hasLoadedMapTutorialState ||
         _hasSeenMapTutorial ||
@@ -1235,6 +1319,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
               _communityPoints += 5;
             });
           }
+          unawaited(_persistCommunityPoints());
 
           final trust =
               ((remoteReport?.reliabilityWeight ?? 1) * 100)
@@ -1279,6 +1364,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
           _communityPoints += 5;
         });
       }
+      unawaited(_persistCommunityPoints());
 
       final trust = ((localResult.appliedWeight ?? 1) * 100).round();
       _showContributionSnack(
@@ -3193,6 +3279,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     return SelectedGymPanel(
       gym: gym,
       snapshot: snapshot,
+      isFavorite: _isFavoriteGymId(gym.id),
+      onToggleFavorite: () => _toggleFavoriteGym(gym),
       reportPercent: _reportPercent,
       onReportPercentChanged: (value) {
         setState(() {

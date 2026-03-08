@@ -12,6 +12,8 @@ class SelectedGymPanel extends StatelessWidget {
     super.key,
     required this.gym,
     required this.snapshot,
+    required this.isFavorite,
+    required this.onToggleFavorite,
     required this.reportPercent,
     required this.onReportPercentChanged,
     required this.isSubmittingCrowdReport,
@@ -32,6 +34,8 @@ class SelectedGymPanel extends StatelessWidget {
 
   final Gym gym;
   final GymCrowdSnapshot snapshot;
+  final bool isFavorite;
+  final VoidCallback onToggleFavorite;
   final double reportPercent;
   final ValueChanged<double> onReportPercentChanged;
   final bool isSubmittingCrowdReport;
@@ -127,6 +131,51 @@ class SelectedGymPanel extends StatelessWidget {
                         ),
                       ),
                     ],
+                  ),
+                ),
+                Semantics(
+                  button: true,
+                  selected: isFavorite,
+                  label:
+                      isFavorite
+                          ? 'Academia favorita'
+                          : 'Adicionar academia aos favoritos',
+                  hint: 'Toque para alternar favorito',
+                  child: SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: IconButton(
+                      tooltip:
+                          isFavorite
+                              ? 'Remover dos favoritos'
+                              : 'Adicionar aos favoritos',
+                      onPressed: onToggleFavorite,
+                      icon: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 220),
+                        switchInCurve: Curves.easeOutBack,
+                        switchOutCurve: Curves.easeInCubic,
+                        transitionBuilder: (child, animation) {
+                          return ScaleTransition(
+                            scale: Tween<double>(
+                              begin: 0.72,
+                              end: 1,
+                            ).animate(animation),
+                            child: FadeTransition(
+                              opacity: animation,
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: Icon(
+                          isFavorite ? Icons.favorite : Icons.favorite_border,
+                          key: ValueKey<bool>(isFavorite),
+                          color:
+                              isFavorite
+                                  ? GymMapColors.occupancyCritical
+                                  : GymMapColors.textSecondary,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
                 TweenAnimationBuilder<double>(
