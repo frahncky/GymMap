@@ -165,17 +165,13 @@ class MapQuickFiltersBar extends StatelessWidget {
     super.key,
     required this.filters,
     required this.onToggle,
-    required this.onClearAll,
   });
 
   final List<QuickFilterChipData> filters;
   final ValueChanged<String> onToggle;
-  final VoidCallback onClearAll;
 
   @override
   Widget build(BuildContext context) {
-    final hasAnySelected = filters.any((filter) => filter.selected);
-
     return AnimatedContainer(
       duration: const Duration(milliseconds: 220),
       curve: Curves.easeOutCubic,
@@ -189,74 +185,91 @@ class MapQuickFiltersBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  for (final filter in filters)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: Semantics(
-                        button: true,
-                        selected: filter.selected,
-                        label: filter.label,
-                        hint:
-                            filter.selected
-                                ? 'Toque para remover filtro'
-                                : 'Toque para aplicar filtro',
-                        child: FilterChip(
-                          showCheckmark: false,
-                          avatar: Icon(
-                            filter.icon,
-                            size: 16,
-                            color:
-                                filter.selected
-                                    ? Theme.of(context).colorScheme.primary
-                                    : GymMapColors.textSecondary,
-                          ),
-                          selected: filter.selected,
-                          label: Text(filter.label),
-                          onSelected: (_) => onToggle(filter.id),
-                          selectedColor: withUiOpacity(
-                            Theme.of(context).colorScheme.primary,
-                            0.14,
-                          ),
-                          backgroundColor: Colors.white,
-                          side: BorderSide(
-                            color: withUiOpacity(
-                              Theme.of(context).colorScheme.primary,
-                              filter.selected ? 0.38 : 0.12,
-                            ),
-                          ),
-                          labelStyle: TextStyle(
-                            color:
-                                filter.selected
-                                    ? Theme.of(context).colorScheme.primary
-                                    : GymMapColors.textStrong,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
-                          ),
-                          visualDensity: const VisualDensity(
-                            horizontal: -1,
-                            vertical: -1.5,
-                          ),
-                          materialTapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
-                        ),
-                      ),
-                    ),
-                ],
+          for (var index = 0; index < filters.length; index++)
+            Expanded(
+              flex: _chipFlex(filters[index]),
+              child: Padding(
+                padding: EdgeInsets.only(
+                  right: index == filters.length - 1 ? 0 : 6,
+                ),
+                child: Align(
+                  alignment: Alignment.center,
+                  child: _QuickFilterToggleChip(
+                    filter: filters[index],
+                    onToggle: onToggle,
+                  ),
+                ),
               ),
             ),
-          ),
-          if (hasAnySelected)
-            TextButton.icon(
-              onPressed: onClearAll,
-              icon: const Icon(Icons.restart_alt, size: 18),
-              label: const Text('Limpar'),
-            ),
         ],
+      ),
+    );
+  }
+
+  int _chipFlex(QuickFilterChipData filter) {
+    if (filter.id == 'low') {
+      return 3;
+    }
+    return 2;
+  }
+}
+
+class _QuickFilterToggleChip extends StatelessWidget {
+  const _QuickFilterToggleChip({required this.filter, required this.onToggle});
+
+  final QuickFilterChipData filter;
+  final ValueChanged<String> onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: filter.selected,
+      label: filter.label,
+      hint:
+          filter.selected
+              ? 'Toque novamente para desativar'
+              : 'Toque para ativar',
+      child: FilterChip(
+        showCheckmark: false,
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        labelPadding: const EdgeInsets.symmetric(horizontal: 2),
+        avatarBoxConstraints: const BoxConstraints.tightFor(
+          width: 18,
+          height: 18,
+        ),
+        avatar: Icon(
+          filter.icon,
+          size: 14,
+          color:
+              filter.selected
+                  ? Theme.of(context).colorScheme.primary
+                  : GymMapColors.textSecondary,
+        ),
+        selected: filter.selected,
+        label: Text(filter.label, maxLines: 1),
+        onSelected: (_) => onToggle(filter.id),
+        selectedColor: withUiOpacity(
+          Theme.of(context).colorScheme.primary,
+          0.14,
+        ),
+        backgroundColor: Colors.white,
+        side: BorderSide(
+          color: withUiOpacity(
+            Theme.of(context).colorScheme.primary,
+            filter.selected ? 0.38 : 0.12,
+          ),
+        ),
+        labelStyle: TextStyle(
+          color:
+              filter.selected
+                  ? Theme.of(context).colorScheme.primary
+                  : GymMapColors.textStrong,
+          fontWeight: FontWeight.w700,
+          fontSize: 12,
+        ),
+        visualDensity: const VisualDensity(horizontal: -1, vertical: -1.5),
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
     );
   }
@@ -365,6 +378,137 @@ class MapStatusCard extends StatelessWidget {
                 )
                 : Text(message),
       ),
+    );
+  }
+}
+
+class MapTutorialOverlay extends StatelessWidget {
+  const MapTutorialOverlay({
+    super.key,
+    required this.onDismiss,
+    required this.onFocusNearestGym,
+  });
+
+  final VoidCallback onDismiss;
+  final VoidCallback onFocusNearestGym;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: withUiOpacity(Colors.black, 0.26),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+          child: Column(
+            children: [
+              Align(
+                alignment: Alignment.topCenter,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: withUiOpacity(GymMapColors.northControl, 0.10),
+                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        blurRadius: 14,
+                        color: GymMapColors.cardShadow,
+                        offset: Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Dicas rapidas do mapa',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                          color: GymMapColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const _TutorialHintRow(
+                        icon: Icons.search_rounded,
+                        text: 'Use a busca para academia, bairro ou cidade.',
+                      ),
+                      const SizedBox(height: 6),
+                      const _TutorialHintRow(
+                        icon: Icons.tune_rounded,
+                        text: 'Ative os toggles para filtrar os resultados.',
+                      ),
+                      const SizedBox(height: 6),
+                      const _TutorialHintRow(
+                        icon: Icons.location_on_rounded,
+                        text:
+                            'Toque no pin para abrir detalhes e enviar relato.',
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: onDismiss,
+                              child: const Text('Entendi'),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: onFocusNearestGym,
+                              icon: const Icon(Icons.near_me_rounded, size: 18),
+                              label: const Text('Ver proxima'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const Spacer(),
+              TextButton(
+                onPressed: onDismiss,
+                child: const Text('Pular tutorial'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TutorialHintRow extends StatelessWidget {
+  const _TutorialHintRow({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 1),
+          child: Icon(icon, size: 16, color: GymMapColors.textSecondary),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: GymMapColors.textStrong,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/collaborative_crowd_service.dart';
 import '../data/crowd_report_remote_service.dart';
@@ -15,6 +16,7 @@ import '../data/plan_subscription_service.dart';
 import '../domain/gym_models.dart';
 import '../domain/plan_insight_models.dart';
 import 'gym_map_colors.dart';
+import 'gym_map_helpers.dart';
 import 'gym_map_logic.dart';
 import 'gym_map_poi_controller.dart';
 import 'gym_map_poi_reload_controller.dart';
@@ -88,6 +90,7 @@ const Map<AppPlanTier, PlanInfo> kPlanCatalog = {
 class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   static const LatLng _fallbackMapCenter = LatLng(-23.5615, -46.6560);
   static const String _localReporterId = 'local-device-user';
+  static const String _mapTutorialSeenPrefKey = 'gymmap_map_tutorial_seen_v1';
   static const double _defaultCoverageRadiusMeters = 50000;
   static const double _eliteCoverageRadiusMeters = 6000000;
   static const double _mapPoiReloadMinDistanceMeters = 1800;
@@ -172,7 +175,11 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   List<MapGymPoi> _mapPois = const [];
   final Map<String, Gym> _generatedGymsByPoiId = <String, Gym>{};
   bool _isResolvingSearchLocation = false;
+  bool _hasLoadedMapTutorialState = false;
+  bool _hasSeenMapTutorial = false;
+  bool _showMapTutorialOverlay = false;
   Timer? _mapBrowseCenterUiDebounce;
+  Timer? _mapTutorialDismissTimer;
   Timer? _planSyncTimer;
   StreamSubscription<List<PurchaseDetails>>? _purchaseStreamSubscription;
 
@@ -203,6 +210,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    unawaited(_loadMapTutorialState());
     unawaited(_initializeGymLocationCache());
     unawaited(_initializeCrowdRemoteService());
     unawaited(_initializePlanSubscription());
@@ -228,6 +236,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _mapBrowseCenterUiDebounce?.cancel();
+    _mapTutorialDismissTimer?.cancel();
     _planSyncTimer?.cancel();
     _purchaseStreamSubscription?.cancel();
     _mapPoiReloadController.dispose();
@@ -609,15 +618,6 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     });
   }
 
-  void _clearQuickFilters() {
-    if (_activeQuickFilters.isEmpty) {
-      return;
-    }
-    setState(() {
-      _activeQuickFilters.clear();
-    });
-  }
-
   List<QuickFilterChipData> _buildQuickFilterChips() {
     return <QuickFilterChipData>[
       QuickFilterChipData(
@@ -996,6 +996,75 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     unawaited(_reloadMapImages());
     _scheduleMapPoiReload(_mapController.camera.center, force: true);
     _maybeStartOpeningSearchIntro();
+    _maybeShowMapTutorialOverlay();
+  }
+
+  Future<void> _loadMapTutorialState() async {
+    bool hasSeen = false;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      hasSeen = prefs.getBool(_mapTutorialSeenPrefKey) ?? false;
+    } catch (_) {
+      // Falha de leitura local nao impede o app.
+    }
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _hasSeenMapTutorial = hasSeen;
+      _hasLoadedMapTutorialState = true;
+    });
+    _maybeShowMapTutorialOverlay();
+  }
+
+  void _maybeShowMapTutorialOverlay() {
+    if (!_hasLoadedMapTutorialState ||
+        _hasSeenMapTutorial ||
+        _showMapTutorialOverlay ||
+        !widget.showMap ||
+        !_isMapReady ||
+        !_hasCompletedInitialLocationAttempt ||
+        _selectedGym != null) {
+      return;
+    }
+    setState(() {
+      _showMapTutorialOverlay = true;
+    });
+    _mapTutorialDismissTimer?.cancel();
+    _mapTutorialDismissTimer = Timer(const Duration(seconds: 8), () {
+      _dismissMapTutorialOverlay();
+    });
+  }
+
+  Future<void> _dismissMapTutorialOverlay({bool persist = true}) async {
+    _mapTutorialDismissTimer?.cancel();
+    if (mounted && _showMapTutorialOverlay) {
+      setState(() {
+        _showMapTutorialOverlay = false;
+      });
+    }
+    if (!persist || _hasSeenMapTutorial) {
+      return;
+    }
+    _hasSeenMapTutorial = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_mapTutorialSeenPrefKey, true);
+    } catch (_) {
+      // Falha de escrita local nao interrompe o fluxo.
+    }
+  }
+
+  void _highlightNearestGymFromTutorial() {
+    final gyms = _filteredGyms;
+    final origin = _userLocation ?? _fallbackMapCenter;
+    final nearest = _nearestGymTo(origin, gyms);
+    if (nearest == null) {
+      _showMapSnack('Nenhuma academia disponivel para destacar agora.');
+      return;
+    }
+    unawaited(_dismissMapTutorialOverlay());
+    _selectGym(nearest);
   }
 
   void _maybeStartOpeningSearchIntro() {
@@ -1072,6 +1141,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     setState(() {
       _showMarkerDetails = true;
     });
+    _maybeShowMapTutorialOverlay();
   }
 
   String _resolveCrowdReporterId() {
@@ -1308,6 +1378,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       }
       _hasCompletedInitialLocationAttempt = true;
       _maybeStartOpeningSearchIntro();
+      _maybeShowMapTutorialOverlay();
     }
   }
 
@@ -2094,6 +2165,320 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   bool get _hasEliteInsights => _activePlan == AppPlanTier.elite;
   bool get _hasNationwideCoverage => _activePlan == AppPlanTier.elite;
 
+  int _planTierWeight(AppPlanTier tier) {
+    switch (tier) {
+      case AppPlanTier.free:
+        return 0;
+      case AppPlanTier.smart:
+        return 1;
+      case AppPlanTier.pro:
+        return 2;
+      case AppPlanTier.elite:
+        return 3;
+    }
+  }
+
+  ProductDetails? _playProductForTier(AppPlanTier tier) {
+    final productId = _planProductIds[tier];
+    if (productId == null || productId.trim().isEmpty) {
+      return null;
+    }
+    for (final product in _playProducts) {
+      if (product.id == productId) {
+        return product;
+      }
+    }
+    return null;
+  }
+
+  String _planPriceLabel(AppPlanTier tier) {
+    if (tier == AppPlanTier.free) {
+      return 'R\$ 0/mes';
+    }
+    final playProduct = _playProductForTier(tier);
+    if (playProduct != null) {
+      final price = playProduct.price.trim();
+      if (price.isNotEmpty) {
+        return '$price/mes';
+      }
+    }
+    return kPlanCatalog[tier]!.monthlyPrice;
+  }
+
+  String _planActionLabel(AppPlanTier tier, AppPlanTier current) {
+    if (tier == current) {
+      return 'Plano atual';
+    }
+    if (tier == AppPlanTier.free) {
+      return current == AppPlanTier.free
+          ? 'Continuar gratis'
+          : 'Voltar ao gratuito';
+    }
+    if (_planTierWeight(tier) > _planTierWeight(current)) {
+      return current == AppPlanTier.free ? 'Assinar' : 'Fazer upgrade';
+    }
+    return 'Trocar plano';
+  }
+
+  Widget _buildPlanOfferCard({
+    required BuildContext sheetContext,
+    required AppPlanTier tier,
+    required AppPlanTier current,
+    required bool isRecommended,
+  }) {
+    final plan = kPlanCatalog[tier]!;
+    final isCurrent = tier == current;
+    final isActionEnabled =
+        !_isLoadingPlanSubscription && !_isStartingStoreCheckout && !isCurrent;
+    final actionLabel = _planActionLabel(tier, current);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color:
+              isRecommended
+                  ? withUiOpacity(
+                    Theme.of(sheetContext).colorScheme.primary,
+                    0.4,
+                  )
+                  : withUiOpacity(GymMapColors.northControl, 0.10),
+          width: isRecommended ? 1.6 : 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  plan.label,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 18,
+                    color:
+                        isRecommended
+                            ? Theme.of(sheetContext).colorScheme.primary
+                            : GymMapColors.textPrimary,
+                  ),
+                ),
+              ),
+              if (isRecommended)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: withUiOpacity(
+                      Theme.of(sheetContext).colorScheme.primary,
+                      0.12,
+                    ),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    'MAIS POPULAR',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      color: Theme.of(sheetContext).colorScheme.primary,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _planPriceLabel(tier),
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              color: GymMapColors.textStrong,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...plan.insights
+              .take(4)
+              .map(
+                (feature) => Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.check_circle,
+                        size: 14,
+                        color:
+                            isRecommended
+                                ? Theme.of(sheetContext).colorScheme.primary
+                                : GymMapColors.occupancyLow,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          feature,
+                          style: const TextStyle(
+                            color: GymMapColors.textStrong,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child:
+                isCurrent
+                    ? OutlinedButton.icon(
+                      onPressed: null,
+                      icon: const Icon(Icons.check_circle_outline),
+                      label: Text(actionLabel),
+                    )
+                    : ElevatedButton.icon(
+                      onPressed:
+                          isActionEnabled
+                              ? () {
+                                _onPlanPicked(tier, sheetContext);
+                              }
+                              : null,
+                      icon:
+                          _isStartingStoreCheckout && tier != AppPlanTier.free
+                              ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                              : Icon(
+                                tier == AppPlanTier.free
+                                    ? Icons.arrow_back
+                                    : Icons.rocket_launch,
+                              ),
+                      label: Text(actionLabel),
+                    ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlanComparisonMatrix() {
+    const rows = <({String feature, Set<AppPlanTier> available})>[
+      (
+        feature: 'Lotacao em tempo real',
+        available: {
+          AppPlanTier.free,
+          AppPlanTier.smart,
+          AppPlanTier.pro,
+          AppPlanTier.elite,
+        },
+      ),
+      (
+        feature: 'Historico 24h',
+        available: {AppPlanTier.smart, AppPlanTier.pro, AppPlanTier.elite},
+      ),
+      (
+        feature: 'Pico e comparativo',
+        available: {AppPlanTier.pro, AppPlanTier.elite},
+      ),
+      (feature: 'Previsao e alertas', available: {AppPlanTier.elite}),
+      (feature: 'Cobertura nacional', available: {AppPlanTier.elite}),
+    ];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: withUiOpacity(GymMapColors.northControl, 0.10),
+        ),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 360),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Comparativo rapido',
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: GymMapColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Expanded(flex: 3, child: SizedBox.shrink()),
+                  for (final tier in AppPlanTier.values)
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          kPlanCatalog[tier]!.label[0],
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: GymMapColors.textStrong,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              ...rows.map((row) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: Text(
+                          row.feature,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: GymMapColors.textStrong,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      for (final tier in AppPlanTier.values)
+                        Expanded(
+                          child: Center(
+                            child: Icon(
+                              row.available.contains(tier)
+                                  ? Icons.check_circle
+                                  : Icons.remove_circle_outline,
+                              size: 16,
+                              color:
+                                  row.available.contains(tier)
+                                      ? GymMapColors.occupancyLow
+                                      : GymMapColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _openPlanSettings() {
     unawaited(_syncPlanFromStorage(showExpiryNotice: true));
     showModalBottomSheet<void>(
@@ -2105,6 +2490,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         final service = _planSubscriptionService;
         final hasRemoteBackend = service?.hasRemoteBackend ?? false;
         final hasAuthSession = service?.hasAuthSession ?? false;
+        const recommendedTier = AppPlanTier.pro;
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
@@ -2113,8 +2499,47 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Configurações de plano',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                    'Desbloqueie o maximo do GymMap',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Escolha o plano ideal para lotacao, previsao e comparativos.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: GymMapColors.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color: withUiOpacity(
+                        Theme.of(context).colorScheme.primary,
+                        0.08,
+                      ),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.auto_awesome, size: 16),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '+10.000 usuarios premium ativos',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              color: GymMapColors.textStrong,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
@@ -2145,7 +2570,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                       color: GymMapColors.textSecondary,
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
@@ -2190,38 +2615,29 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                   ),
                   const SizedBox(height: 12),
                   ...AppPlanTier.values.map((tier) {
-                    final info = kPlanCatalog[tier]!;
-                    final selected = tier == current;
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      child: RadioListTile<AppPlanTier>(
-                        value: tier,
-                        groupValue: _activePlan,
-                        onChanged:
-                            _isLoadingPlanSubscription
-                                ? null
-                                : (value) {
-                                  if (value == null) {
-                                    return;
-                                  }
-                                  _onPlanPicked(value, context);
-                                },
-                        title: Text(
-                          '${info.label} - ${info.monthlyPrice}',
-                          style: TextStyle(
-                            fontWeight:
-                                selected ? FontWeight.w800 : FontWeight.w700,
-                          ),
-                        ),
-                        subtitle: Text(
-                          info.insights.join(' | '),
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                        dense: false,
-                        controlAffinity: ListTileControlAffinity.trailing,
-                      ),
+                    return _buildPlanOfferCard(
+                      sheetContext: context,
+                      tier: tier,
+                      current: current,
+                      isRecommended: tier == recommendedTier,
                     );
                   }),
+                  const SizedBox(height: 4),
+                  _buildPlanComparisonMatrix(),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: Text(
+                        current == AppPlanTier.free
+                            ? 'Continuar com plano gratuito'
+                            : 'Fechar',
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -2319,7 +2735,6 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                             key: ValueKey<int>(_activeQuickFilters.length),
                             filters: quickFilterChips,
                             onToggle: _toggleQuickFilterById,
-                            onClearAll: _clearQuickFilters,
                           ),
                         ),
                         const SizedBox(height: 10),
@@ -2383,6 +2798,10 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     Map<String, GymCrowdSnapshot> snapshotsByGymId,
     List<MapGymPoi> mapPois,
   ) {
+    const controlsRight = 14.0;
+    const controlsTop = 16.0;
+    const controlsGap = 58.0;
+
     if (!widget.showMap) {
       return const MapStatusCard(message: 'Mapa desativado no modo de teste');
     }
@@ -2462,15 +2881,24 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
           ),
 
           Positioned(
-            right: 12,
-            top: 12,
+            right: controlsRight,
+            top: controlsTop,
             child: NorthResetButton(onTap: _resetNorthOrientation),
           ),
           Positioned(
-            right: 12,
-            top: 68,
+            right: controlsRight,
+            top: controlsTop + controlsGap,
             child: MyLocationButton(onTap: _centerMapOnDeviceLocation),
           ),
+          if (_showMapTutorialOverlay)
+            Positioned.fill(
+              child: MapTutorialOverlay(
+                onDismiss: () {
+                  unawaited(_dismissMapTutorialOverlay());
+                },
+                onFocusNearestGym: _highlightNearestGymFromTutorial,
+              ),
+            ),
         ],
       ),
     );
