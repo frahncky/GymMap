@@ -263,6 +263,9 @@ class MapQuickFiltersBar extends StatelessWidget {
   }
 
   int _chipFlex(QuickFilterChipData filter) {
+    if (filter.id == 'open') {
+      return 3;
+    }
     if (filter.id == 'low') {
       return 3;
     }

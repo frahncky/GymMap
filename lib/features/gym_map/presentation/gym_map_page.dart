@@ -38,7 +38,14 @@ class GymMapPage extends StatefulWidget {
 
 enum AppPlanTier { free, smart, pro, elite }
 
-enum MapQuickFilter { lowCrowd, withClasses, withCardio, withPool, favorites }
+enum MapQuickFilter {
+  openNow,
+  lowCrowd,
+  withClasses,
+  withCardio,
+  withPool,
+  favorites,
+}
 
 class PlanInfo {
   const PlanInfo({
@@ -541,6 +548,10 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     required Gym gym,
     required GymCrowdSnapshot snapshot,
   }) {
+    if (_activeQuickFilters.contains(MapQuickFilter.openNow) &&
+        !_isGymOpenNow(gym)) {
+      return false;
+    }
     if (_activeQuickFilters.contains(MapQuickFilter.lowCrowd) &&
         snapshot.occupancyPercent > 45) {
       return false;
@@ -595,6 +606,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
 
   MapQuickFilter? _quickFilterFromId(String id) {
     switch (id) {
+      case 'open':
+        return MapQuickFilter.openNow;
       case 'low':
         return MapQuickFilter.lowCrowd;
       case 'classes':
@@ -649,6 +662,12 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   List<QuickFilterChipData> _buildQuickFilterChips() {
     return <QuickFilterChipData>[
       QuickFilterChipData(
+        id: 'open',
+        label: 'Abertas',
+        icon: Icons.schedule_rounded,
+        selected: _activeQuickFilters.contains(MapQuickFilter.openNow),
+      ),
+      QuickFilterChipData(
         id: 'low',
         label: 'Lotação baixa',
         icon: Icons.trending_down_rounded,
@@ -679,6 +698,19 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         selected: _activeQuickFilters.contains(MapQuickFilter.favorites),
       ),
     ];
+  }
+
+  bool _isGymOpenNow(Gym gym) {
+    final now = DateTime.now();
+    final hour = now.hour;
+    final weekday = now.weekday;
+    // Janela local heuristica enquanto nao existe cadastro oficial de horarios.
+    final (openHour, closeHour) = switch (weekday) {
+      DateTime.saturday => (8, 20),
+      DateTime.sunday => (8, 14),
+      _ => (6, 23),
+    };
+    return hour >= openHour && hour < closeHour;
   }
 
   bool _samePoiList(List<MapGymPoi> left, List<MapGymPoi> right) {
@@ -2819,7 +2851,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    'Escolha o plano ideal para lotacao, previsao e comparativos.',
+                    'Escolha o plano ideal para lotação, previsão e comparativos.',
                     style: TextStyle(
                       fontSize: 13,
                       color: GymMapColors.textSecondary,
