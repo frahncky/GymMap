@@ -9,14 +9,59 @@ void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+const String _themeModePrefKey = 'gymmap_pref_dark_mode_v1';
+
+class MyApp extends StatefulWidget {
   const MyApp({super.key, this.showMap = true});
 
   final bool showMap;
 
   @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  bool _useDarkTheme = false;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_loadThemePreference());
+  }
+
+  Future<void> _loadThemePreference() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final useDark = prefs.getBool(_themeModePrefKey) ?? false;
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _useDarkTheme = useDark;
+      });
+    } catch (_) {
+      // Falha local nao deve bloquear o app.
+    }
+  }
+
+  Future<void> _setDarkThemeEnabled(bool enabled) async {
+    if (_useDarkTheme == enabled) {
+      return;
+    }
+    setState(() {
+      _useDarkTheme = enabled;
+    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_themeModePrefKey, enabled);
+    } catch (_) {
+      // Falha local nao deve interromper fluxo.
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final colorScheme = ColorScheme.fromSeed(
+    final lightColorScheme = ColorScheme.fromSeed(
       seedColor: const Color(0xFF0B7A60),
     ).copyWith(
       primary: const Color(0xFF0D8B6E),
@@ -24,13 +69,22 @@ class MyApp extends StatelessWidget {
       surface: const Color(0xFFF4FBF8),
       onSurface: const Color(0xFF143F36),
     );
+    final darkColorScheme = ColorScheme.fromSeed(
+      seedColor: const Color(0xFF0B7A60),
+      brightness: Brightness.dark,
+    ).copyWith(
+      primary: const Color(0xFF39B08D),
+      secondary: const Color(0xFF73C9B2),
+      surface: const Color(0xFF0F1C1A),
+      onSurface: const Color(0xFFE6F3EF),
+    );
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'GymMap',
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: colorScheme,
+        colorScheme: lightColorScheme,
         scaffoldBackgroundColor: const Color(0xFFEAF5F1),
         fontFamily: 'Trebuchet MS',
         textTheme: const TextTheme(
@@ -62,14 +116,14 @@ class MyApp extends StatelessWidget {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: colorScheme.primary, width: 1.4),
+            borderSide: BorderSide(color: lightColorScheme.primary, width: 1.4),
           ),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             elevation: 0,
             foregroundColor: Colors.white,
-            backgroundColor: colorScheme.primary,
+            backgroundColor: lightColorScheme.primary,
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
@@ -82,26 +136,44 @@ class MyApp extends StatelessWidget {
         ),
         sliderTheme: SliderThemeData(
           trackHeight: 4.5,
-          activeTrackColor: colorScheme.primary,
+          activeTrackColor: lightColorScheme.primary,
           inactiveTrackColor: const Color(0xFFDDECE6),
-          thumbColor: colorScheme.primary,
+          thumbColor: lightColorScheme.primary,
           overlayColor: const Color(0x2E0D8B6E),
-          valueIndicatorColor: colorScheme.primary,
+          valueIndicatorColor: lightColorScheme.primary,
           valueIndicatorTextStyle: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w700,
           ),
         ),
       ),
-      home: AppShell(showMap: showMap),
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        colorScheme: darkColorScheme,
+        scaffoldBackgroundColor: const Color(0xFF0A1513),
+        fontFamily: 'Trebuchet MS',
+      ),
+      themeMode: _useDarkTheme ? ThemeMode.dark : ThemeMode.light,
+      home: AppShell(
+        showMap: widget.showMap,
+        useDarkTheme: _useDarkTheme,
+        onThemeModeChanged: _setDarkThemeEnabled,
+      ),
     );
   }
 }
 
 class AppShell extends StatefulWidget {
-  const AppShell({super.key, required this.showMap});
+  const AppShell({
+    super.key,
+    required this.showMap,
+    required this.useDarkTheme,
+    required this.onThemeModeChanged,
+  });
 
   final bool showMap;
+  final bool useDarkTheme;
+  final ValueChanged<bool> onThemeModeChanged;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -129,7 +201,11 @@ class _AppShellState extends State<AppShell> {
         onOpenMap: _goToMapTab,
       ),
       _CommunityFeedPage(onContributeTap: _goToMapTab),
-      _ProfilePage(onOpenMap: _goToMapTab),
+      _ProfilePage(
+        onOpenMap: _goToMapTab,
+        useDarkTheme: widget.useDarkTheme,
+        onThemeModeChanged: widget.onThemeModeChanged,
+      ),
     ];
 
     return Scaffold(
@@ -451,32 +527,42 @@ class _ProfilePreferences {
     required this.locationAlerts,
     required this.hapticFeedback,
     required this.dataSaverMode,
+    required this.darkThemeEnabled,
   });
 
   final bool pushNotifications;
   final bool locationAlerts;
   final bool hapticFeedback;
   final bool dataSaverMode;
+  final bool darkThemeEnabled;
 
   _ProfilePreferences copyWith({
     bool? pushNotifications,
     bool? locationAlerts,
     bool? hapticFeedback,
     bool? dataSaverMode,
+    bool? darkThemeEnabled,
   }) {
     return _ProfilePreferences(
       pushNotifications: pushNotifications ?? this.pushNotifications,
       locationAlerts: locationAlerts ?? this.locationAlerts,
       hapticFeedback: hapticFeedback ?? this.hapticFeedback,
       dataSaverMode: dataSaverMode ?? this.dataSaverMode,
+      darkThemeEnabled: darkThemeEnabled ?? this.darkThemeEnabled,
     );
   }
 }
 
 class _ProfilePage extends StatefulWidget {
-  const _ProfilePage({required this.onOpenMap});
+  const _ProfilePage({
+    required this.onOpenMap,
+    required this.useDarkTheme,
+    required this.onThemeModeChanged,
+  });
 
   final VoidCallback onOpenMap;
+  final bool useDarkTheme;
+  final ValueChanged<bool> onThemeModeChanged;
 
   @override
   State<_ProfilePage> createState() => _ProfilePageState();
@@ -487,12 +573,14 @@ class _ProfilePageState extends State<_ProfilePage> {
   static const String _locationAlertsPrefKey = 'gymmap_pref_location_alerts_v1';
   static const String _hapticsPrefKey = 'gymmap_pref_haptics_v1';
   static const String _dataSaverPrefKey = 'gymmap_pref_data_saver_v1';
+  static const String _darkThemePrefKey = _themeModePrefKey;
 
   _ProfilePreferences _preferences = const _ProfilePreferences(
     pushNotifications: true,
     locationAlerts: true,
     hapticFeedback: true,
     dataSaverMode: false,
+    darkThemeEnabled: false,
   );
   bool _isLoading = true;
 
@@ -500,6 +588,19 @@ class _ProfilePageState extends State<_ProfilePage> {
   void initState() {
     super.initState();
     unawaited(_loadProfilePreferences());
+  }
+
+  @override
+  void didUpdateWidget(covariant _ProfilePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.useDarkTheme != widget.useDarkTheme &&
+        _preferences.darkThemeEnabled != widget.useDarkTheme) {
+      setState(() {
+        _preferences = _preferences.copyWith(
+          darkThemeEnabled: widget.useDarkTheme,
+        );
+      });
+    }
   }
 
   Future<void> _loadProfilePreferences() async {
@@ -510,6 +611,8 @@ class _ProfilePageState extends State<_ProfilePage> {
         locationAlerts: prefs.getBool(_locationAlertsPrefKey) ?? true,
         hapticFeedback: prefs.getBool(_hapticsPrefKey) ?? true,
         dataSaverMode: prefs.getBool(_dataSaverPrefKey) ?? false,
+        darkThemeEnabled:
+            prefs.getBool(_darkThemePrefKey) ?? widget.useDarkTheme,
       );
       if (!mounted) {
         return;
@@ -738,6 +841,32 @@ class _ProfilePageState extends State<_ProfilePage> {
                                               hapticFeedback: value,
                                             ),
                                       );
+                                    },
+                                  ),
+                                  SwitchListTile.adaptive(
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                    ),
+                                    title: const Text(
+                                      'Tema escuro',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    subtitle: const Text(
+                                      'Ativar aparencia escura em todo o app.',
+                                    ),
+                                    value: _preferences.darkThemeEnabled,
+                                    onChanged: (value) {
+                                      _updatePreference(
+                                        value: value,
+                                        prefKey: _darkThemePrefKey,
+                                        reducer:
+                                            (current) => current.copyWith(
+                                              darkThemeEnabled: value,
+                                            ),
+                                      );
+                                      widget.onThemeModeChanged(value);
                                     },
                                   ),
                                   SwitchListTile.adaptive(
