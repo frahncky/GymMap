@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -127,20 +129,7 @@ class _AppShellState extends State<AppShell> {
         onOpenMap: _goToMapTab,
       ),
       _CommunityFeedPage(onContributeTap: _goToMapTab),
-      _ShellPlaceholderPage(
-        icon: Icons.person_rounded,
-        title: 'Perfil',
-        subtitle:
-            'Gerencie sua conta, preferências e assinatura em um espaco dedicado.',
-        tone: const Color(0xFF3B82F6),
-        bullets: const <String>[
-          'Dados da conta e seguranca',
-          'Plano ativo e historico de assinatura',
-          'Preferencias de notificacoes',
-        ],
-        ctaLabel: 'Abrir mapa',
-        onPressed: _goToMapTab,
-      ),
+      _ProfilePage(onOpenMap: _goToMapTab),
     ];
 
     return Scaffold(
@@ -451,6 +440,350 @@ class _FavoritesPageState extends State<_FavoritesPage> {
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+class _ProfilePreferences {
+  const _ProfilePreferences({
+    required this.pushNotifications,
+    required this.locationAlerts,
+    required this.hapticFeedback,
+    required this.dataSaverMode,
+  });
+
+  final bool pushNotifications;
+  final bool locationAlerts;
+  final bool hapticFeedback;
+  final bool dataSaverMode;
+
+  _ProfilePreferences copyWith({
+    bool? pushNotifications,
+    bool? locationAlerts,
+    bool? hapticFeedback,
+    bool? dataSaverMode,
+  }) {
+    return _ProfilePreferences(
+      pushNotifications: pushNotifications ?? this.pushNotifications,
+      locationAlerts: locationAlerts ?? this.locationAlerts,
+      hapticFeedback: hapticFeedback ?? this.hapticFeedback,
+      dataSaverMode: dataSaverMode ?? this.dataSaverMode,
+    );
+  }
+}
+
+class _ProfilePage extends StatefulWidget {
+  const _ProfilePage({required this.onOpenMap});
+
+  final VoidCallback onOpenMap;
+
+  @override
+  State<_ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<_ProfilePage> {
+  static const String _pushNotificationsPrefKey = 'gymmap_pref_push_v1';
+  static const String _locationAlertsPrefKey = 'gymmap_pref_location_alerts_v1';
+  static const String _hapticsPrefKey = 'gymmap_pref_haptics_v1';
+  static const String _dataSaverPrefKey = 'gymmap_pref_data_saver_v1';
+
+  _ProfilePreferences _preferences = const _ProfilePreferences(
+    pushNotifications: true,
+    locationAlerts: true,
+    hapticFeedback: true,
+    dataSaverMode: false,
+  );
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_loadProfilePreferences());
+  }
+
+  Future<void> _loadProfilePreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final loaded = _ProfilePreferences(
+        pushNotifications: prefs.getBool(_pushNotificationsPrefKey) ?? true,
+        locationAlerts: prefs.getBool(_locationAlertsPrefKey) ?? true,
+        hapticFeedback: prefs.getBool(_hapticsPrefKey) ?? true,
+        dataSaverMode: prefs.getBool(_dataSaverPrefKey) ?? false,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _preferences = loaded;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _persistProfilePreference(String key, bool value) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(key, value);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('Nao foi possivel salvar esta preferencia agora.'),
+        ),
+      );
+    }
+  }
+
+  void _updatePreference({
+    required bool value,
+    required String prefKey,
+    required _ProfilePreferences Function(_ProfilePreferences current) reducer,
+  }) {
+    setState(() {
+      _preferences = reducer(_preferences);
+    });
+    unawaited(_persistProfilePreference(prefKey, value));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFEAF5F1), Color(0xFFF8FCFB)],
+        ),
+      ),
+      child: SafeArea(
+        child:
+            _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : CustomScrollView(
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Perfil',
+                              style: TextStyle(
+                                fontSize: 26,
+                                fontWeight: FontWeight.w900,
+                                color: Color(0xFF123D34),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Conta e preferencias do app.',
+                              style: TextStyle(
+                                color: Color(0xFF527A6F),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: const Color(0xFFE1ECE8),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 56,
+                                    height: 56,
+                                    decoration: BoxDecoration(
+                                      color: primary.withValues(alpha: 0.14),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.person_rounded,
+                                      color: primary,
+                                      size: 30,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Usuario GymMap',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w900,
+                                            color: Color(0xFF1C5649),
+                                          ),
+                                        ),
+                                        SizedBox(height: 3),
+                                        Text(
+                                          'Plano atual: Gratis',
+                                          style: TextStyle(
+                                            color: Color(0xFF527A6F),
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed: widget.onOpenMap,
+                                    child: const Text('Abrir mapa'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: const Color(0xFFE1ECE8),
+                                ),
+                              ),
+                              child: Column(
+                                children: [
+                                  SwitchListTile.adaptive(
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                    ),
+                                    title: const Text(
+                                      'Notificacoes push',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    subtitle: const Text(
+                                      'Receber alertas de lotacao e atualizacoes.',
+                                    ),
+                                    value: _preferences.pushNotifications,
+                                    onChanged: (value) {
+                                      _updatePreference(
+                                        value: value,
+                                        prefKey: _pushNotificationsPrefKey,
+                                        reducer:
+                                            (current) => current.copyWith(
+                                              pushNotifications: value,
+                                            ),
+                                      );
+                                    },
+                                  ),
+                                  SwitchListTile.adaptive(
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                    ),
+                                    title: const Text(
+                                      'Alertas por localizacao',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    subtitle: const Text(
+                                      'Avisar quando houver academia com lotacao baixa perto de voce.',
+                                    ),
+                                    value: _preferences.locationAlerts,
+                                    onChanged: (value) {
+                                      _updatePreference(
+                                        value: value,
+                                        prefKey: _locationAlertsPrefKey,
+                                        reducer:
+                                            (current) => current.copyWith(
+                                              locationAlerts: value,
+                                            ),
+                                      );
+                                    },
+                                  ),
+                                  SwitchListTile.adaptive(
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                    ),
+                                    title: const Text(
+                                      'Feedback vibratorio',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    subtitle: const Text(
+                                      'Usar vibracao em acoes importantes.',
+                                    ),
+                                    value: _preferences.hapticFeedback,
+                                    onChanged: (value) {
+                                      _updatePreference(
+                                        value: value,
+                                        prefKey: _hapticsPrefKey,
+                                        reducer:
+                                            (current) => current.copyWith(
+                                              hapticFeedback: value,
+                                            ),
+                                      );
+                                    },
+                                  ),
+                                  SwitchListTile.adaptive(
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                    ),
+                                    title: const Text(
+                                      'Modo economia de dados',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    subtitle: const Text(
+                                      'Reduzir atualizacoes em segundo plano.',
+                                    ),
+                                    value: _preferences.dataSaverMode,
+                                    onChanged: (value) {
+                                      _updatePreference(
+                                        value: value,
+                                        prefKey: _dataSaverPrefKey,
+                                        reducer:
+                                            (current) => current.copyWith(
+                                              dataSaverMode: value,
+                                            ),
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            const Text(
+                              'Preferencias salvas localmente neste dispositivo.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF527A6F),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                  ],
+                ),
       ),
     );
   }
@@ -809,7 +1142,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          '${report.regionLabel} • ${report.timeAgoLabel}',
+                          '${report.regionLabel} - ${report.timeAgoLabel}',
                           style: const TextStyle(
                             color: Color(0xFF527A6F),
                             fontWeight: FontWeight.w600,
@@ -913,142 +1246,6 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
             ),
             const SliverToBoxAdapter(child: SizedBox(height: 16)),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ShellPlaceholderPage extends StatelessWidget {
-  const _ShellPlaceholderPage({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.tone,
-    required this.bullets,
-    required this.ctaLabel,
-    required this.onPressed,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color tone;
-  final List<String> bullets;
-  final String ctaLabel;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFEAF5F1), Color(0xFFF8FCFB)],
-        ),
-      ),
-      child: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 560),
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: const Color(0xFFE1ECE8)),
-                  boxShadow: const [
-                    BoxShadow(
-                      blurRadius: 20,
-                      offset: Offset(0, 8),
-                      color: Color(0x14000000),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: tone.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Icon(icon, color: tone, size: 28),
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF123D34),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        height: 1.34,
-                        color: Color(0xFF527A6F),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    ...bullets.map((item) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.only(top: 2),
-                              child: Icon(
-                                Icons.check_circle_rounded,
-                                size: 16,
-                                color: tone,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                item,
-                                style: const TextStyle(
-                                  color: Color(0xFF315C52),
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: onPressed,
-                        icon: const Icon(Icons.arrow_back_rounded),
-                        label: Text(ctaLabel),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: tone,
-                          foregroundColor: Colors.white,
-                          minimumSize: const Size.fromHeight(46),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
         ),
       ),
     );
