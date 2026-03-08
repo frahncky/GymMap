@@ -2617,7 +2617,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   Widget _buildPlanComparisonMatrix() {
     const rows = <({String feature, Set<AppPlanTier> available})>[
       (
-        feature: 'Lotacao em tempo real',
+        feature: 'Lotação em tempo real',
         available: {
           AppPlanTier.free,
           AppPlanTier.smart,
@@ -2995,6 +2995,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
             children: [
               GymPageHeader(
                 planLabel: activePlan.label,
+                communityPoints: _communityPoints,
                 onOpenPlanSettings: _openPlanSettings,
               ),
               Expanded(
@@ -3249,6 +3250,24 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     );
   }
 
+  void _openRouteForGym(Gym gym) {
+    _moveMapTo(gym.position, 15.6);
+    final userPoint = _userLocation;
+    if (userPoint == null) {
+      _showMapSnack(
+        'Rota exibida no mapa. Ative sua localização para ver distância estimada.',
+      );
+      return;
+    }
+    final distanceKm =
+        math.sqrt(_distanceSquaredMeters(userPoint, gym.position)) / 1000;
+    final distanceLabel =
+        distanceKm < 1
+            ? '${(distanceKm * 1000).round()} m'
+            : '${distanceKm.toStringAsFixed(1)} km';
+    _showMapSnack('Rota para ${gym.name}: aproximadamente $distanceLabel.');
+  }
+
   Widget _buildSelectedGymPanel(Gym gym, GymCrowdSnapshot snapshot) {
     final historySampled =
         _hasHistoryInsights
@@ -3289,6 +3308,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       },
       isSubmittingCrowdReport: _isSubmittingCrowdReport,
       onSubmitCrowdReport: _submitCrowdReport,
+      onOpenRoute: () => _openRouteForGym(gym),
       onVerticalDragStart: _onPanelDismissDragStart,
       onVerticalDragUpdate: _onPanelDismissDragUpdate,
       onVerticalDragEnd: _onPanelDismissDragEnd,

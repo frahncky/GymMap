@@ -18,6 +18,7 @@ class SelectedGymPanel extends StatelessWidget {
     required this.onReportPercentChanged,
     required this.isSubmittingCrowdReport,
     required this.onSubmitCrowdReport,
+    required this.onOpenRoute,
     required this.onVerticalDragStart,
     required this.onVerticalDragUpdate,
     required this.onVerticalDragEnd,
@@ -40,6 +41,7 @@ class SelectedGymPanel extends StatelessWidget {
   final ValueChanged<double> onReportPercentChanged;
   final bool isSubmittingCrowdReport;
   final VoidCallback onSubmitCrowdReport;
+  final VoidCallback onOpenRoute;
   final GestureDragStartCallback onVerticalDragStart;
   final GestureDragUpdateCallback onVerticalDragUpdate;
   final GestureDragEndCallback onVerticalDragEnd;
@@ -275,6 +277,15 @@ class SelectedGymPanel extends StatelessWidget {
               style: const TextStyle(
                 color: GymMapColors.textSecondary,
                 fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onOpenRoute,
+                icon: const Icon(Icons.directions_rounded),
+                label: const Text('Ver rota'),
               ),
             ),
             if (hasHistoryInsights && historySampled.isNotEmpty) ...[

@@ -21,10 +21,12 @@ class GymPageHeader extends StatelessWidget {
   const GymPageHeader({
     super.key,
     required this.planLabel,
+    required this.communityPoints,
     required this.onOpenPlanSettings,
   });
 
   final String planLabel;
+  final int communityPoints;
   final VoidCallback onOpenPlanSettings;
 
   @override
@@ -57,12 +59,6 @@ class GymPageHeader extends StatelessWidget {
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                Text(
-                  'Lotacao em tempo real',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: withUiOpacity(Colors.white, 0.85),
-                  ),
-                ),
               ],
             ),
           ),
@@ -78,6 +74,36 @@ class GymPageHeader extends StatelessWidget {
                 color: Colors.white,
                 fontWeight: FontWeight.w800,
                 fontSize: 12,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Semantics(
+            label: 'Pontos da comunidade: $communityPoints',
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+              decoration: BoxDecoration(
+                color: withUiOpacity(Colors.white, 0.16),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.workspace_premium_rounded,
+                    size: 14,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${communityPoints.clamp(0, 1000000)} pts',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -183,25 +209,55 @@ class MapQuickFiltersBar extends StatelessWidget {
           color: withUiOpacity(GymMapColors.northControl, 0.08),
         ),
       ),
-      child: Row(
-        children: [
-          for (var index = 0; index < filters.length; index++)
-            Expanded(
-              flex: _chipFlex(filters[index]),
-              child: Padding(
-                padding: EdgeInsets.only(
-                  right: index == filters.length - 1 ? 0 : 6,
-                ),
-                child: Align(
-                  alignment: Alignment.center,
-                  child: _QuickFilterToggleChip(
-                    filter: filters[index],
-                    onToggle: onToggle,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final availableWidth = constraints.maxWidth;
+          final gapsWidth = (filters.length - 1) * 6;
+          final slotWidth =
+              filters.isEmpty
+                  ? availableWidth
+                  : ((availableWidth - gapsWidth) / filters.length);
+          const minReadableSlotWidth = 100.0;
+          if (slotWidth >= minReadableSlotWidth) {
+            return Row(
+              children: [
+                for (var index = 0; index < filters.length; index++)
+                  Expanded(
+                    flex: _chipFlex(filters[index]),
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        right: index == filters.length - 1 ? 0 : 6,
+                      ),
+                      child: Align(
+                        alignment: Alignment.center,
+                        child: _QuickFilterToggleChip(
+                          filter: filters[index],
+                          onToggle: onToggle,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ),
+              ],
+            );
+          }
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (var index = 0; index < filters.length; index++)
+                  Padding(
+                    padding: EdgeInsets.only(
+                      right: index == filters.length - 1 ? 0 : 6,
+                    ),
+                    child: _QuickFilterToggleChip(
+                      filter: filters[index],
+                      onToggle: onToggle,
+                    ),
+                  ),
+              ],
             ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -358,23 +414,61 @@ class MapStatusCard extends StatelessWidget {
       child: Center(
         child:
             loading
-                ? const Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2.4),
-                    ),
-                    SizedBox(height: 10),
-                    Text(
-                      'Localizando voce...',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: GymMapColors.textStrong,
+                ? TweenAnimationBuilder<double>(
+                  tween: Tween<double>(begin: 0.35, end: 1),
+                  duration: const Duration(milliseconds: 900),
+                  curve: Curves.easeInOut,
+                  builder: (context, opacity, _) {
+                    return Opacity(
+                      opacity: opacity,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 30,
+                            height: 30,
+                            decoration: BoxDecoration(
+                              color: withUiOpacity(
+                                Theme.of(context).colorScheme.primary,
+                                0.12,
+                              ),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Center(
+                              child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.4,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Container(
+                            width: 148,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: withUiOpacity(
+                                GymMapColors.northControl,
+                                0.10 + (0.12 * opacity),
+                              ),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                          ),
+                          const SizedBox(height: 9),
+                          Text(
+                            message,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: GymMapColors.textStrong,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                    );
+                  },
                 )
                 : Text(message),
       ),
