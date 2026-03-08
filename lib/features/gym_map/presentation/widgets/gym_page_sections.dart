@@ -23,11 +23,13 @@ class GymPageHeader extends StatelessWidget {
     required this.planLabel,
     required this.communityPoints,
     required this.onOpenPlanSettings,
+    required this.onOpenCommunityRanking,
   });
 
   final String planLabel;
   final int communityPoints;
   final VoidCallback onOpenPlanSettings;
+  final VoidCallback onOpenCommunityRanking;
 
   @override
   Widget build(BuildContext context) {
@@ -79,31 +81,49 @@ class GymPageHeader extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Semantics(
+            button: true,
             label: 'Pontos da comunidade: $communityPoints',
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-              decoration: BoxDecoration(
-                color: withUiOpacity(Colors.white, 0.16),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.workspace_premium_rounded,
-                    size: 14,
-                    color: Colors.white,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${communityPoints.clamp(0, 1000000)} pts',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 11,
+            hint: 'Toque para abrir o ranking semanal',
+            child: Tooltip(
+              message: 'Abrir ranking da comunidade',
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: onOpenCommunityRanking,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 44),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: withUiOpacity(Colors.white, 0.16),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.workspace_premium_rounded,
+                            size: 14,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${communityPoints.clamp(0, 1000000)} pts',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ],
+                ),
               ),
             ),
           ),

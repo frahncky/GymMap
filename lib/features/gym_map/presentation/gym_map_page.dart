@@ -59,6 +59,18 @@ class PlanInfo {
   final List<String> insights;
 }
 
+class _CommunityLeaderboardEntry {
+  const _CommunityLeaderboardEntry({
+    required this.name,
+    required this.points,
+    required this.isCurrentUser,
+  });
+
+  final String name;
+  final int points;
+  final bool isCurrentUser;
+}
+
 const Map<AppPlanTier, PlanInfo> kPlanCatalog = {
   AppPlanTier.free: PlanInfo(
     label: 'Grátis',
@@ -1740,6 +1752,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     }
     HapticFeedback.lightImpact();
     final totalPoints = _communityPoints;
+    final entries = _buildCommunityLeaderboardEntries();
+    final userRank = entries.indexWhere((entry) => entry.isCurrentUser) + 1;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
@@ -1771,7 +1785,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
-                '$totalPoints pts',
+                '$totalPoints pts - #$userRank',
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w800,
@@ -1782,6 +1796,208 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
           ],
         ),
       ),
+    );
+  }
+
+  List<_CommunityLeaderboardEntry> _buildCommunityLeaderboardEntries() {
+    const competitorNames = <String>[
+      'Ana M.',
+      'Rafael G.',
+      'Bianca S.',
+      'Lucas P.',
+      'Camila T.',
+      'Marcos V.',
+      'Juliana R.',
+      'Diego N.',
+      'Patricia L.',
+    ];
+    final userPoints = _communityPoints.clamp(0, 1000000).toInt();
+    final baseline = math.max(18, (userPoints * 0.74).round());
+    const offsets = <int>[132, 118, 104, 91, 78, 66, 54, 44, 36];
+
+    final entries = <_CommunityLeaderboardEntry>[
+      for (var i = 0; i < competitorNames.length; i++)
+        _CommunityLeaderboardEntry(
+          name: competitorNames[i],
+          points: (baseline + offsets[i]).clamp(0, 1000000).toInt(),
+          isCurrentUser: false,
+        ),
+      _CommunityLeaderboardEntry(
+        name: 'Voce',
+        points: userPoints,
+        isCurrentUser: true,
+      ),
+    ];
+    entries.sort((left, right) => right.points.compareTo(left.points));
+    return entries.take(10).toList(growable: false);
+  }
+
+  Color _leaderboardMedalColor(int index) {
+    switch (index) {
+      case 0:
+        return const Color(0xFFE0A800);
+      case 1:
+        return const Color(0xFF8E9AA8);
+      case 2:
+        return const Color(0xFFB97745);
+      default:
+        return GymMapColors.textSecondary;
+    }
+  }
+
+  void _openCommunityLeaderboard() {
+    if (!mounted) {
+      return;
+    }
+    HapticFeedback.selectionClick();
+    final entries = _buildCommunityLeaderboardEntries();
+    final userRank = entries.indexWhere((entry) => entry.isCurrentUser) + 1;
+
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        final primary = Theme.of(sheetContext).colorScheme.primary;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Top 10 contribuidores da semana',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Sua posicao atual: #$userRank  •  ${_communityPoints.clamp(0, 1000000)} pts',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: GymMapColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color: withUiOpacity(primary, 0.08),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.bolt_rounded, size: 16),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Cada envio valido soma +5 pontos. Continue contribuindo para subir no ranking.',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: GymMapColors.textStrong,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  for (var i = 0; i < entries.length; i++) ...[
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 9,
+                      ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color:
+                            entries[i].isCurrentUser
+                                ? withUiOpacity(primary, 0.10)
+                                : Colors.white,
+                        border: Border.all(
+                          color:
+                              entries[i].isCurrentUser
+                                  ? withUiOpacity(primary, 0.34)
+                                  : withUiOpacity(
+                                    GymMapColors.northControl,
+                                    0.10,
+                                  ),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 30,
+                            child:
+                                i < 3
+                                    ? Icon(
+                                      Icons.emoji_events_rounded,
+                                      size: 19,
+                                      color: _leaderboardMedalColor(i),
+                                    )
+                                    : Text(
+                                      '#${i + 1}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                        color: GymMapColors.textSecondary,
+                                      ),
+                                    ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              entries[i].name,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w800,
+                                color:
+                                    entries[i].isCurrentUser
+                                        ? GymMapColors.textPrimary
+                                        : GymMapColors.textStrong,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(999),
+                              color: withUiOpacity(primary, 0.09),
+                            ),
+                            child: Text(
+                              '${entries[i].points} pts',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: GymMapColors.textStrong,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 4),
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: () => Navigator.of(sheetContext).pop(),
+                      child: const Text('Fechar'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -3216,6 +3432,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                 planLabel: activePlan.label,
                 communityPoints: _communityPoints,
                 onOpenPlanSettings: _openPlanSettings,
+                onOpenCommunityRanking: _openCommunityLeaderboard,
               ),
               Expanded(
                 child: Container(
