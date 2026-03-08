@@ -1460,6 +1460,15 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
 
       var permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
+        final shouldRequest = await _confirmLocationPermissionRequest();
+        if (!shouldRequest) {
+          if (!hasImmediateCenter) {
+            _showMapSnack(
+              'Sem permissão de localização. Você pode ativar isso depois nas configurações.',
+            );
+          }
+          return;
+        }
         permission = await Geolocator.requestPermission();
       }
 
@@ -1519,6 +1528,35 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       _maybeStartOpeningSearchIntro();
       _maybeShowMapTutorialOverlay();
     }
+  }
+
+  Future<bool> _confirmLocationPermissionRequest() async {
+    if (!mounted) {
+      return false;
+    }
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          icon: const Icon(Icons.location_on_outlined),
+          title: const Text('Permitir localizacao?'),
+          content: const Text(
+            'Com a localizacao ativa, o GymMap encontra academias proximas automaticamente e calcula distancia em tempo real.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Agora nao'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Permitir'),
+            ),
+          ],
+        );
+      },
+    );
+    return result ?? false;
   }
 
   void _showMapSnack(String message) {
@@ -3271,6 +3309,20 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     );
   }
 
+  String? _distanceLabelFromUser(Gym gym) {
+    final userPoint = _userLocation;
+    if (userPoint == null) {
+      return null;
+    }
+    final distanceMeters = math.sqrt(
+      _distanceSquaredMeters(userPoint, gym.position),
+    );
+    if (distanceMeters < 1000) {
+      return '${distanceMeters.round()} m de você';
+    }
+    return '${(distanceMeters / 1000).toStringAsFixed(1)} km de você';
+  }
+
   void _openRouteForGym(Gym gym) {
     _moveMapTo(gym.position, 15.6);
     final userPoint = _userLocation;
@@ -3319,6 +3371,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     return SelectedGymPanel(
       gym: gym,
       snapshot: snapshot,
+      distanceFromUserLabel: _distanceLabelFromUser(gym),
       isFavorite: _isFavoriteGymId(gym.id),
       onToggleFavorite: () => _toggleFavoriteGym(gym),
       reportPercent: _reportPercent,

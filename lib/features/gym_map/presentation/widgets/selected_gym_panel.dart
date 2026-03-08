@@ -12,6 +12,7 @@ class SelectedGymPanel extends StatelessWidget {
     super.key,
     required this.gym,
     required this.snapshot,
+    this.distanceFromUserLabel,
     required this.isFavorite,
     required this.onToggleFavorite,
     required this.reportPercent,
@@ -35,6 +36,7 @@ class SelectedGymPanel extends StatelessWidget {
 
   final Gym gym;
   final GymCrowdSnapshot snapshot;
+  final String? distanceFromUserLabel;
   final bool isFavorite;
   final VoidCallback onToggleFavorite;
   final double reportPercent;
@@ -132,6 +134,27 @@ class SelectedGymPanel extends StatelessWidget {
                           color: GymMapColors.panelSubtitle,
                         ),
                       ),
+                      if (distanceFromUserLabel != null) ...[
+                        const SizedBox(height: 3),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.near_me_rounded,
+                              size: 14,
+                              color: GymMapColors.textSecondary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              distanceFromUserLabel!,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: GymMapColors.textSecondary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
