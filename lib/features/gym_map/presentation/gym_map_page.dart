@@ -38,7 +38,7 @@ class GymMapPage extends StatefulWidget {
 
 enum AppPlanTier { free, smart, pro, elite }
 
-enum MapQuickFilter { lowCrowd, withClasses, withCardio }
+enum MapQuickFilter { lowCrowd, withClasses, withCardio, withPool }
 
 class PlanInfo {
   const PlanInfo({
@@ -548,6 +548,10 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         !_gymHasAmenity(gym, 'cardio')) {
       return false;
     }
+    if (_activeQuickFilters.contains(MapQuickFilter.withPool) &&
+        !_gymHasAmenity(gym, 'piscina')) {
+      return false;
+    }
     return true;
   }
 
@@ -588,6 +592,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         return MapQuickFilter.withClasses;
       case 'cardio':
         return MapQuickFilter.withCardio;
+      case 'pool':
+        return MapQuickFilter.withPool;
       default:
         return null;
     }
@@ -624,13 +630,13 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     return <QuickFilterChipData>[
       QuickFilterChipData(
         id: 'low',
-        label: 'Lotacao baixa',
+        label: 'Lotação baixa',
         icon: Icons.trending_down_rounded,
         selected: _activeQuickFilters.contains(MapQuickFilter.lowCrowd),
       ),
       QuickFilterChipData(
         id: 'classes',
-        label: 'Com aulas',
+        label: 'Aulas',
         icon: Icons.groups_2_outlined,
         selected: _activeQuickFilters.contains(MapQuickFilter.withClasses),
       ),
@@ -639,6 +645,12 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         label: 'Cardio',
         icon: Icons.directions_run_outlined,
         selected: _activeQuickFilters.contains(MapQuickFilter.withCardio),
+      ),
+      QuickFilterChipData(
+        id: 'pool',
+        label: 'Piscina',
+        icon: Icons.pool_outlined,
+        selected: _activeQuickFilters.contains(MapQuickFilter.withPool),
       ),
     ];
   }

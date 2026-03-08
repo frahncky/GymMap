@@ -51,7 +51,7 @@ class SelectedGymPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final occupancyAccent = occupancyColor(snapshot.occupancyPercent);
+    final targetOccupancy = snapshot.occupancyPercent.clamp(0, 100).toDouble();
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -129,53 +129,88 @@ class SelectedGymPanel extends StatelessWidget {
                     ],
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    color: withUiOpacity(occupancyAccent, 0.14),
-                    border: Border.all(
-                      color: withUiOpacity(occupancyAccent, 0.22),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                        color: withUiOpacity(occupancyAccent, 0.12),
+                TweenAnimationBuilder<double>(
+                  tween: Tween<double>(end: targetOccupancy),
+                  duration: const Duration(milliseconds: 520),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, animatedOccupancy, _) {
+                    final occupancyPercent = animatedOccupancy.round().clamp(
+                      0,
+                      100,
+                    );
+                    final occupancyAccent = occupancyColor(occupancyPercent);
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
                       ),
-                    ],
-                  ),
-                  child: Text(
-                    '${snapshot.occupancyPercent}%',
-                    style: TextStyle(
-                      color: occupancyAccent,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 16,
-                    ),
-                  ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: withUiOpacity(occupancyAccent, 0.14),
+                        border: Border.all(
+                          color: withUiOpacity(occupancyAccent, 0.22),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                            color: withUiOpacity(occupancyAccent, 0.12),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        '$occupancyPercent%',
+                        style: TextStyle(
+                          color: occupancyAccent,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
             const SizedBox(height: 14),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: LinearProgressIndicator(
-                minHeight: 11,
-                value: snapshot.occupancyPercent / 100,
-                color: occupancyAccent,
-                backgroundColor: GymMapColors.progressBackground,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Status: ${occupancyLabel(snapshot.occupancyPercent)}',
-              style: const TextStyle(
-                color: GymMapColors.textPrimary,
-                fontWeight: FontWeight.w700,
-              ),
+            TweenAnimationBuilder<double>(
+              tween: Tween<double>(end: targetOccupancy),
+              duration: const Duration(milliseconds: 520),
+              curve: Curves.easeOutCubic,
+              builder: (context, animatedOccupancy, _) {
+                final occupancyPercent = animatedOccupancy.round().clamp(
+                  0,
+                  100,
+                );
+                final occupancyAccent = occupancyColor(occupancyPercent);
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: LinearProgressIndicator(
+                        minHeight: 11,
+                        value: occupancyPercent / 100,
+                        color: occupancyAccent,
+                        backgroundColor: GymMapColors.progressBackground,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 240),
+                      child: Text(
+                        'Status: ${occupancyLabel(occupancyPercent)}',
+                        key: ValueKey<String>(
+                          'occupancy-status-$occupancyPercent',
+                        ),
+                        style: const TextStyle(
+                          color: GymMapColors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 4),
             Text(
@@ -286,9 +321,7 @@ class SelectedGymPanel extends StatelessWidget {
                         )
                         : const Icon(Icons.send),
                 label: Text(
-                  isSubmittingCrowdReport
-                      ? 'Enviando relato...'
-                      : 'Enviar relato colaborativo',
+                  isSubmittingCrowdReport ? 'Enviando relato...' : 'Contribuir',
                 ),
               ),
             ),
