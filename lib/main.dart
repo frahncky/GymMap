@@ -1154,6 +1154,8 @@ class _CommunityFeedPage extends StatefulWidget {
 }
 
 class _CommunityFeedPageState extends State<_CommunityFeedPage> {
+  static const String _communityPointsPrefKey = 'gymmap_community_points_v1';
+  static const int _verificationPoints = 2;
   static const List<_CommunityReportItem> _seedReports = <_CommunityReportItem>[
     _CommunityReportItem(
       id: 'report-1',
@@ -1209,11 +1211,13 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
   ];
 
   late final List<_CommunityReportItem> _reports;
+  int _communityPoints = 0;
 
   @override
   void initState() {
     super.initState();
     _reports = List<_CommunityReportItem>.of(_seedReports);
+    unawaited(_loadCommunityPoints());
   }
 
   Color _occupancyColor(int percent) {
@@ -1236,7 +1240,42 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     return 'Alta';
   }
 
+  Future<void> _loadCommunityPoints() async {
+    var points = 0;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      points = prefs.getInt(_communityPointsPrefKey) ?? 0;
+    } catch (_) {
+      // Falha local nao bloqueia uso da comunidade.
+    }
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _communityPoints = points.clamp(0, 1000000).toInt();
+    });
+  }
+
+  Future<void> _persistCommunityPoints() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_communityPointsPrefKey, _communityPoints);
+    } catch (_) {
+      // Falha local nao bloqueia uso da comunidade.
+    }
+  }
+
+  void _showCommunitySnack(String message) {
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(behavior: SnackBarBehavior.floating, content: Text(message)),
+    );
+  }
+
   void _vote(String reportId, _CommunityVote vote) {
+    var pointsDelta = 0;
     setState(() {
       final index = _reports.indexWhere((item) => item.id == reportId);
       if (index < 0) {
@@ -1253,6 +1292,15 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
           confirms--;
         } else if (vote == _CommunityVote.disagree && disagrees > 0) {
           disagrees--;
+        }
+        if (previousVote != null) {
+          pointsDelta = -_verificationPoints;
+        }
+        if (pointsDelta != 0) {
+          _communityPoints = (_communityPoints + pointsDelta).clamp(
+            0,
+            1000000,
+          ).toInt();
         }
         _reports[index] = current.copyWith(
           confirmCount: confirms,
@@ -1274,12 +1322,30 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
         disagrees++;
       }
 
+      if (previousVote == null) {
+        pointsDelta = _verificationPoints;
+      }
+      if (pointsDelta != 0) {
+        _communityPoints = (_communityPoints + pointsDelta).clamp(
+          0,
+          1000000,
+        ).toInt();
+      }
+
       _reports[index] = current.copyWith(
         confirmCount: confirms,
         disagreeCount: disagrees,
         userVote: vote,
       );
     });
+    if (pointsDelta != 0) {
+      unawaited(_persistCommunityPoints());
+      if (pointsDelta > 0) {
+        _showCommunitySnack(
+          'Obrigado por validar! +$pointsDelta pontos na comunidade.',
+        );
+      }
+    }
   }
 
   @override
@@ -1375,6 +1441,47 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                               ),
                             );
                           }),
+                          const SizedBox(height: 4),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE9F6F1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: const Color(0xFFCEE7DD),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.workspace_premium_rounded,
+                                  size: 16,
+                                  color: Color(0xFF1D9A62),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Seus pontos: $_communityPoints',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    color: Color(0xFF1C5649),
+                                  ),
+                                ),
+                                const Spacer(),
+                                const Text(
+                                  '+2 por validacao',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF527A6F),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                           const SizedBox(height: 4),
                           SizedBox(
                             width: double.infinity,
