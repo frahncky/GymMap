@@ -266,6 +266,9 @@ class MapQuickFiltersBar extends StatelessWidget {
     if (filter.id == 'low') {
       return 3;
     }
+    if (filter.id == 'favorites') {
+      return 3;
+    }
     return 2;
   }
 }

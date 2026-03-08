@@ -38,7 +38,7 @@ class GymMapPage extends StatefulWidget {
 
 enum AppPlanTier { free, smart, pro, elite }
 
-enum MapQuickFilter { lowCrowd, withClasses, withCardio, withPool }
+enum MapQuickFilter { lowCrowd, withClasses, withCardio, withPool, favorites }
 
 class PlanInfo {
   const PlanInfo({
@@ -557,6 +557,10 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         !_gymHasAmenity(gym, 'piscina')) {
       return false;
     }
+    if (_activeQuickFilters.contains(MapQuickFilter.favorites) &&
+        !_isFavoriteGymId(gym.id)) {
+      return false;
+    }
     return true;
   }
 
@@ -599,6 +603,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         return MapQuickFilter.withCardio;
       case 'pool':
         return MapQuickFilter.withPool;
+      case 'favorites':
+        return MapQuickFilter.favorites;
       default:
         return null;
     }
@@ -656,6 +662,12 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         label: 'Piscina',
         icon: Icons.pool_outlined,
         selected: _activeQuickFilters.contains(MapQuickFilter.withPool),
+      ),
+      QuickFilterChipData(
+        id: 'favorites',
+        label: 'Favoritas',
+        icon: Icons.favorite_outline_rounded,
+        selected: _activeQuickFilters.contains(MapQuickFilter.favorites),
       ),
     ];
   }
@@ -1104,6 +1116,13 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       } else {
         _favoriteGymIds.add(id);
         added = true;
+      }
+      final selectedGym = _selectedGym;
+      if (!added &&
+          _activeQuickFilters.contains(MapQuickFilter.favorites) &&
+          selectedGym != null &&
+          selectedGym.id == id) {
+        _selectedGym = null;
       }
     });
     HapticFeedback.lightImpact();
@@ -3121,6 +3140,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                 percent:
                     snapshotsByGymId[gym.id]?.occupancyPercent ??
                     gym.baseOccupancyPercent,
+                isFavorite: _isFavoriteGymId(gym.id),
                 selected: gym.id == _selectedGym?.id,
                 revealDetails: _showMarkerDetails,
                 onTap:
@@ -3241,6 +3261,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         child: GymMarkerBubble(
           label: poi.name,
           percent: poiPercent,
+          isFavorite: _isFavoriteGymId(poiGym.id),
           selected: poiGym.id == _selectedGym?.id,
           revealDetails: _showMarkerDetails,
           onTap:

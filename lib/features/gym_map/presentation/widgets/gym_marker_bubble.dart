@@ -9,6 +9,7 @@ class GymMarkerBubble extends StatefulWidget {
     super.key,
     required this.label,
     required this.percent,
+    required this.isFavorite,
     required this.selected,
     required this.revealDetails,
     required this.onTap,
@@ -16,6 +17,7 @@ class GymMarkerBubble extends StatefulWidget {
 
   final String label;
   final int percent;
+  final bool isFavorite;
   final bool selected;
   final bool revealDetails;
   final VoidCallback onTap;
@@ -73,7 +75,8 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
 
     return Semantics(
       button: true,
-      label: '${widget.label}, lotacao de ${widget.percent} por cento',
+      label:
+          '${widget.label}, lotacao de ${widget.percent} por cento${widget.isFavorite ? ', favorita' : ''}',
       hint: 'Toque para abrir os detalhes da academia',
       child: GestureDetector(
         onTap: widget.onTap,
@@ -95,20 +98,38 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
                   curve: Curves.easeOutCubic,
                   child: SizedBox(
                     width: 138,
-                    child: Text(
-                      widget.label,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: GymMapColors.mapLabel,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 13,
-                        height: 1.04,
-                        shadows: [
-                          Shadow(color: GymMapColors.textShadow, blurRadius: 4),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (widget.isFavorite) ...[
+                          const Icon(
+                            Icons.favorite_rounded,
+                            size: 12,
+                            color: GymMapColors.occupancyCritical,
+                          ),
+                          const SizedBox(width: 4),
                         ],
-                      ),
+                        Flexible(
+                          child: Text(
+                            widget.label,
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: GymMapColors.mapLabel,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 13,
+                              height: 1.04,
+                              shadows: [
+                                Shadow(
+                                  color: GymMapColors.textShadow,
+                                  blurRadius: 4,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
