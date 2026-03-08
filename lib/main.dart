@@ -11,6 +11,7 @@ void main() {
 
 const String _themeModePrefKey = 'gymmap_pref_dark_mode_v1';
 const String _shellWelcomeSeenPrefKey = 'gymmap_shell_welcome_seen_v1';
+const Duration _launchSplashDuration = Duration(seconds: 2);
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key, this.showMap = true});
@@ -23,10 +24,23 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   bool _useDarkTheme = false;
+  bool _showLaunchSplash = false;
+  Timer? _launchSplashTimer;
 
   @override
   void initState() {
     super.initState();
+    _showLaunchSplash = widget.showMap;
+    if (_showLaunchSplash) {
+      _launchSplashTimer = Timer(_launchSplashDuration, () {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _showLaunchSplash = false;
+        });
+      });
+    }
     unawaited(_loadThemePreference());
   }
 
@@ -58,6 +72,12 @@ class _MyAppState extends State<MyApp> {
     } catch (_) {
       // Falha local nao deve interromper fluxo.
     }
+  }
+
+  @override
+  void dispose() {
+    _launchSplashTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -155,13 +175,100 @@ class _MyAppState extends State<MyApp> {
         fontFamily: 'Trebuchet MS',
       ),
       themeMode: _useDarkTheme ? ThemeMode.dark : ThemeMode.light,
-      home: AppShell(
-        showMap: widget.showMap,
-        useDarkTheme: _useDarkTheme,
-        onThemeModeChanged: _setDarkThemeEnabled,
+      home:
+          _showLaunchSplash
+              ? const _LaunchSplashView()
+              : AppShell(
+                showMap: widget.showMap,
+                useDarkTheme: _useDarkTheme,
+                onThemeModeChanged: _setDarkThemeEnabled,
+              ),
+    );
+  }
+}
+
+class _LaunchSplashView extends StatelessWidget {
+  const _LaunchSplashView();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              _colorWithAlpha(colorScheme.primary, 0.92),
+              _colorWithAlpha(colorScheme.secondary, 0.86),
+              _colorWithAlpha(colorScheme.primaryContainer, 0.88),
+            ],
+          ),
+        ),
+        child: Center(
+          child: TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: 0.78, end: 1.0),
+            duration: const Duration(milliseconds: 650),
+            curve: Curves.easeOutCubic,
+            builder: (context, value, _) {
+              return Opacity(
+                opacity: value,
+                child: Transform.scale(
+                  scale: value,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 84,
+                        height: 84,
+                        decoration: BoxDecoration(
+                          color: _colorWithAlpha(Colors.white, 0.18),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: _colorWithAlpha(Colors.white, 0.42),
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.fitness_center_rounded,
+                          size: 42,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      const Text(
+                        'GymMap',
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'lotacao em tempo real',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: _colorWithAlpha(Colors.white, 0.92),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
       ),
     );
   }
+}
+
+Color _colorWithAlpha(Color color, double opacity) {
+  final alpha = (opacity.clamp(0.0, 1.0) * 255).round();
+  return color.withAlpha(alpha);
 }
 
 class AppShell extends StatefulWidget {
