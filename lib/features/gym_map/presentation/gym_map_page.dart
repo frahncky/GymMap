@@ -113,6 +113,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   static const String _mapTutorialSeenPrefKey = 'gymmap_map_tutorial_seen_v1';
   static const String _favoriteGymIdsPrefKey = 'gymmap_favorite_gym_ids_v1';
   static const String _communityPointsPrefKey = 'gymmap_community_points_v1';
+  static const String _dataSaverPrefKey = 'gymmap_pref_data_saver_v1';
   static const String _quickFiltersPrefKey = 'gymmap_quick_filters_v1';
   static const double _defaultCoverageRadiusMeters = 50000;
   static const double _eliteCoverageRadiusMeters = 6000000;
@@ -124,6 +125,9 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   static const Duration _mapBrowseCenterUiDebounceDelay = Duration(
     milliseconds: 180,
   );
+  static const Duration _dataSaverPoiReloadCooldown = Duration(seconds: 16);
+  static const Duration _dataSaverCrowdSyncCooldown = Duration(minutes: 3);
+  static const double _dataSaverPoiReloadMinDistanceMeters = 3200;
   static const int _maxMapPoiMarkers = 90;
   static const int _maxMapPoiMarkersZoomedOut = 48;
   static const int _layoutTotalFlex = 100;
@@ -206,8 +210,12 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   bool _hasSeenMapTutorial = false;
   bool _showMapTutorialOverlay = false;
   bool _hasInteractedWithQuickFilters = false;
+  bool _isDataSaverEnabled = false;
   bool _showContributionCelebration = false;
   int _contributionCelebrationTick = 0;
+  LatLng? _lastDataSaverPoiReloadCenter;
+  DateTime? _lastDataSaverPoiReloadAt;
+  DateTime? _lastDataSaverCrowdSyncAt;
   Timer? _mapBrowseCenterUiDebounce;
   Timer? _mapTutorialDismissTimer;
   Timer? _contributionCelebrationTimer;
@@ -244,6 +252,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     unawaited(_loadMapTutorialState());
     unawaited(_loadFavoriteGymIds());
     unawaited(_loadCommunityPoints());
+    unawaited(_loadDataSaverPreference());
     unawaited(_loadQuickFiltersState());
     unawaited(_initializeGymLocationCache());
     unawaited(_initializeCrowdRemoteService());
@@ -259,6 +268,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      unawaited(_loadDataSaverPreference());
       unawaited(_syncPlanFromStorage(showExpiryNotice: false));
       unawaited(_reloadMapImages());
       unawaited(_refreshGymLocationCacheFromRemote());
@@ -376,7 +386,37 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _loadDataSaverPreference() async {
+    var enabled = false;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      enabled = prefs.getBool(_dataSaverPrefKey) ?? false;
+    } catch (_) {
+      // Falha local nao deve bloquear o mapa.
+    }
+    if (!mounted || _isDataSaverEnabled == enabled) {
+      return;
+    }
+    setState(() {
+      _isDataSaverEnabled = enabled;
+      if (!enabled) {
+        _lastDataSaverPoiReloadCenter = null;
+        _lastDataSaverPoiReloadAt = null;
+        _lastDataSaverCrowdSyncAt = null;
+      }
+    });
+  }
+
   Future<void> _syncCrowdReportsForCurrentContext() async {
+    if (_isDataSaverEnabled) {
+      final now = DateTime.now();
+      final lastSync = _lastDataSaverCrowdSyncAt;
+      if (lastSync != null &&
+          now.difference(lastSync) < _dataSaverCrowdSyncCooldown) {
+        return;
+      }
+      _lastDataSaverCrowdSyncAt = now;
+    }
     await _syncCrowdReportsForGyms(_crowdSyncGymIds());
   }
 
@@ -519,6 +559,25 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   void _scheduleMapPoiReload(LatLng center, {bool force = false}) {
     if (!widget.showMap) {
       return;
+    }
+    if (_isDataSaverEnabled && !force) {
+      final now = DateTime.now();
+      final lastReloadAt = _lastDataSaverPoiReloadAt;
+      final lastCenter = _lastDataSaverPoiReloadCenter;
+      if (lastReloadAt != null &&
+          now.difference(lastReloadAt) < _dataSaverPoiReloadCooldown) {
+        return;
+      }
+      if (lastCenter != null &&
+          _isWithinDistanceMeters(
+            center,
+            lastCenter,
+            _dataSaverPoiReloadMinDistanceMeters,
+          )) {
+        return;
+      }
+      _lastDataSaverPoiReloadAt = now;
+      _lastDataSaverPoiReloadCenter = center;
     }
     _mapPoiReloadController.scheduleReload(
       center: center,
