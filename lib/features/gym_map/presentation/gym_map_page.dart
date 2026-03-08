@@ -637,6 +637,15 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     });
   }
 
+  void _clearAllQuickFilters() {
+    if (_activeQuickFilters.isEmpty) {
+      return;
+    }
+    setState(() {
+      _activeQuickFilters.clear();
+    });
+  }
+
   List<QuickFilterChipData> _buildQuickFilterChips() {
     return <QuickFilterChipData>[
       QuickFilterChipData(
@@ -3109,6 +3118,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                             hasNoResults: hasNoSearchResults,
                             hasNoNearbyGyms: hasNoNearbyGyms,
                             hasActiveFilters: _activeQuickFilters.isNotEmpty,
+                            onClearFilters: _clearAllQuickFilters,
                           ),
                         ] else ...[
                           const SizedBox(height: 10),

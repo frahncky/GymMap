@@ -289,46 +289,48 @@ class _QuickFilterToggleChip extends StatelessWidget {
           filter.selected
               ? 'Toque novamente para desativar'
               : 'Toque para ativar',
-      child: FilterChip(
-        showCheckmark: false,
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        labelPadding: const EdgeInsets.symmetric(horizontal: 2),
-        avatarBoxConstraints: const BoxConstraints.tightFor(
-          width: 18,
-          height: 18,
-        ),
-        avatar: Icon(
-          filter.icon,
-          size: 14,
-          color:
-              filter.selected
-                  ? Theme.of(context).colorScheme.primary
-                  : GymMapColors.textSecondary,
-        ),
-        selected: filter.selected,
-        label: Text(filter.label, maxLines: 1),
-        onSelected: (_) => onToggle(filter.id),
-        selectedColor: withUiOpacity(
-          Theme.of(context).colorScheme.primary,
-          0.14,
-        ),
-        backgroundColor: Colors.white,
-        side: BorderSide(
-          color: withUiOpacity(
-            Theme.of(context).colorScheme.primary,
-            filter.selected ? 0.38 : 0.12,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
+        child: FilterChip(
+          showCheckmark: false,
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          labelPadding: const EdgeInsets.symmetric(horizontal: 2),
+          avatarBoxConstraints: const BoxConstraints.tightFor(
+            width: 18,
+            height: 18,
           ),
+          avatar: Icon(
+            filter.icon,
+            size: 14,
+            color:
+                filter.selected
+                    ? Theme.of(context).colorScheme.primary
+                    : GymMapColors.textSecondary,
+          ),
+          selected: filter.selected,
+          label: Text(filter.label, maxLines: 1),
+          onSelected: (_) => onToggle(filter.id),
+          selectedColor: withUiOpacity(
+            Theme.of(context).colorScheme.primary,
+            0.14,
+          ),
+          backgroundColor: Colors.white,
+          side: BorderSide(
+            color: withUiOpacity(
+              Theme.of(context).colorScheme.primary,
+              filter.selected ? 0.38 : 0.12,
+            ),
+          ),
+          labelStyle: TextStyle(
+            color:
+                filter.selected
+                    ? Theme.of(context).colorScheme.primary
+                    : GymMapColors.textStrong,
+            fontWeight: FontWeight.w700,
+            fontSize: 12,
+          ),
+          materialTapTargetSize: MaterialTapTargetSize.padded,
         ),
-        labelStyle: TextStyle(
-          color:
-              filter.selected
-                  ? Theme.of(context).colorScheme.primary
-                  : GymMapColors.textStrong,
-          fontWeight: FontWeight.w700,
-          fontSize: 12,
-        ),
-        visualDensity: const VisualDensity(horizontal: -1, vertical: -1.5),
-        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
     );
   }
@@ -340,11 +342,13 @@ class SelectionHintCard extends StatelessWidget {
     required this.hasNoResults,
     required this.hasNoNearbyGyms,
     this.hasActiveFilters = false,
+    this.onClearFilters,
   });
 
   final bool hasNoResults;
   final bool hasNoNearbyGyms;
   final bool hasActiveFilters;
+  final VoidCallback? onClearFilters;
 
   @override
   Widget build(BuildContext context) {
@@ -363,7 +367,23 @@ class SelectionHintCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Text(message, style: const TextStyle(fontWeight: FontWeight.w600)),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          if (hasNoResults && hasActiveFilters && onClearFilters != null) ...[
+            const SizedBox(width: 10),
+            TextButton(
+              onPressed: onClearFilters,
+              child: const Text('Limpar filtros'),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
