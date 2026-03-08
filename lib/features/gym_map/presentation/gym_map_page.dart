@@ -3020,21 +3020,29 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
 
     final markers = <Marker>[
       for (final gym in gyms)
-        Marker(
-          point: gym.position,
-          width: 250,
-          height: 145,
-          child: GymMarkerBubble(
-            label: gym.name,
-            percent:
-                snapshotsByGymId[gym.id]?.occupancyPercent ??
-                gym.baseOccupancyPercent,
-            selected: gym.id == _selectedGym?.id,
-            revealDetails: _showMarkerDetails,
-            onTap:
-                () => _handleMarkerTap(() => _selectGym(gym, moveMap: false)),
-          ),
-        ),
+        () {
+          final markerScale = _markerScaleForPosition(gym.position);
+          return Marker(
+            point: gym.position,
+            width: 250 * markerScale,
+            height: 145 * markerScale,
+            child: Transform.scale(
+              scale: markerScale,
+              alignment: Alignment.bottomCenter,
+              child: GymMarkerBubble(
+                label: gym.name,
+                percent:
+                    snapshotsByGymId[gym.id]?.occupancyPercent ??
+                    gym.baseOccupancyPercent,
+                selected: gym.id == _selectedGym?.id,
+                revealDetails: _showMarkerDetails,
+                onTap:
+                    () =>
+                        _handleMarkerTap(() => _selectGym(gym, moveMap: false)),
+              ),
+            ),
+          );
+        }(),
       for (final poi in mapPois) _buildPoiMarker(poi),
     ];
     final userPoint = _userLocation;
@@ -3112,20 +3120,45 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     );
   }
 
+  double _markerScaleForPosition(LatLng position) {
+    final userPoint = _userLocation;
+    if (userPoint == null) {
+      return 1.0;
+    }
+    final distanceMeters = math.sqrt(
+      _distanceSquaredMeters(userPoint, position),
+    );
+    const nearScale = 1.14;
+    const farScale = 0.90;
+    const maxDistanceKm = 12.0;
+    final normalizedDistance = (distanceMeters / 1000).clamp(0, maxDistanceKm);
+    final t = normalizedDistance / maxDistanceKm;
+    return (nearScale + ((farScale - nearScale) * t)).clamp(
+      farScale,
+      nearScale,
+    );
+  }
+
   Marker _buildPoiMarker(MapGymPoi poi) {
     final poiGym = _gymFromPoi(poi);
     final poiPercent = _crowdService.snapshotFor(poiGym).occupancyPercent;
+    final markerScale = _markerScaleForPosition(poi.position);
     return Marker(
       key: ValueKey<String>('poi-marker-${poi.id}-$_mapVisualReloadTick'),
       point: poi.position,
-      width: 250,
-      height: 145,
-      child: GymMarkerBubble(
-        label: poi.name,
-        percent: poiPercent,
-        selected: poiGym.id == _selectedGym?.id,
-        revealDetails: _showMarkerDetails,
-        onTap: () => _handleMarkerTap(() => _selectGym(poiGym, moveMap: false)),
+      width: 250 * markerScale,
+      height: 145 * markerScale,
+      child: Transform.scale(
+        scale: markerScale,
+        alignment: Alignment.bottomCenter,
+        child: GymMarkerBubble(
+          label: poi.name,
+          percent: poiPercent,
+          selected: poiGym.id == _selectedGym?.id,
+          revealDetails: _showMarkerDetails,
+          onTap:
+              () => _handleMarkerTap(() => _selectGym(poiGym, moveMap: false)),
+        ),
       ),
     );
   }
