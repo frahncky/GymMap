@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -1204,10 +1205,18 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     ),
   ];
 
-  static const List<(String name, int points)> _leaderboard = <(String, int)>[
-    ('Ana M.', 186),
-    ('Rafael G.', 172),
-    ('Bianca S.', 167),
+  static const List<String> _leaderboardCompetitors = <String>[
+    'Ana M.',
+    'Rafael G.',
+    'Bianca S.',
+    'Lucas P.',
+    'Camila T.',
+    'Marcos V.',
+    'Juliana R.',
+    'Diego N.',
+    'Patricia L.',
+    'Bruno A.',
+    'Carla F.',
   ];
 
   late final List<_CommunityReportItem> _reports;
@@ -1272,6 +1281,52 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(behavior: SnackBarBehavior.floating, content: Text(message)),
     );
+  }
+
+  ({
+    List<({String name, int points, bool isCurrentUser})> entries,
+    int userRank,
+  })
+  _buildLeaderboardData() {
+    final userPoints = _communityPoints.clamp(0, 1000000).toInt();
+    final baseline = math.max(18, (userPoints * 0.74).round());
+    const offsets = <int>[132, 118, 104, 91, 78, 66, 54, 44, 36, 28, 22];
+
+    final allEntries = <({String name, int points, bool isCurrentUser})>[
+      for (var i = 0; i < _leaderboardCompetitors.length; i++)
+        (
+          name: _leaderboardCompetitors[i],
+          points: (baseline + offsets[i]).clamp(0, 1000000).toInt(),
+          isCurrentUser: false,
+        ),
+      (name: 'Voce', points: userPoints, isCurrentUser: true),
+    ];
+    allEntries.sort((left, right) => right.points.compareTo(left.points));
+    final userRank = allEntries.indexWhere((entry) => entry.isCurrentUser) + 1;
+
+    final topEntries = allEntries.take(10).toList(growable: true);
+    if (userRank > 10 && topEntries.isNotEmpty) {
+      topEntries[topEntries.length - 1] = (
+        name: 'Voce',
+        points: userPoints,
+        isCurrentUser: true,
+      );
+    }
+
+    return (entries: topEntries, userRank: userRank);
+  }
+
+  Color _leaderboardMedalColor(int index) {
+    switch (index) {
+      case 0:
+        return const Color(0xFFE0A800);
+      case 1:
+        return const Color(0xFF8E9AA8);
+      case 2:
+        return const Color(0xFFB97745);
+      default:
+        return const Color(0xFF527A6F);
+    }
   }
 
   void _vote(String reportId, _CommunityVote vote) {
@@ -1351,6 +1406,9 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
   @override
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
+    final leaderboardData = _buildLeaderboardData();
+    final leaderboardEntries = leaderboardData.entries;
+    final userRank = leaderboardData.userRank;
     return DecoratedBox(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -1404,40 +1462,77 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          ..._leaderboard.indexed.map((entry) {
+                          Text(
+                            'Sua posicao: #$userRank',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF527A6F),
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          ...leaderboardEntries.indexed.map((entry) {
                             final rank = entry.$1 + 1;
                             final person = entry.$2;
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 6),
-                              child: Row(
-                                children: [
-                                  SizedBox(
-                                    width: 18,
-                                    child: Text(
-                                      '$rank.',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w900,
-                                        color: Color(0xFF527A6F),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color:
+                                      person.isCurrentUser
+                                          ? const Color(0xFFE9F6F1)
+                                          : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Row(
+                                  children: [
+                                    SizedBox(
+                                      width: 22,
+                                      child:
+                                          rank <= 3
+                                              ? Icon(
+                                                Icons.emoji_events_rounded,
+                                                size: 17,
+                                                color: _leaderboardMedalColor(
+                                                  rank - 1,
+                                                ),
+                                              )
+                                              : Text(
+                                                '$rank.',
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.w900,
+                                                  color: Color(0xFF527A6F),
+                                                ),
+                                              ),
+                                    ),
+                                    Expanded(
+                                      child: Text(
+                                        person.name,
+                                        style: TextStyle(
+                                          fontWeight:
+                                              person.isCurrentUser
+                                                  ? FontWeight.w900
+                                                  : FontWeight.w700,
+                                          color: const Color(0xFF315C52),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  Expanded(
-                                    child: Text(
-                                      person.$1,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        color: Color(0xFF315C52),
+                                    Text(
+                                      '${person.points} pts',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                        color:
+                                            person.isCurrentUser
+                                                ? const Color(0xFF1D9A62)
+                                                : const Color(0xFF1C5649),
                                       ),
                                     ),
-                                  ),
-                                  Text(
-                                    '${person.$2} pts',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                      color: Color(0xFF1C5649),
-                                    ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             );
                           }),
