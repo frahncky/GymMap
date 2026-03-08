@@ -110,6 +110,64 @@ class MyLocationButton extends StatelessWidget {
   }
 }
 
+/// Badge de carregamento exibido enquanto os POIs do mapa sao atualizados.
+class MapPoiLoadingBadge extends StatelessWidget {
+  const MapPoiLoadingBadge({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Semantics(
+        container: true,
+        liveRegion: true,
+        label: 'Atualizando academias no mapa',
+        readOnly: true,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: withUiOpacity(Colors.white, 0.95),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: withUiOpacity(GymMapColors.northControl, 0.18),
+            ),
+            boxShadow: const [
+              BoxShadow(
+                blurRadius: 10,
+                offset: Offset(0, 2),
+                color: GymMapColors.floatingControlShadow,
+              ),
+            ],
+          ),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.2,
+                    color: GymMapColors.northControl,
+                  ),
+                ),
+                SizedBox(width: 8),
+                Text(
+                  'Atualizando academias...',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: GymMapColors.textStrong,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Marcador visual da posicao atual do usuario no mapa.
 class UserLocationMarkerDot extends StatelessWidget {
   const UserLocationMarkerDot({super.key});

@@ -13,6 +13,9 @@ class SelectedGymPanel extends StatelessWidget {
     required this.gym,
     required this.snapshot,
     this.distanceFromUserLabel,
+    required this.isOpenNow,
+    required this.openStatusLabel,
+    required this.openHoursLabel,
     required this.isFavorite,
     required this.onToggleFavorite,
     required this.reportPercent,
@@ -37,6 +40,9 @@ class SelectedGymPanel extends StatelessWidget {
   final Gym gym;
   final GymCrowdSnapshot snapshot;
   final String? distanceFromUserLabel;
+  final bool isOpenNow;
+  final String openStatusLabel;
+  final String openHoursLabel;
   final bool isFavorite;
   final VoidCallback onToggleFavorite;
   final double reportPercent;
@@ -155,6 +161,90 @@ class SelectedGymPanel extends StatelessWidget {
                           ],
                         ),
                       ],
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: withUiOpacity(
+                                isOpenNow
+                                    ? GymMapColors.occupancyLow
+                                    : GymMapColors.occupancyCritical,
+                                0.10,
+                              ),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(
+                                color: withUiOpacity(
+                                  isOpenNow
+                                      ? GymMapColors.occupancyLow
+                                      : GymMapColors.occupancyCritical,
+                                  0.24,
+                                ),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isOpenNow
+                                      ? Icons.check_circle_outline_rounded
+                                      : Icons.schedule_rounded,
+                                  size: 13,
+                                  color:
+                                      isOpenNow
+                                          ? GymMapColors.occupancyLow
+                                          : GymMapColors.occupancyCritical,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  openStatusLabel,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color:
+                                        isOpenNow
+                                            ? GymMapColors.occupancyLow
+                                            : GymMapColors.occupancyCritical,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: withUiOpacity(
+                                GymMapColors.textSecondary,
+                                0.08,
+                              ),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(
+                                color: withUiOpacity(
+                                  GymMapColors.textSecondary,
+                                  0.18,
+                                ),
+                              ),
+                            ),
+                            child: Text(
+                              openHoursLabel,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: GymMapColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),

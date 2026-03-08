@@ -101,6 +101,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   static const String _mapTutorialSeenPrefKey = 'gymmap_map_tutorial_seen_v1';
   static const String _favoriteGymIdsPrefKey = 'gymmap_favorite_gym_ids_v1';
   static const String _communityPointsPrefKey = 'gymmap_community_points_v1';
+  static const String _quickFiltersPrefKey = 'gymmap_quick_filters_v1';
   static const double _defaultCoverageRadiusMeters = 50000;
   static const double _eliteCoverageRadiusMeters = 6000000;
   static const double _mapPoiReloadMinDistanceMeters = 1800;
@@ -185,11 +186,14 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   int _panelFlex = _panelMinFlex;
   double _panelDragOffset = 0;
   List<MapGymPoi> _mapPois = const [];
+  bool _isLoadingMapPois = false;
+  int _mapPoiLoadingRequests = 0;
   final Map<String, Gym> _generatedGymsByPoiId = <String, Gym>{};
   bool _isResolvingSearchLocation = false;
   bool _hasLoadedMapTutorialState = false;
   bool _hasSeenMapTutorial = false;
   bool _showMapTutorialOverlay = false;
+  bool _hasInteractedWithQuickFilters = false;
   Timer? _mapBrowseCenterUiDebounce;
   Timer? _mapTutorialDismissTimer;
   Timer? _planSyncTimer;
@@ -225,6 +229,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     unawaited(_loadMapTutorialState());
     unawaited(_loadFavoriteGymIds());
     unawaited(_loadCommunityPoints());
+    unawaited(_loadQuickFiltersState());
     unawaited(_initializeGymLocationCache());
     unawaited(_initializeCrowdRemoteService());
     unawaited(_initializePlanSubscription());
@@ -458,36 +463,41 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   }
 
   Future<void> _loadMapPoisAround(LatLng center) async {
-    await _mapPoiReloadController.loadWithQueue(
-      center: center,
-      onLoad: (targetCenter) async {
-        try {
-          final poiList = await _mapPoiController.fetchOverpassPoisAround(
-            center: targetCenter,
-            knownGyms: _gyms,
-          );
-          if (poiList == null) {
-            return false;
-          }
-          if (!mounted) {
-            return false;
-          }
-          _setMapPoisIfChanged(poiList);
-          unawaited(_persistMapPoisToCache(poiList));
-          if (poiList.isNotEmpty) {
-            unawaited(
-              _syncCrowdReportsForGyms(
-                _crowdSyncGymIds(extraGymIds: poiList.map((poi) => poi.id)),
-              ),
+    _beginMapPoiLoading();
+    try {
+      await _mapPoiReloadController.loadWithQueue(
+        center: center,
+        onLoad: (targetCenter) async {
+          try {
+            final poiList = await _mapPoiController.fetchOverpassPoisAround(
+              center: targetCenter,
+              knownGyms: _gyms,
             );
+            if (poiList == null) {
+              return false;
+            }
+            if (!mounted) {
+              return false;
+            }
+            _setMapPoisIfChanged(poiList);
+            unawaited(_persistMapPoisToCache(poiList));
+            if (poiList.isNotEmpty) {
+              unawaited(
+                _syncCrowdReportsForGyms(
+                  _crowdSyncGymIds(extraGymIds: poiList.map((poi) => poi.id)),
+                ),
+              );
+            }
+            return true;
+          } catch (_) {
+            // Falha de rede/API nao deve travar o fluxo local do mapa.
+            return false;
           }
-          return true;
-        } catch (_) {
-          // Falha de rede/API nao deve travar o fluxo local do mapa.
-          return false;
-        }
-      },
-    );
+        },
+      );
+    } finally {
+      _endMapPoiLoading();
+    }
   }
 
   void _scheduleMapPoiReload(LatLng center, {bool force = false}) {
@@ -504,6 +514,29 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         await _loadMapPoisAround(targetCenter);
       },
     );
+  }
+
+  void _beginMapPoiLoading() {
+    _mapPoiLoadingRequests++;
+    if (_isLoadingMapPois || !mounted) {
+      return;
+    }
+    setState(() {
+      _isLoadingMapPois = true;
+    });
+  }
+
+  void _endMapPoiLoading() {
+    if (_mapPoiLoadingRequests <= 0) {
+      return;
+    }
+    _mapPoiLoadingRequests--;
+    if (_mapPoiLoadingRequests > 0 || !_isLoadingMapPois || !mounted) {
+      return;
+    }
+    setState(() {
+      _isLoadingMapPois = false;
+    });
   }
 
   void _onMapPositionChanged(MapCamera camera, bool hasGesture) {
@@ -604,6 +637,23 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         .toList(growable: false);
   }
 
+  String _quickFilterId(MapQuickFilter filter) {
+    switch (filter) {
+      case MapQuickFilter.openNow:
+        return 'open';
+      case MapQuickFilter.lowCrowd:
+        return 'low';
+      case MapQuickFilter.withClasses:
+        return 'classes';
+      case MapQuickFilter.withCardio:
+        return 'cardio';
+      case MapQuickFilter.withPool:
+        return 'pool';
+      case MapQuickFilter.favorites:
+        return 'favorites';
+    }
+  }
+
   MapQuickFilter? _quickFilterFromId(String id) {
     switch (id) {
       case 'open':
@@ -623,6 +673,47 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _loadQuickFiltersState() async {
+    List<String> ids = const <String>[];
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      ids = prefs.getStringList(_quickFiltersPrefKey) ?? const <String>[];
+    } catch (_) {
+      // Falha local nao impede o uso dos filtros na sessao atual.
+    }
+    final restoredFilters = <MapQuickFilter>{};
+    for (final idRaw in ids) {
+      final id = idRaw.trim();
+      if (id.isEmpty) {
+        continue;
+      }
+      final filter = _quickFilterFromId(id);
+      if (filter != null) {
+        restoredFilters.add(filter);
+      }
+    }
+    if (!mounted || _hasInteractedWithQuickFilters) {
+      return;
+    }
+    setState(() {
+      _activeQuickFilters
+        ..clear()
+        ..addAll(restoredFilters);
+    });
+  }
+
+  Future<void> _persistQuickFiltersState() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final ids = _activeQuickFilters
+        .map(_quickFilterId)
+        .toList(growable: false)..sort();
+      await prefs.setStringList(_quickFiltersPrefKey, ids);
+    } catch (_) {
+      // Falha local de persistencia nao deve interromper fluxo.
+    }
+  }
+
   void _toggleQuickFilterById(String id) {
     final filter = _quickFilterFromId(id);
     if (filter == null) {
@@ -632,6 +723,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   }
 
   void _toggleQuickFilter(MapQuickFilter filter) {
+    _hasInteractedWithQuickFilters = true;
     setState(() {
       if (_activeQuickFilters.contains(filter)) {
         _activeQuickFilters.remove(filter);
@@ -648,15 +740,18 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         _selectedGym = null;
       }
     });
+    unawaited(_persistQuickFiltersState());
   }
 
   void _clearAllQuickFilters() {
     if (_activeQuickFilters.isEmpty) {
       return;
     }
+    _hasInteractedWithQuickFilters = true;
     setState(() {
       _activeQuickFilters.clear();
     });
+    unawaited(_persistQuickFiltersState());
   }
 
   List<QuickFilterChipData> _buildQuickFilterChips() {
@@ -700,17 +795,43 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     ];
   }
 
-  bool _isGymOpenNow(Gym gym) {
-    final now = DateTime.now();
-    final hour = now.hour;
-    final weekday = now.weekday;
+  (int openHour, int closeHour) _heuristicOpenWindowForWeekday(int weekday) {
     // Janela local heuristica enquanto nao existe cadastro oficial de horarios.
-    final (openHour, closeHour) = switch (weekday) {
+    return switch (weekday) {
       DateTime.saturday => (8, 20),
       DateTime.sunday => (8, 14),
       _ => (6, 23),
     };
-    return hour >= openHour && hour < closeHour;
+  }
+
+  String _hourTag24(int hour) => '${hour.toString().padLeft(2, '0')}h';
+
+  bool _isGymOpenNow(Gym gym) {
+    final now = DateTime.now();
+    final (openHour, closeHour) = _heuristicOpenWindowForWeekday(now.weekday);
+    return now.hour >= openHour && now.hour < closeHour;
+  }
+
+  String _gymOpenStatusLabel(Gym gym) {
+    final now = DateTime.now();
+    final (openHour, closeHour) = _heuristicOpenWindowForWeekday(now.weekday);
+    final isOpen = _isGymOpenNow(gym);
+    if (isOpen) {
+      return 'Aberta ate ${_hourTag24(closeHour)}';
+    }
+    if (now.hour < openHour) {
+      return 'Abre as ${_hourTag24(openHour)}';
+    }
+    final nextWeekday =
+        now.weekday == DateTime.sunday ? DateTime.monday : now.weekday + 1;
+    final (nextOpenHour, _) = _heuristicOpenWindowForWeekday(nextWeekday);
+    return 'Abre amanha as ${_hourTag24(nextOpenHour)}';
+  }
+
+  String _gymOpenHoursLabel(Gym gym) {
+    final now = DateTime.now();
+    final (openHour, closeHour) = _heuristicOpenWindowForWeekday(now.weekday);
+    return 'Hoje: ${_hourTag24(openHour)} - ${_hourTag24(closeHour)}';
   }
 
   bool _samePoiList(List<MapGymPoi> left, List<MapGymPoi> right) {
@@ -3293,6 +3414,23 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
             top: controlsTop + controlsGap,
             child: MyLocationButton(onTap: _centerMapOnDeviceLocation),
           ),
+          Positioned(
+            left: 12,
+            top: 12,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 180),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              child:
+                  _isLoadingMapPois
+                      ? const MapPoiLoadingBadge(
+                        key: ValueKey<String>('map-poi-loading'),
+                      )
+                      : const SizedBox.shrink(
+                        key: ValueKey<String>('map-poi-idle'),
+                      ),
+            ),
+          ),
           if (_showMapTutorialOverlay)
             Positioned.fill(
               child: MapTutorialOverlay(
@@ -3414,6 +3552,9 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       gym: gym,
       snapshot: snapshot,
       distanceFromUserLabel: _distanceLabelFromUser(gym),
+      isOpenNow: _isGymOpenNow(gym),
+      openStatusLabel: _gymOpenStatusLabel(gym),
+      openHoursLabel: _gymOpenHoursLabel(gym),
       isFavorite: _isFavoriteGymId(gym.id),
       onToggleFavorite: () => _toggleFavoriteGym(gym),
       reportPercent: _reportPercent,

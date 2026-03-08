@@ -51,29 +51,36 @@ class GymMapPoiReloadController {
     required LatLng center,
     required Future<bool> Function(LatLng center) onLoad,
   }) async {
+    _pendingLoadCenter = center;
     if (_isLoading) {
-      _pendingLoadCenter = center;
       return;
     }
-    _pendingLoadCenter = null;
+
     _isLoading = true;
+    LatLng? lastProcessedCenter = _lastLoadCenter;
     try {
-      final loaded = await onLoad(center);
-      if (loaded) {
-        _lastLoadCenter = center;
+      while (true) {
+        final nextCenter = _pendingLoadCenter;
+        _pendingLoadCenter = null;
+        if (nextCenter == null) {
+          break;
+        }
+        if (lastProcessedCenter != null &&
+            GymMapLogic.isWithinDistanceMeters(
+              nextCenter,
+              lastProcessedCenter,
+              _pendingCenterMinDistanceMeters,
+            )) {
+          continue;
+        }
+        final loaded = await onLoad(nextCenter);
+        if (loaded) {
+          _lastLoadCenter = nextCenter;
+        }
+        lastProcessedCenter = nextCenter;
       }
     } finally {
       _isLoading = false;
-      final pendingCenter = _pendingLoadCenter;
-      _pendingLoadCenter = null;
-      if (pendingCenter != null &&
-          !GymMapLogic.isWithinDistanceMeters(
-            pendingCenter,
-            center,
-            _pendingCenterMinDistanceMeters,
-          )) {
-        unawaited(loadWithQueue(center: pendingCenter, onLoad: onLoad));
-      }
     }
   }
 }
