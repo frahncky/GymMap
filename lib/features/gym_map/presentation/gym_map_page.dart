@@ -192,7 +192,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   bool _isMapReady = false;
   bool _hasCompletedInitialLocationAttempt = false;
   bool _hasRunOpeningSearchIntro = false;
-  bool _showMarkerDetails = false;
+  bool _showMarkerDetails = true;
   bool _skipNextMapTapClear = false;
   bool _isPanelDragging = false;
   int _panelFlex = _panelMinFlex;
@@ -1366,8 +1366,15 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     if (!widget.showMap ||
         !_isMapReady ||
         !_hasCompletedInitialLocationAttempt ||
-        _hasRunOpeningSearchIntro ||
-        _userLocation != null) {
+        _hasRunOpeningSearchIntro) {
+      return;
+    }
+    if (_userLocation != null) {
+      if (!_showMarkerDetails && mounted) {
+        setState(() {
+          _showMarkerDetails = true;
+        });
+      }
       return;
     }
     _hasRunOpeningSearchIntro = true;

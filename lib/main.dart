@@ -10,6 +10,7 @@ void main() {
 }
 
 const String _themeModePrefKey = 'gymmap_pref_dark_mode_v1';
+const String _shellWelcomeSeenPrefKey = 'gymmap_shell_welcome_seen_v1';
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key, this.showMap = true});
@@ -182,6 +183,82 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int _selectedIndex = 0;
   int _favoritesRefreshToken = 0;
+  bool _hasSeenWelcome = false;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_loadWelcomeState());
+  }
+
+  Future<void> _loadWelcomeState() async {
+    if (!widget.showMap) {
+      _hasSeenWelcome = true;
+      return;
+    }
+    var seen = false;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      seen = prefs.getBool(_shellWelcomeSeenPrefKey) ?? false;
+    } catch (_) {
+      // Falha local nao deve bloquear o app.
+    }
+    if (!mounted) {
+      return;
+    }
+    _hasSeenWelcome = seen;
+    if (!seen) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        unawaited(_showWelcomeDialog());
+      });
+    }
+  }
+
+  Future<void> _markWelcomeAsSeen() async {
+    _hasSeenWelcome = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_shellWelcomeSeenPrefKey, true);
+    } catch (_) {
+      // Falha local nao deve interromper a experiencia.
+    }
+  }
+
+  Future<void> _showWelcomeDialog() async {
+    if (!mounted || _hasSeenWelcome) {
+      return;
+    }
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        final primary = Theme.of(context).colorScheme.primary;
+        return AlertDialog(
+          icon: Icon(Icons.waving_hand_rounded, color: primary),
+          title: const Text('Bem-vindo ao GymMap'),
+          content: const Text(
+            'Veja lotacao em tempo real, salve favoritas e contribua com a comunidade em poucos toques.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Agora nao'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Explorar mapa'),
+            ),
+          ],
+        );
+      },
+    );
+    if (!mounted) {
+      return;
+    }
+    await _markWelcomeAsSeen();
+    if (result == true) {
+      _goToMapTab();
+    }
+  }
 
   void _goToMapTab() {
     if (_selectedIndex == 0) {
