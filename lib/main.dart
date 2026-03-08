@@ -11,8 +11,6 @@ void main() {
 }
 
 const String _themeModePrefKey = 'gymmap_pref_dark_mode_v1';
-const String _shellWelcomeSeenPrefKey = 'gymmap_shell_welcome_seen_v1';
-const Duration _launchSplashDuration = Duration(seconds: 2);
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key, this.showMap = true});
@@ -25,23 +23,10 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   bool _useDarkTheme = false;
-  bool _showLaunchSplash = false;
-  Timer? _launchSplashTimer;
 
   @override
   void initState() {
     super.initState();
-    _showLaunchSplash = widget.showMap;
-    if (_showLaunchSplash) {
-      _launchSplashTimer = Timer(_launchSplashDuration, () {
-        if (!mounted) {
-          return;
-        }
-        setState(() {
-          _showLaunchSplash = false;
-        });
-      });
-    }
     unawaited(_loadThemePreference());
   }
 
@@ -73,12 +58,6 @@ class _MyAppState extends State<MyApp> {
     } catch (_) {
       // Falha local nao deve interromper fluxo.
     }
-  }
-
-  @override
-  void dispose() {
-    _launchSplashTimer?.cancel();
-    super.dispose();
   }
 
   @override
@@ -176,100 +155,13 @@ class _MyAppState extends State<MyApp> {
         fontFamily: 'Trebuchet MS',
       ),
       themeMode: _useDarkTheme ? ThemeMode.dark : ThemeMode.light,
-      home:
-          _showLaunchSplash
-              ? const _LaunchSplashView()
-              : AppShell(
-                showMap: widget.showMap,
-                useDarkTheme: _useDarkTheme,
-                onThemeModeChanged: _setDarkThemeEnabled,
-              ),
-    );
-  }
-}
-
-class _LaunchSplashView extends StatelessWidget {
-  const _LaunchSplashView();
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              _colorWithAlpha(colorScheme.primary, 0.92),
-              _colorWithAlpha(colorScheme.secondary, 0.86),
-              _colorWithAlpha(colorScheme.primaryContainer, 0.88),
-            ],
-          ),
-        ),
-        child: Center(
-          child: TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0.78, end: 1.0),
-            duration: const Duration(milliseconds: 650),
-            curve: Curves.easeOutCubic,
-            builder: (context, value, _) {
-              return Opacity(
-                opacity: value,
-                child: Transform.scale(
-                  scale: value,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 84,
-                        height: 84,
-                        decoration: BoxDecoration(
-                          color: _colorWithAlpha(Colors.white, 0.18),
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(
-                            color: _colorWithAlpha(Colors.white, 0.42),
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.fitness_center_rounded,
-                          size: 42,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      const Text(
-                        'GymMap',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'lotacao em tempo real',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: _colorWithAlpha(Colors.white, 0.92),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
+      home: AppShell(
+        showMap: widget.showMap,
+        useDarkTheme: _useDarkTheme,
+        onThemeModeChanged: _setDarkThemeEnabled,
       ),
     );
   }
-}
-
-Color _colorWithAlpha(Color color, double opacity) {
-  final alpha = (opacity.clamp(0.0, 1.0) * 255).round();
-  return color.withAlpha(alpha);
 }
 
 class AppShell extends StatefulWidget {
@@ -291,82 +183,6 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int _selectedIndex = 0;
   int _favoritesRefreshToken = 0;
-  bool _hasSeenWelcome = false;
-
-  @override
-  void initState() {
-    super.initState();
-    unawaited(_loadWelcomeState());
-  }
-
-  Future<void> _loadWelcomeState() async {
-    if (!widget.showMap) {
-      _hasSeenWelcome = true;
-      return;
-    }
-    var seen = false;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      seen = prefs.getBool(_shellWelcomeSeenPrefKey) ?? false;
-    } catch (_) {
-      // Falha local nao deve bloquear o app.
-    }
-    if (!mounted) {
-      return;
-    }
-    _hasSeenWelcome = seen;
-    if (!seen) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        unawaited(_showWelcomeDialog());
-      });
-    }
-  }
-
-  Future<void> _markWelcomeAsSeen() async {
-    _hasSeenWelcome = true;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_shellWelcomeSeenPrefKey, true);
-    } catch (_) {
-      // Falha local nao deve interromper a experiencia.
-    }
-  }
-
-  Future<void> _showWelcomeDialog() async {
-    if (!mounted || _hasSeenWelcome) {
-      return;
-    }
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        final primary = Theme.of(context).colorScheme.primary;
-        return AlertDialog(
-          icon: Icon(Icons.waving_hand_rounded, color: primary),
-          title: const Text('Bem-vindo ao GymMap'),
-          content: const Text(
-            'Veja lotacao em tempo real, salve favoritas e contribua com a comunidade em poucos toques.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Agora nao'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Explorar mapa'),
-            ),
-          ],
-        );
-      },
-    );
-    if (!mounted) {
-      return;
-    }
-    await _markWelcomeAsSeen();
-    if (result == true) {
-      _goToMapTab();
-    }
-  }
 
   void _goToMapTab() {
     if (_selectedIndex == 0) {
@@ -1114,6 +930,8 @@ class _CommunityReportItem {
     required this.occupancyPercent,
     required this.confirmCount,
     required this.disagreeCount,
+    this.hasPhoto = false,
+    this.photoCaption,
     this.userVote,
   });
 
@@ -1124,6 +942,8 @@ class _CommunityReportItem {
   final int occupancyPercent;
   final int confirmCount;
   final int disagreeCount;
+  final bool hasPhoto;
+  final String? photoCaption;
   final _CommunityVote? userVote;
 
   _CommunityReportItem copyWith({
@@ -1140,6 +960,8 @@ class _CommunityReportItem {
       occupancyPercent: occupancyPercent,
       confirmCount: confirmCount ?? this.confirmCount,
       disagreeCount: disagreeCount ?? this.disagreeCount,
+      hasPhoto: hasPhoto,
+      photoCaption: photoCaption,
       userVote: clearVote ? null : (userVote ?? this.userVote),
     );
   }
@@ -1166,6 +988,8 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
       occupancyPercent: 38,
       confirmCount: 14,
       disagreeCount: 2,
+      hasPhoto: true,
+      photoCaption: 'Foto enviada apos o treino das 18h.',
     ),
     _CommunityReportItem(
       id: 'report-2',
@@ -1193,6 +1017,8 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
       occupancyPercent: 72,
       confirmCount: 7,
       disagreeCount: 4,
+      hasPhoto: true,
+      photoCaption: 'Foto da sala de pesos no horario de pico.',
     ),
     _CommunityReportItem(
       id: 'report-5',
@@ -1663,6 +1489,55 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
+                        if (report.hasPhoto) ...[
+                          const SizedBox(height: 10),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF2F8F6),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFDCEAE5)),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 56,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(10),
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        tone.withValues(alpha: 0.28),
+                                        const Color(0xFF2B8C77).withValues(
+                                          alpha: 0.24,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.photo_camera_rounded,
+                                    size: 18,
+                                    color: Color(0xFF2D6054),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    report.photoCaption ??
+                                        'Foto enviada pela comunidade.',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF315C52),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 10),
                         Row(
                           children: [

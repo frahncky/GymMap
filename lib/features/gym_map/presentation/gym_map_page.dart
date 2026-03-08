@@ -101,7 +101,7 @@ const Map<AppPlanTier, PlanInfo> kPlanCatalog = {
       'Horários de pico por dia',
       'Comparativo entre academias',
       'Previsão de lotação para próximas horas',
-      'Cobertura em qualquer lugar do pais',
+      'Cobertura em qualquer lugar do país',
       'Alertas personalizados',
     ],
   ),
@@ -1202,6 +1202,13 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
 
   void _onMapReady() {
     _isMapReady = true;
+    if (!_hasCompletedInitialLocationAttempt) {
+      unawaited(_centerMapOnDeviceLocation());
+    }
+    final userPoint = _userLocation;
+    if (userPoint != null) {
+      _moveMapTo(userPoint, 14.8);
+    }
     unawaited(_reloadMapImages());
     _scheduleMapPoiReload(_mapController.camera.center, force: true);
     _maybeStartOpeningSearchIntro();
