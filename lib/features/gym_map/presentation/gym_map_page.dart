@@ -35,6 +35,8 @@ class GymMapPage extends StatefulWidget {
 
 enum AppPlanTier { free, smart, pro, elite }
 
+enum MapQuickFilter { lowCrowd, withClasses, withCardio }
+
 class PlanInfo {
   const PlanInfo({
     required this.label,
@@ -122,6 +124,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   };
 
   final TextEditingController _searchController = TextEditingController();
+  final Set<MapQuickFilter> _activeQuickFilters = <MapQuickFilter>{};
 
   // Controlador do mapa raster (flutter_map).
   final MapController _mapController = MapController();
@@ -507,6 +510,136 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
 
   List<Gym> get _filteredGyms =>
       _applyLocationFilter(_filterGyms(_searchTerm), term: _searchTerm);
+
+  bool _gymHasAmenity(Gym gym, String amenityTerm) {
+    final normalizedTerm = _normalizeSearchTerm(amenityTerm);
+    for (final amenity in gym.amenities) {
+      if (_normalizeSearchTerm(amenity).contains(normalizedTerm)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool _matchesQuickFilters({
+    required Gym gym,
+    required GymCrowdSnapshot snapshot,
+  }) {
+    if (_activeQuickFilters.contains(MapQuickFilter.lowCrowd) &&
+        snapshot.occupancyPercent > 45) {
+      return false;
+    }
+    if (_activeQuickFilters.contains(MapQuickFilter.withClasses) &&
+        !_gymHasAmenity(gym, 'aula')) {
+      return false;
+    }
+    if (_activeQuickFilters.contains(MapQuickFilter.withCardio) &&
+        !_gymHasAmenity(gym, 'cardio')) {
+      return false;
+    }
+    return true;
+  }
+
+  List<Gym> _applyQuickFiltersToGyms(
+    List<Gym> gyms,
+    Map<String, GymCrowdSnapshot> snapshotsByGymId,
+  ) {
+    if (_activeQuickFilters.isEmpty) {
+      return gyms;
+    }
+    return gyms
+        .where((gym) {
+          final snapshot =
+              snapshotsByGymId[gym.id] ?? _crowdService.snapshotFor(gym);
+          return _matchesQuickFilters(gym: gym, snapshot: snapshot);
+        })
+        .toList(growable: false);
+  }
+
+  List<MapGymPoi> _applyQuickFiltersToPois(List<MapGymPoi> pois) {
+    if (_activeQuickFilters.isEmpty) {
+      return pois;
+    }
+    return pois
+        .where((poi) {
+          final gym = _gymFromPoi(poi);
+          final snapshot = _crowdService.snapshotFor(gym);
+          return _matchesQuickFilters(gym: gym, snapshot: snapshot);
+        })
+        .toList(growable: false);
+  }
+
+  MapQuickFilter? _quickFilterFromId(String id) {
+    switch (id) {
+      case 'low':
+        return MapQuickFilter.lowCrowd;
+      case 'classes':
+        return MapQuickFilter.withClasses;
+      case 'cardio':
+        return MapQuickFilter.withCardio;
+      default:
+        return null;
+    }
+  }
+
+  void _toggleQuickFilterById(String id) {
+    final filter = _quickFilterFromId(id);
+    if (filter == null) {
+      return;
+    }
+    _toggleQuickFilter(filter);
+  }
+
+  void _toggleQuickFilter(MapQuickFilter filter) {
+    setState(() {
+      if (_activeQuickFilters.contains(filter)) {
+        _activeQuickFilters.remove(filter);
+      } else {
+        _activeQuickFilters.add(filter);
+      }
+
+      final selectedGym = _selectedGym;
+      if (selectedGym == null) {
+        return;
+      }
+      final selectedSnapshot = _crowdService.snapshotFor(selectedGym);
+      if (!_matchesQuickFilters(gym: selectedGym, snapshot: selectedSnapshot)) {
+        _selectedGym = null;
+      }
+    });
+  }
+
+  void _clearQuickFilters() {
+    if (_activeQuickFilters.isEmpty) {
+      return;
+    }
+    setState(() {
+      _activeQuickFilters.clear();
+    });
+  }
+
+  List<QuickFilterChipData> _buildQuickFilterChips() {
+    return <QuickFilterChipData>[
+      QuickFilterChipData(
+        id: 'low',
+        label: 'Lotacao baixa',
+        icon: Icons.trending_down_rounded,
+        selected: _activeQuickFilters.contains(MapQuickFilter.lowCrowd),
+      ),
+      QuickFilterChipData(
+        id: 'classes',
+        label: 'Com aulas',
+        icon: Icons.groups_2_outlined,
+        selected: _activeQuickFilters.contains(MapQuickFilter.withClasses),
+      ),
+      QuickFilterChipData(
+        id: 'cardio',
+        label: 'Cardio',
+        icon: Icons.directions_run_outlined,
+        selected: _activeQuickFilters.contains(MapQuickFilter.withCardio),
+      ),
+    ];
+  }
 
   bool _samePoiList(List<MapGymPoi> left, List<MapGymPoi> right) {
     return GymMapLogic.samePoiList(left, right);
@@ -2103,12 +2236,20 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     final snapshotsByGymId = <String, GymCrowdSnapshot>{
       for (final gym in _gyms) gym.id: _crowdService.snapshotFor(gym),
     };
-    final filteredGyms = _filteredGyms;
-    final filteredMapPois = _filteredMapPois();
+    final rawFilteredGyms = _filteredGyms;
+    final rawFilteredMapPois = _filteredMapPois();
+    final filteredGyms = _applyQuickFiltersToGyms(
+      rawFilteredGyms,
+      snapshotsByGymId,
+    );
+    final filteredMapPois = _applyQuickFiltersToPois(rawFilteredMapPois);
     final markerGyms = filteredGyms;
+    final quickFilterChips = _buildQuickFilterChips();
     final hasVisiblePins =
         filteredGyms.isNotEmpty || filteredMapPois.isNotEmpty;
-    final hasNoSearchResults = _searchTerm.trim().isNotEmpty && !hasVisiblePins;
+    final hasNoSearchResults =
+        (_searchTerm.trim().isNotEmpty || _activeQuickFilters.isNotEmpty) &&
+        !hasVisiblePins;
     final hasNoNearbyGyms =
         _searchTerm.trim().isEmpty && _userLocation != null && !hasVisiblePins;
     final selectedGym = _selectedGym;
@@ -2170,6 +2311,18 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                               () => _submitSearch(_searchController.text),
                         ),
                         const SizedBox(height: 10),
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 220),
+                          switchInCurve: Curves.easeOutCubic,
+                          switchOutCurve: Curves.easeInCubic,
+                          child: MapQuickFiltersBar(
+                            key: ValueKey<int>(_activeQuickFilters.length),
+                            filters: quickFilterChips,
+                            onToggle: _toggleQuickFilterById,
+                            onClearAll: _clearQuickFilters,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
 
                         if (_isFreePlan) ...[
                           const SizedBox(height: 8),
@@ -2188,6 +2341,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                           SelectionHintCard(
                             hasNoResults: hasNoSearchResults,
                             hasNoNearbyGyms: hasNoNearbyGyms,
+                            hasActiveFilters: _activeQuickFilters.isNotEmpty,
                           ),
                         ] else ...[
                           const SizedBox(height: 10),
@@ -2254,49 +2408,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                 () => _handleMarkerTap(() => _selectGym(gym, moveMap: false)),
           ),
         ),
-      for (final poi in mapPois)
-        Marker(
-          key: ValueKey<String>(poi.id),
-          point: poi.position,
-          width: 190,
-          height: 96,
-          child: GestureDetector(
-            onTap:
-                () => _handleMarkerTap(
-                  () => _selectGym(_gymFromPoi(poi), moveMap: false),
-                ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  poi.name,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: GymMapColors.mapLabel,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 14,
-                    height: 1,
-                    shadows: [
-                      Shadow(color: GymMapColors.textShadow, blurRadius: 4),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 0),
-                Image.asset(
-                  'assets/logo/pinGym.png',
-                  key: ValueKey<String>(
-                    'map-pin-${poi.id}-$_mapVisualReloadTick',
-                  ),
-                  width: 56,
-                  height: 56,
-                  fit: BoxFit.cover,
-                ),
-              ],
-            ),
-          ),
-        ),
+      for (final poi in mapPois) _buildPoiMarker(poi),
     ];
     final userPoint = _userLocation;
     if (userPoint != null) {
@@ -2356,10 +2468,28 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
           ),
           Positioned(
             right: 12,
-            top: 62,
+            top: 68,
             child: MyLocationButton(onTap: _centerMapOnDeviceLocation),
           ),
         ],
+      ),
+    );
+  }
+
+  Marker _buildPoiMarker(MapGymPoi poi) {
+    final poiGym = _gymFromPoi(poi);
+    final poiPercent = _crowdService.snapshotFor(poiGym).occupancyPercent;
+    return Marker(
+      key: ValueKey<String>('poi-marker-${poi.id}-$_mapVisualReloadTick'),
+      point: poi.position,
+      width: 250,
+      height: 145,
+      child: GymMarkerBubble(
+        label: poi.name,
+        percent: poiPercent,
+        selected: poiGym.id == _selectedGym?.id,
+        revealDetails: _showMarkerDetails,
+        onTap: () => _handleMarkerTap(() => _selectGym(poiGym, moveMap: false)),
       ),
     );
   }

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../domain/gym_models.dart';
@@ -47,17 +49,25 @@ class SelectedGymPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final occupancyAccent = occupancyColor(snapshot.occupancyPercent);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Colors.white, Color(0xFFF8FCFA)],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: withUiOpacity(GymMapColors.northControl, 0.08),
+        ),
         boxShadow: const [
           BoxShadow(
-            blurRadius: 14,
+            blurRadius: 18,
             color: GymMapColors.cardShadow,
-            offset: Offset(0, 5),
+            offset: Offset(0, 8),
           ),
         ],
       ),
@@ -82,7 +92,7 @@ class SelectedGymPanel extends StatelessWidget {
                         width: 42,
                         height: 5,
                         decoration: BoxDecoration(
-                          color: GymMapColors.progressBackground,
+                          color: withUiOpacity(GymMapColors.northControl, 0.25),
                           borderRadius: BorderRadius.circular(999),
                         ),
                       ),
@@ -101,7 +111,7 @@ class SelectedGymPanel extends StatelessWidget {
                       Text(
                         gym.name,
                         style: const TextStyle(
-                          fontSize: 20,
+                          fontSize: 21,
                           fontWeight: FontWeight.w800,
                           color: GymMapColors.panelTitle,
                         ),
@@ -124,15 +134,22 @@ class SelectedGymPanel extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
-                    color: withUiOpacity(
-                      occupancyColor(snapshot.occupancyPercent),
-                      0.16,
+                    color: withUiOpacity(occupancyAccent, 0.14),
+                    border: Border.all(
+                      color: withUiOpacity(occupancyAccent, 0.22),
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                        color: withUiOpacity(occupancyAccent, 0.12),
+                      ),
+                    ],
                   ),
                   child: Text(
                     '${snapshot.occupancyPercent}%',
                     style: TextStyle(
-                      color: occupancyColor(snapshot.occupancyPercent),
+                      color: occupancyAccent,
                       fontWeight: FontWeight.w800,
                       fontSize: 16,
                     ),
@@ -144,9 +161,9 @@ class SelectedGymPanel extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(10),
               child: LinearProgressIndicator(
-                minHeight: 12,
+                minHeight: 11,
                 value: snapshot.occupancyPercent / 100,
-                color: occupancyColor(snapshot.occupancyPercent),
+                color: occupancyAccent,
                 backgroundColor: GymMapColors.progressBackground,
               ),
             ),
@@ -275,13 +292,18 @@ class _HistoryInsightsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final peakPoint = sampled.reduce(
+      (current, next) =>
+          next.occupancyPercent > current.occupancyPercent ? next : current,
+    );
+    final average =
+        sampled.fold<int>(0, (total, point) => total + point.occupancyPercent) /
+        sampled.length;
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: GymMapColors.insightPanelBackground,
-        borderRadius: BorderRadius.circular(12),
-      ),
+      padding: const EdgeInsets.all(14),
+      decoration: _insightCardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -293,55 +315,316 @@ class _HistoryInsightsCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _ChartStatChip(
+                label: 'Pico',
+                value:
+                    '${peakPoint.occupancyPercent}% ${_hourTag(peakPoint.time)}',
+              ),
+              _ChartStatChip(label: 'Média', value: '${average.round()}%'),
+            ],
+          ),
+          const SizedBox(height: 10),
           SizedBox(
-            height: 86,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: sampled.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 8),
-              itemBuilder: (context, index) {
-                final point = sampled[index];
-                final barHeight = 12 + (point.occupancyPercent * 0.45);
-                return SizedBox(
-                  width: 34,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text(
-                        '${point.occupancyPercent}%',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: GymMapColors.chartText,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Container(
-                        width: 14,
-                        height: barHeight,
-                        decoration: BoxDecoration(
-                          color: occupancyColor(point.occupancyPercent),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _hourTag(point.time),
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: GymMapColors.chartText,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
+            height: 168,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(top: 8, right: 8, bottom: 25),
+                  child: _HistoryAxisLabels(),
+                ),
+                Expanded(child: _HistoryLineChart(sampled: sampled)),
+              ],
             ),
           ),
         ],
       ),
     );
+  }
+}
+
+class _ChartStatChip extends StatelessWidget {
+  const _ChartStatChip({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: withUiOpacity(GymMapColors.northControl, 0.12),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: GymMapColors.textSecondary,
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: GymMapColors.textStrong,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HistoryAxisLabels extends StatelessWidget {
+  const _HistoryAxisLabels();
+
+  @override
+  Widget build(BuildContext context) {
+    const axisStyle = TextStyle(
+      fontSize: 10,
+      fontWeight: FontWeight.w700,
+      color: GymMapColors.chartText,
+    );
+
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: const [
+        Text('100', style: axisStyle),
+        Text('50', style: axisStyle),
+        Text('0', style: axisStyle),
+      ],
+    );
+  }
+}
+
+class _HistoryLineChart extends StatelessWidget {
+  const _HistoryLineChart({required this.sampled});
+
+  final List<HourlyOccupancyPoint> sampled;
+
+  List<int> _labelIndexes() {
+    if (sampled.length <= 1) {
+      return const <int>[0];
+    }
+    if (sampled.length <= 4) {
+      return List<int>.generate(sampled.length, (index) => index);
+    }
+
+    final raw = <int>[
+      0,
+      sampled.length ~/ 3,
+      (sampled.length * 2) ~/ 3,
+      sampled.length - 1,
+    ];
+    final deduplicated = <int>[];
+    for (final index in raw) {
+      if (!deduplicated.contains(index)) {
+        deduplicated.add(index);
+      }
+    }
+    return deduplicated;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final values = sampled
+        .map((point) => point.occupancyPercent.clamp(0, 100).toDouble())
+        .toList(growable: false);
+    final labelIndexes = _labelIndexes();
+
+    return Column(
+      children: [
+        Expanded(
+          child: RepaintBoundary(
+            child: CustomPaint(
+              painter: _HistoryLineChartPainter(
+                values: values,
+                lineColor: Theme.of(context).colorScheme.primary,
+                gridColor: withUiOpacity(GymMapColors.northControl, 0.10),
+              ),
+              child: const SizedBox.expand(),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            for (final index in labelIndexes)
+              Text(
+                _hourTag(sampled[index].time),
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: GymMapColors.chartText,
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _HistoryLineChartPainter extends CustomPainter {
+  _HistoryLineChartPainter({
+    required this.values,
+    required this.lineColor,
+    required this.gridColor,
+  });
+
+  final List<double> values;
+  final Color lineColor;
+  final Color gridColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (values.isEmpty || size.width <= 0 || size.height <= 0) {
+      return;
+    }
+
+    const topPadding = 8.0;
+    const bottomPadding = 8.0;
+    final chartRect = Rect.fromLTWH(
+      0,
+      topPadding,
+      size.width,
+      size.height - topPadding - bottomPadding,
+    );
+
+    final gridPaint =
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1
+          ..color = gridColor;
+    for (var index = 0; index < 3; index++) {
+      final y = chartRect.top + (chartRect.height * index / 2);
+      canvas.drawLine(
+        Offset(chartRect.left, y),
+        Offset(chartRect.right, y),
+        gridPaint,
+      );
+    }
+
+    final points = _buildPoints(chartRect);
+    if (points.isEmpty) {
+      return;
+    }
+
+    if (points.length > 1) {
+      final curvePath = _buildSmoothPath(points);
+      final areaPath =
+          Path.from(curvePath)
+            ..lineTo(points.last.dx, chartRect.bottom)
+            ..lineTo(points.first.dx, chartRect.bottom)
+            ..close();
+
+      final areaPaint =
+          Paint()
+            ..style = PaintingStyle.fill
+            ..shader = LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                withUiOpacity(lineColor, 0.30),
+                withUiOpacity(lineColor, 0.03),
+              ],
+            ).createShader(chartRect);
+      canvas.drawPath(areaPath, areaPaint);
+
+      final linePaint =
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2.8
+            ..strokeCap = StrokeCap.round
+            ..strokeJoin = StrokeJoin.round
+            ..isAntiAlias = true
+            ..color = lineColor;
+      canvas.drawPath(curvePath, linePaint);
+    }
+
+    final borderPaint =
+        Paint()
+          ..style = PaintingStyle.fill
+          ..color = Colors.white;
+    final pointPaint =
+        Paint()
+          ..style = PaintingStyle.fill
+          ..color = lineColor;
+    for (final point in points) {
+      canvas.drawCircle(point, 4.2, borderPaint);
+      canvas.drawCircle(point, 2.7, pointPaint);
+    }
+  }
+
+  List<Offset> _buildPoints(Rect rect) {
+    if (values.isEmpty) {
+      return const <Offset>[];
+    }
+    if (values.length == 1) {
+      final normalized = (values.first / 100).clamp(0.0, 1.0);
+      final y = rect.bottom - (rect.height * normalized);
+      return <Offset>[Offset(rect.center.dx, y)];
+    }
+
+    final step = rect.width / math.max(1, values.length - 1);
+    return List<Offset>.generate(values.length, (index) {
+      final normalized = (values[index] / 100).clamp(0.0, 1.0);
+      final x = rect.left + (step * index);
+      final y = rect.bottom - (rect.height * normalized);
+      return Offset(x, y);
+    }, growable: false);
+  }
+
+  Path _buildSmoothPath(List<Offset> points) {
+    final path = Path()..moveTo(points.first.dx, points.first.dy);
+    for (var index = 0; index < points.length - 1; index++) {
+      final current = points[index];
+      final next = points[index + 1];
+      final control1 = Offset((current.dx + next.dx) / 2, current.dy);
+      final control2 = Offset((current.dx + next.dx) / 2, next.dy);
+      path.cubicTo(
+        control1.dx,
+        control1.dy,
+        control2.dx,
+        control2.dy,
+        next.dx,
+        next.dy,
+      );
+    }
+    return path;
+  }
+
+  @override
+  bool shouldRepaint(covariant _HistoryLineChartPainter oldDelegate) {
+    if (oldDelegate.lineColor != lineColor ||
+        oldDelegate.gridColor != gridColor) {
+      return true;
+    }
+    if (oldDelegate.values.length != values.length) {
+      return true;
+    }
+    for (var index = 0; index < values.length; index++) {
+      if (oldDelegate.values[index] != values[index]) {
+        return true;
+      }
+    }
+    return false;
   }
 }
 
@@ -355,22 +638,27 @@ class _ProInsightsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: GymMapColors.insightPanelBackground,
-        borderRadius: BorderRadius.circular(12),
-      ),
+      padding: const EdgeInsets.all(14),
+      decoration: _insightCardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Pico do dia: ${peakWindow.hour.toString().padLeft(2, '0')}h (${peakWindow.occupancyPercent}%)',
-            style: const TextStyle(
+          const Text(
+            'Pico do dia',
+            style: TextStyle(
               fontWeight: FontWeight.w800,
               color: GymMapColors.textPrimary,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
+          Text(
+            '${peakWindow.hour.toString().padLeft(2, '0')}h (${peakWindow.occupancyPercent}%)',
+            style: const TextStyle(
+              fontWeight: FontWeight.w800,
+              color: GymMapColors.textStrong,
+            ),
+          ),
+          const SizedBox(height: 10),
           const Text(
             'Comparativo entre academias',
             style: TextStyle(
@@ -437,16 +725,13 @@ class _EliteInsightsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: GymMapColors.insightPanelBackground,
-        borderRadius: BorderRadius.circular(12),
-      ),
+      padding: const EdgeInsets.all(14),
+      decoration: _insightCardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Previsao das próximas horas',
+            'Previsão das próximas horas',
             style: TextStyle(
               fontWeight: FontWeight.w800,
               color: GymMapColors.textPrimary,
@@ -520,6 +805,18 @@ class _EliteInsightsCard extends StatelessWidget {
       ),
     );
   }
+}
+
+BoxDecoration _insightCardDecoration() {
+  return BoxDecoration(
+    gradient: const LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Color(0xFFFAFCFB), GymMapColors.insightPanelBackground],
+    ),
+    borderRadius: BorderRadius.circular(14),
+    border: Border.all(color: withUiOpacity(GymMapColors.northControl, 0.08)),
+  );
 }
 
 String _hourTag(DateTime dateTime) {

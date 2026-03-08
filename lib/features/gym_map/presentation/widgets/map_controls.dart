@@ -11,33 +11,44 @@ class NorthResetButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Ink(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            color: withUiOpacity(Colors.white, 0.96),
-            shape: BoxShape.circle,
-            border: Border.all(color: GymMapColors.northControl, width: 1.6),
-            boxShadow: const [
-              BoxShadow(
-                blurRadius: 8,
-                color: GymMapColors.floatingControlShadow,
-                offset: Offset(0, 2),
+    return Semantics(
+      button: true,
+      label: 'Reorientar mapa para norte',
+      hint: 'Toque para voltar a orientacao para zero grau',
+      child: Tooltip(
+        message: 'Reorientar para norte',
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(24),
+            child: Ink(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: withUiOpacity(Colors.white, 0.96),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: GymMapColors.northControl,
+                  width: 1.6,
+                ),
+                boxShadow: const [
+                  BoxShadow(
+                    blurRadius: 8,
+                    color: GymMapColors.floatingControlShadow,
+                    offset: Offset(0, 2),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: const Center(
-            child: Text(
-              'N',
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w900,
-                color: GymMapColors.northControl,
+              child: const Center(
+                child: Text(
+                  'N',
+                  style: TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w900,
+                    color: GymMapColors.northControl,
+                  ),
+                ),
               ),
             ),
           ),
@@ -47,45 +58,50 @@ class NorthResetButton extends StatelessWidget {
   }
 }
 
-/// Botao para centralizar o mapa na localização atual do aparelho.
+/// Botao para centralizar o mapa na localizacao atual do aparelho.
 class MyLocationButton extends StatelessWidget {
-  const MyLocationButton({
-    super.key,
-    required this.onTap,
-  });
+  const MyLocationButton({super.key, required this.onTap});
 
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Ink(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            color: withUiOpacity(Colors.white, 0.96),
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: GymMapColors.myLocationAccent,
-              width: 1.6,
-            ),
-            boxShadow: const [
-              BoxShadow(
-                blurRadius: 8,
-                color: GymMapColors.floatingControlShadow,
-                offset: Offset(0, 2),
+    return Semantics(
+      button: true,
+      label: 'Centralizar no meu local',
+      hint: 'Toque para mover o mapa para a sua posicao atual',
+      child: Tooltip(
+        message: 'Minha localizacao',
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(24),
+            child: Ink(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: withUiOpacity(Colors.white, 0.96),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: GymMapColors.myLocationAccent,
+                  width: 1.6,
+                ),
+                boxShadow: const [
+                  BoxShadow(
+                    blurRadius: 8,
+                    color: GymMapColors.floatingControlShadow,
+                    offset: Offset(0, 2),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: const Center(
-            child: Icon(
-              Icons.my_location,
-              size: 18,
-              color: GymMapColors.myLocationAccent,
+              child: const Center(
+                child: Icon(
+                  Icons.my_location,
+                  size: 20,
+                  color: GymMapColors.myLocationAccent,
+                ),
+              ),
             ),
           ),
         ),
@@ -100,40 +116,44 @@ class UserLocationMarkerDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: withUiOpacity(GymMapColors.myLocationAccent, 0.20),
-          ),
-        ),
-        Container(
-          width: 24,
-          height: 24,
-          decoration: const BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: GymMapColors.myLocationGlow,
-                blurRadius: 10,
-                spreadRadius: 2,
-              ),
-            ],
-          ),
-          child: const Center(
-            child: Icon(
-              Icons.location_on_rounded,
-              size: 16,
-              color: GymMapColors.myLocationAccent,
+    return Semantics(
+      label: 'Sua localizacao no mapa',
+      readOnly: true,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: withUiOpacity(GymMapColors.myLocationAccent, 0.20),
             ),
           ),
-        ),
-      ],
+          Container(
+            width: 24,
+            height: 24,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: GymMapColors.myLocationGlow,
+                  blurRadius: 10,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.location_on_rounded,
+                size: 16,
+                color: GymMapColors.myLocationAccent,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
