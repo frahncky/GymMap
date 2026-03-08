@@ -206,8 +206,11 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   bool _hasSeenMapTutorial = false;
   bool _showMapTutorialOverlay = false;
   bool _hasInteractedWithQuickFilters = false;
+  bool _showContributionCelebration = false;
+  int _contributionCelebrationTick = 0;
   Timer? _mapBrowseCenterUiDebounce;
   Timer? _mapTutorialDismissTimer;
+  Timer? _contributionCelebrationTimer;
   Timer? _planSyncTimer;
   StreamSubscription<List<PurchaseDetails>>? _purchaseStreamSubscription;
 
@@ -268,6 +271,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _mapBrowseCenterUiDebounce?.cancel();
     _mapTutorialDismissTimer?.cancel();
+    _contributionCelebrationTimer?.cancel();
     _planSyncTimer?.cancel();
     _purchaseStreamSubscription?.cancel();
     _mapPoiReloadController.dispose();
@@ -1751,6 +1755,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       return;
     }
     HapticFeedback.lightImpact();
+    _triggerContributionCelebration();
     final totalPoints = _communityPoints;
     final entries = _buildCommunityLeaderboardEntries();
     final userRank = entries.indexWhere((entry) => entry.isCurrentUser) + 1;
@@ -1796,6 +1801,28 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
           ],
         ),
       ),
+    );
+  }
+
+  void _triggerContributionCelebration() {
+    if (!mounted) {
+      return;
+    }
+    _contributionCelebrationTimer?.cancel();
+    setState(() {
+      _showContributionCelebration = true;
+      _contributionCelebrationTick++;
+    });
+    _contributionCelebrationTimer = Timer(
+      const Duration(milliseconds: 1100),
+      () {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _showContributionCelebration = false;
+        });
+      },
     );
   }
 
@@ -3413,114 +3440,138 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
             .toInt();
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              GymMapColors.headerGradientStart,
-              GymMapColors.headerGradientMid,
-              GymMapColors.headerGradientEnd,
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              GymPageHeader(
-                planLabel: activePlan.label,
-                communityPoints: _communityPoints,
-                onOpenPlanSettings: _openPlanSettings,
-                onOpenCommunityRanking: _openCommunityLeaderboard,
+      body: Stack(
+        children: [
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  GymMapColors.headerGradientStart,
+                  GymMapColors.headerGradientMid,
+                  GymMapColors.headerGradientEnd,
+                ],
               ),
-              Expanded(
-                child: Container(
-                  decoration: const BoxDecoration(
-                    color: GymMapColors.pageBackground,
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(28),
-                    ),
+            ),
+            child: SafeArea(
+              child: Column(
+                children: [
+                  GymPageHeader(
+                    planLabel: activePlan.label,
+                    communityPoints: _communityPoints,
+                    onOpenPlanSettings: _openPlanSettings,
+                    onOpenCommunityRanking: _openCommunityLeaderboard,
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        GymSearchField(
-                          controller: _searchController,
-                          searchTerm: _searchTerm,
-                          isResolvingSearchLocation: _isResolvingSearchLocation,
-                          onChanged: _updateSearchTerm,
-                          onSubmitted: _submitSearch,
-                          onClear: _clearSearch,
-                          onSearchTap:
-                              () => _submitSearch(_searchController.text),
+                  Expanded(
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        color: GymMapColors.pageBackground,
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(28),
                         ),
-                        const SizedBox(height: 10),
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 220),
-                          switchInCurve: Curves.easeOutCubic,
-                          switchOutCurve: Curves.easeInCubic,
-                          child: MapQuickFiltersBar(
-                            key: ValueKey<int>(_activeQuickFilters.length),
-                            filters: quickFilterChips,
-                            onToggle: _toggleQuickFilterById,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-
-                        if (_isFreePlan) ...[
-                          const SizedBox(height: 8),
-                          const AdBannerCard(),
-                        ],
-                        Expanded(
-                          flex: selectedGym == null ? 9 : mapFlexWhenPanelOpen,
-                          child: _buildMap(
-                            markerGyms,
-                            snapshotsByGymId,
-                            filteredMapPois,
-                          ),
-                        ),
-                        if (selectedGym == null) ...[
-                          const SizedBox(height: 10),
-                          SelectionHintCard(
-                            hasNoResults: hasNoSearchResults,
-                            hasNoNearbyGyms: hasNoNearbyGyms,
-                            hasActiveFilters: _activeQuickFilters.isNotEmpty,
-                            onClearFilters: _clearAllQuickFilters,
-                          ),
-                        ] else ...[
-                          const SizedBox(height: 10),
-                          Expanded(
-                            flex: _panelFlex,
-                            child: AnimatedContainer(
-                              duration:
-                                  _isPanelDragging
-                                      ? Duration.zero
-                                      : const Duration(milliseconds: 220),
-                              curve: Curves.easeOutCubic,
-                              transform: Matrix4.translationValues(
-                                0,
-                                _panelDragOffset,
-                                0,
-                              ),
-                              transformAlignment: Alignment.topCenter,
-                              child: _buildSelectedGymPanel(
-                                selectedGym,
-                                snapshot!,
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            GymSearchField(
+                              controller: _searchController,
+                              searchTerm: _searchTerm,
+                              isResolvingSearchLocation:
+                                  _isResolvingSearchLocation,
+                              onChanged: _updateSearchTerm,
+                              onSubmitted: _submitSearch,
+                              onClear: _clearSearch,
+                              onSearchTap:
+                                  () => _submitSearch(_searchController.text),
+                            ),
+                            const SizedBox(height: 10),
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 220),
+                              switchInCurve: Curves.easeOutCubic,
+                              switchOutCurve: Curves.easeInCubic,
+                              child: MapQuickFiltersBar(
+                                key: ValueKey<int>(_activeQuickFilters.length),
+                                filters: quickFilterChips,
+                                onToggle: _toggleQuickFilterById,
                               ),
                             ),
-                          ),
-                        ],
-                      ],
+                            const SizedBox(height: 10),
+
+                            if (_isFreePlan) ...[
+                              const SizedBox(height: 8),
+                              const AdBannerCard(),
+                            ],
+                            Expanded(
+                              flex:
+                                  selectedGym == null
+                                      ? 9
+                                      : mapFlexWhenPanelOpen,
+                              child: _buildMap(
+                                markerGyms,
+                                snapshotsByGymId,
+                                filteredMapPois,
+                              ),
+                            ),
+                            if (selectedGym == null) ...[
+                              const SizedBox(height: 10),
+                              SelectionHintCard(
+                                hasNoResults: hasNoSearchResults,
+                                hasNoNearbyGyms: hasNoNearbyGyms,
+                                hasActiveFilters:
+                                    _activeQuickFilters.isNotEmpty,
+                                onClearFilters: _clearAllQuickFilters,
+                              ),
+                            ] else ...[
+                              const SizedBox(height: 10),
+                              Expanded(
+                                flex: _panelFlex,
+                                child: AnimatedContainer(
+                                  duration:
+                                      _isPanelDragging
+                                          ? Duration.zero
+                                          : const Duration(milliseconds: 220),
+                                  curve: Curves.easeOutCubic,
+                                  transform: Matrix4.translationValues(
+                                    0,
+                                    _panelDragOffset,
+                                    0,
+                                  ),
+                                  transformAlignment: Alignment.topCenter,
+                                  child: _buildSelectedGymPanel(
+                                    selectedGym,
+                                    snapshot!,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+          Positioned.fill(
+            child: IgnorePointer(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 180),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                child:
+                    _showContributionCelebration
+                        ? _ContributionCelebrationOverlay(
+                          key: ValueKey<int>(_contributionCelebrationTick),
+                        )
+                        : const SizedBox.shrink(),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -3812,5 +3863,175 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       sampled.add(history.last);
     }
     return List<HourlyOccupancyPoint>.unmodifiable(sampled);
+  }
+}
+
+class _ContributionCelebrationOverlay extends StatelessWidget {
+  const _ContributionCelebrationOverlay({super.key});
+
+  static const List<_CelebrationParticleData> _particles =
+      <_CelebrationParticleData>[
+        _CelebrationParticleData(
+          end: Offset(-72, -94),
+          icon: Icons.auto_awesome_rounded,
+          color: Color(0xFFFFC94A),
+          size: 18,
+        ),
+        _CelebrationParticleData(
+          end: Offset(-44, -112),
+          icon: Icons.circle,
+          color: Color(0xFF7ED6A2),
+          size: 8,
+        ),
+        _CelebrationParticleData(
+          end: Offset(-16, -126),
+          icon: Icons.bolt_rounded,
+          color: Color(0xFF4CAF50),
+          size: 16,
+        ),
+        _CelebrationParticleData(
+          end: Offset(12, -128),
+          icon: Icons.star_rounded,
+          color: Color(0xFFFFB74D),
+          size: 15,
+        ),
+        _CelebrationParticleData(
+          end: Offset(40, -116),
+          icon: Icons.circle,
+          color: Color(0xFF2A9D8F),
+          size: 9,
+        ),
+        _CelebrationParticleData(
+          end: Offset(68, -96),
+          icon: Icons.emoji_events_rounded,
+          color: Color(0xFFE09F3E),
+          size: 18,
+        ),
+        _CelebrationParticleData(
+          end: Offset(-84, -64),
+          icon: Icons.favorite_rounded,
+          color: Color(0xFFCC4A37),
+          size: 14,
+        ),
+        _CelebrationParticleData(
+          end: Offset(82, -66),
+          icon: Icons.favorite_rounded,
+          color: Color(0xFFCC4A37),
+          size: 14,
+        ),
+      ];
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 900),
+      curve: Curves.easeOutCubic,
+      builder: (context, t, _) {
+        final fadeOut = (1 - t).clamp(0.0, 1.0).toDouble();
+        final pulse = (1 - (t - 0.35).abs().clamp(0.0, 1.0)).toDouble();
+        return Opacity(
+          opacity: fadeOut,
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 86),
+              child: Stack(
+                alignment: Alignment.center,
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 54 + (t * 14),
+                    height: 54 + (t * 14),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: withUiOpacity(GymMapColors.occupancyLow, 0.15),
+                    ),
+                  ),
+                  for (var i = 0; i < _particles.length; i++)
+                    _CelebrationParticle(
+                      data: _particles[i],
+                      progress: t,
+                      spinDirection: i.isEven ? 1 : -1,
+                    ),
+                  Transform.scale(
+                    scale: 0.9 + (0.2 * pulse),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: withUiOpacity(Colors.white, 0.96),
+                        boxShadow: const [
+                          BoxShadow(
+                            blurRadius: 10,
+                            offset: Offset(0, 3),
+                            color: GymMapColors.cardShadow,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.celebration_rounded,
+                        color: GymMapColors.occupancyLow,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _CelebrationParticleData {
+  const _CelebrationParticleData({
+    required this.end,
+    required this.icon,
+    required this.color,
+    required this.size,
+  });
+
+  final Offset end;
+  final IconData icon;
+  final Color color;
+  final double size;
+}
+
+class _CelebrationParticle extends StatelessWidget {
+  const _CelebrationParticle({
+    required this.data,
+    required this.progress,
+    required this.spinDirection,
+  });
+
+  final _CelebrationParticleData data;
+  final double progress;
+  final int spinDirection;
+
+  @override
+  Widget build(BuildContext context) {
+    final eased = Curves.easeOut.transform(progress);
+    final drift = Offset(data.end.dx * eased, data.end.dy * eased);
+    final scale = 0.7 + (0.5 * (1 - progress));
+    final angle = progress * spinDirection * 1.3;
+
+    return Transform.translate(
+      offset: drift,
+      child: Transform.rotate(
+        angle: angle,
+        child: Transform.scale(
+          scale: scale,
+          child: Icon(
+            data.icon,
+            size: data.size,
+            color: withUiOpacity(data.color, 0.92),
+          ),
+        ),
+      ),
+    );
   }
 }
