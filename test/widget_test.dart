@@ -12,7 +12,7 @@ void main() {
 
     expect(find.text('GymMap'), findsOneWidget);
     expect(find.text('Mapa desativado no modo de teste'), findsOneWidget);
-    expect(find.textContaining('Toque no marcador'), findsOneWidget);
+    expect(find.textContaining('Toque no marcador'), findsNothing);
     expect(find.byIcon(Icons.settings), findsOneWidget);
     expect(find.textContaining('Publicidade:'), findsOneWidget);
     expect(find.text('Enviar relato colaborativo'), findsNothing);

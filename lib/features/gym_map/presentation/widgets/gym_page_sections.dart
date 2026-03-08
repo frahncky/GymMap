@@ -375,6 +375,10 @@ class SelectionHintCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!hasNoResults && !hasNoNearbyGyms) {
+      return const SizedBox.shrink();
+    }
+
     final message =
         hasNoResults && hasActiveFilters
             ? 'Nenhuma academia corresponde aos filtros ativos.'
@@ -382,7 +386,7 @@ class SelectionHintCard extends StatelessWidget {
             ? 'Nenhum resultado encontrado para sua busca.'
             : hasNoNearbyGyms
             ? 'Nenhuma academia cadastrada proxima da sua localizacao.'
-            : 'Toque no marcador para ver detalhes da lotacao.';
+            : '';
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
