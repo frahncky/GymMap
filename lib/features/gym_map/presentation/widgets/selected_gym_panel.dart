@@ -14,6 +14,7 @@ class SelectedGymPanel extends StatelessWidget {
     required this.snapshot,
     required this.reportPercent,
     required this.onReportPercentChanged,
+    required this.isSubmittingCrowdReport,
     required this.onSubmitCrowdReport,
     required this.onVerticalDragStart,
     required this.onVerticalDragUpdate,
@@ -33,6 +34,7 @@ class SelectedGymPanel extends StatelessWidget {
   final GymCrowdSnapshot snapshot;
   final double reportPercent;
   final ValueChanged<double> onReportPercentChanged;
+  final bool isSubmittingCrowdReport;
   final VoidCallback onSubmitCrowdReport;
   final GestureDragStartCallback onVerticalDragStart;
   final GestureDragUpdateCallback onVerticalDragUpdate;
@@ -249,7 +251,8 @@ class SelectedGymPanel extends StatelessWidget {
                     max: 100,
                     divisions: 20,
                     label: '${reportPercent.round()}%',
-                    onChanged: onReportPercentChanged,
+                    onChanged:
+                        isSubmittingCrowdReport ? null : onReportPercentChanged,
                   ),
                 ),
                 Container(
@@ -273,9 +276,20 @@ class SelectedGymPanel extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: onSubmitCrowdReport,
-                icon: const Icon(Icons.send),
-                label: const Text('Enviar relato colaborativo'),
+                onPressed: isSubmittingCrowdReport ? null : onSubmitCrowdReport,
+                icon:
+                    isSubmittingCrowdReport
+                        ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                        : const Icon(Icons.send),
+                label: Text(
+                  isSubmittingCrowdReport
+                      ? 'Enviando relato...'
+                      : 'Enviar relato colaborativo',
+                ),
               ),
             ),
           ],

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:in_app_purchase/in_app_purchase.dart';
@@ -140,6 +141,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   CrowdReportRemoteService? _crowdReportRemoteService;
   bool _isSyncingCrowdReports = false;
   bool _isSubmittingCrowdReport = false;
+  int _communityPoints = 0;
   final Set<String> _pendingCrowdSyncGymIds = <String>{};
   final GymMapSearchStateController _mapSearchState =
       GymMapSearchStateController();
@@ -1170,7 +1172,13 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       return;
     }
 
-    _isSubmittingCrowdReport = true;
+    if (mounted) {
+      setState(() {
+        _isSubmittingCrowdReport = true;
+      });
+    } else {
+      _isSubmittingCrowdReport = true;
+    }
     final int report = _reportPercent.round().clamp(0, 100).toInt();
     final reporterId = _resolveCrowdReporterId();
     final remoteService = _crowdReportRemoteService;
@@ -1212,14 +1220,19 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
           if (mounted) {
             setState(() {
               _reportPercent = snapshot.occupancyPercent.toDouble();
+              _communityPoints += 5;
             });
           }
 
-          final trust = ((remoteReport?.reliabilityWeight ?? 1) * 100)
-              .round()
-              .clamp(20, 160);
-          _showMapSnack(
-            'Relato enviado para ${selectedGym.name}: $report% (confiabilidade $trust%).',
+          final trust =
+              ((remoteReport?.reliabilityWeight ?? 1) * 100)
+                  .round()
+                  .clamp(20, 160)
+                  .toInt();
+          _showContributionSnack(
+            gymName: selectedGym.name,
+            report: report,
+            trust: trust,
           );
           unawaited(
             _syncCrowdReportsForGyms(
@@ -1251,15 +1264,24 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       if (mounted) {
         setState(() {
           _reportPercent = snapshot.occupancyPercent.toDouble();
+          _communityPoints += 5;
         });
       }
 
       final trust = ((localResult.appliedWeight ?? 1) * 100).round();
-      _showMapSnack(
-        'Relato enviado para ${selectedGym.name}: $report% (confiabilidade $trust%).',
+      _showContributionSnack(
+        gymName: selectedGym.name,
+        report: report,
+        trust: trust,
       );
     } finally {
-      _isSubmittingCrowdReport = false;
+      if (mounted) {
+        setState(() {
+          _isSubmittingCrowdReport = false;
+        });
+      } else {
+        _isSubmittingCrowdReport = false;
+      }
     }
   }
 
@@ -1388,6 +1410,61 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(behavior: SnackBarBehavior.floating, content: Text(message)),
+    );
+  }
+
+  void _showContributionSnack({
+    required String gymName,
+    required int report,
+    required int trust,
+  }) {
+    if (!mounted) {
+      return;
+    }
+    HapticFeedback.lightImpact();
+    final totalPoints = _communityPoints;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: GymMapColors.occupancyLow,
+        content: Row(
+          children: [
+            const Icon(
+              Icons.celebration_rounded,
+              color: Colors.white,
+              size: 18,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Obrigado por contribuir! +5 pontos\n$gymName atualizado para $report% (conf. $trust%).',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: withUiOpacity(Colors.white, 0.18),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                '$totalPoints pts',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 11,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -2220,6 +2297,19 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     return 'Trocar plano';
   }
 
+  IconData _planIcon(AppPlanTier tier) {
+    switch (tier) {
+      case AppPlanTier.free:
+        return Icons.lock_open_rounded;
+      case AppPlanTier.smart:
+        return Icons.bolt_rounded;
+      case AppPlanTier.pro:
+        return Icons.rocket_launch_rounded;
+      case AppPlanTier.elite:
+        return Icons.workspace_premium_rounded;
+    }
+  }
+
   Widget _buildPlanOfferCard({
     required BuildContext sheetContext,
     required AppPlanTier tier,
@@ -2230,7 +2320,20 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     final isCurrent = tier == current;
     final isActionEnabled =
         !_isLoadingPlanSubscription && !_isStartingStoreCheckout && !isCurrent;
-    final actionLabel = _planActionLabel(tier, current);
+    final isPrimaryTrialCta =
+        current == AppPlanTier.free && tier == AppPlanTier.pro;
+    final actionLabel =
+        isPrimaryTrialCta ? 'Comecar agora' : _planActionLabel(tier, current);
+    final fullPriceLabel = _planPriceLabel(tier);
+    final periodSeparatorIndex = fullPriceLabel.indexOf('/');
+    final priceMain =
+        periodSeparatorIndex > 0
+            ? fullPriceLabel.substring(0, periodSeparatorIndex)
+            : fullPriceLabel;
+    final pricePeriod =
+        periodSeparatorIndex > 0
+            ? fullPriceLabel.substring(periodSeparatorIndex)
+            : '';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -2254,6 +2357,29 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         children: [
           Row(
             children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color:
+                      isRecommended
+                          ? withUiOpacity(
+                            Theme.of(sheetContext).colorScheme.primary,
+                            0.12,
+                          )
+                          : withUiOpacity(GymMapColors.northControl, 0.07),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  _planIcon(tier),
+                  size: 16,
+                  color:
+                      isRecommended
+                          ? Theme.of(sheetContext).colorScheme.primary
+                          : GymMapColors.textStrong,
+                ),
+              ),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   plan.label,
@@ -2292,12 +2418,25 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
             ],
           ),
           const SizedBox(height: 4),
-          Text(
-            _planPriceLabel(tier),
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-              color: GymMapColors.textStrong,
+          Text.rich(
+            TextSpan(
+              text: priceMain,
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                color: GymMapColors.textStrong,
+              ),
+              children: [
+                if (pricePeriod.isNotEmpty)
+                  TextSpan(
+                    text: ' $pricePeriod',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: GymMapColors.textSecondary,
+                    ),
+                  ),
+              ],
             ),
           ),
           const SizedBox(height: 8),
@@ -2338,11 +2477,17 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
             child:
                 isCurrent
                     ? OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(48),
+                      ),
                       onPressed: null,
                       icon: const Icon(Icons.check_circle_outline),
                       label: Text(actionLabel),
                     )
                     : ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(48),
+                      ),
                       onPressed:
                           isActionEnabled
                               ? () {
@@ -2393,6 +2538,10 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       (feature: 'Previsao e alertas', available: {AppPlanTier.elite}),
       (feature: 'Cobertura nacional', available: {AppPlanTier.elite}),
     ];
+    const featureColumnWidth = 164.0;
+    const tierColumnWidth = 52.0;
+    final matrixMinWidth =
+        featureColumnWidth + (tierColumnWidth * AppPlanTier.values.length);
 
     return Container(
       width: double.infinity,
@@ -2407,7 +2556,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 360),
+          constraints: BoxConstraints(minWidth: matrixMinWidth),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -2421,9 +2570,10 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const Expanded(flex: 3, child: SizedBox.shrink()),
+                  const SizedBox(width: featureColumnWidth),
                   for (final tier in AppPlanTier.values)
-                    Expanded(
+                    SizedBox(
+                      width: tierColumnWidth,
                       child: Center(
                         child: Text(
                           kPlanCatalog[tier]!.label[0],
@@ -2442,8 +2592,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                   padding: const EdgeInsets.only(bottom: 4),
                   child: Row(
                     children: [
-                      Expanded(
-                        flex: 3,
+                      SizedBox(
+                        width: featureColumnWidth,
                         child: Text(
                           row.feature,
                           style: const TextStyle(
@@ -2454,7 +2604,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                         ),
                       ),
                       for (final tier in AppPlanTier.values)
-                        Expanded(
+                        SizedBox(
+                          width: tierColumnWidth,
                           child: Center(
                             child: Icon(
                               row.available.contains(tier)
@@ -2525,11 +2676,11 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                         0.08,
                       ),
                     ),
-                    child: const Row(
+                    child: Row(
                       children: [
-                        Icon(Icons.auto_awesome, size: 16),
-                        SizedBox(width: 8),
-                        Expanded(
+                        const Icon(Icons.auto_awesome, size: 16),
+                        const SizedBox(width: 8),
+                        const Expanded(
                           child: Text(
                             '+10.000 usuarios premium ativos',
                             style: TextStyle(
@@ -2537,6 +2688,22 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                               color: GymMapColors.textStrong,
                             ),
                           ),
+                        ),
+                        const SizedBox(width: 8),
+                        Icon(
+                          Icons.star_rounded,
+                          size: 14,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        Icon(
+                          Icons.star_rounded,
+                          size: 14,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        Icon(
+                          Icons.star_rounded,
+                          size: 14,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       ],
                     ),
@@ -2625,6 +2792,35 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                   const SizedBox(height: 4),
                   _buildPlanComparisonMatrix(),
                   const SizedBox(height: 10),
+                  if (current == AppPlanTier.free) ...[
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(48),
+                        ),
+                        onPressed:
+                            _isLoadingPlanSubscription ||
+                                    _isStartingStoreCheckout
+                                ? null
+                                : () {
+                                  _onPlanPicked(recommendedTier, context);
+                                },
+                        icon:
+                            _isStartingStoreCheckout
+                                ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                                : const Icon(Icons.rocket_launch),
+                        label: const Text('Comecar no Pro'),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                  ],
                   SizedBox(
                     width: double.infinity,
                     child: TextButton(
@@ -2958,6 +3154,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
           _reportPercent = value;
         });
       },
+      isSubmittingCrowdReport: _isSubmittingCrowdReport,
       onSubmitCrowdReport: _submitCrowdReport,
       onVerticalDragStart: _onPanelDismissDragStart,
       onVerticalDragUpdate: _onPanelDismissDragUpdate,
