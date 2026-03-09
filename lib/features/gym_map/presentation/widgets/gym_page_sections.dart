@@ -91,33 +91,38 @@ class GymPageHeader extends StatelessWidget {
                 child: InkWell(
                   borderRadius: BorderRadius.circular(12),
                   onTap: onOpenCommunityRanking,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: withUiOpacity(Colors.white, 0.16),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.workspace_premium_rounded,
-                          size: 12,
-                          color: Colors.white,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${communityPoints.clamp(0, 1000000)} pts',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 12,
-                          ),
+                        decoration: BoxDecoration(
+                          color: withUiOpacity(Colors.white, 0.16),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                      ],
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.workspace_premium_rounded,
+                              size: 12,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${communityPoints.clamp(0, 1000000)} pts',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -125,10 +130,15 @@ class GymPageHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          IconButton(
-            tooltip: 'Configuracoes de plano',
-            onPressed: onOpenPlanSettings,
-            icon: const Icon(Icons.settings, color: Colors.white),
+          Semantics(
+            button: true,
+            label: 'Configurações de plano',
+            hint: 'Toque para abrir opções de assinatura',
+            child: IconButton(
+              tooltip: 'Configuracoes de plano',
+              onPressed: onOpenPlanSettings,
+              icon: const Icon(Icons.settings, color: Colors.white),
+            ),
           ),
         ],
       ),

@@ -1519,7 +1519,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       _showMapTutorialOverlay = true;
     });
     _mapTutorialDismissTimer?.cancel();
-    _mapTutorialDismissTimer = Timer(const Duration(seconds: 8), () {
+    _mapTutorialDismissTimer = Timer(const Duration(seconds: 5), () {
       _dismissMapTutorialOverlay();
     });
   }
