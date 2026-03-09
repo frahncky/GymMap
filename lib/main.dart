@@ -1414,8 +1414,8 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                 1000;
             final distanceLabel =
                 distanceKm < 1
-                    ? '${(distanceKm * 1000).round()} m de voce'
-                    : '${distanceKm.toStringAsFixed(1)} km de voce';
+                    ? '${(distanceKm * 1000).round()} m de você'
+                    : '${distanceKm.toStringAsFixed(1)} km de você';
             return CachedGymLocation(
               id: poi.id,
               name: poi.name,
@@ -1606,7 +1606,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
   String _communityRegionLabel(String rawAddress) {
     final normalized = rawAddress.trim();
     if (normalized.isEmpty || normalized == 'Academia encontrada no mapa') {
-      return 'Distancia nao informada';
+      return 'Distância não informada';
     }
     final tokens = normalized
         .split(',')
@@ -2079,7 +2079,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Sua posicao: $rankLabel',
+                            'Sua posição: $rankLabel',
                             style: const TextStyle(
                               fontWeight: FontWeight.w700,
                               color: Color(0xFF527A6F),
@@ -2088,7 +2088,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Regiao: $_leaderboardRegionLabel',
+                            'Região: $_leaderboardRegionLabel',
                             style: const TextStyle(
                               fontWeight: FontWeight.w600,
                               color: Color(0xFF527A6F),
@@ -2105,8 +2105,8 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                               leaderboardEntries.isEmpty)
                             Text(
                               _hasLocationContext
-                                  ? 'Ainda nao ha ranking regional suficiente.'
-                                  : 'Ative a localizacao para carregar ranking real.',
+                                  ? 'Ainda não há ranking regional suficiente.'
+                                  : 'Ative a localização para carregar ranking real.',
                               style: const TextStyle(
                                 fontWeight: FontWeight.w700,
                                 color: Color(0xFF527A6F),
@@ -2117,7 +2117,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                               leaderboardEntries.isNotEmpty) ...[
                             const SizedBox(height: 2),
                             const Text(
-                              'Dados reais dos ultimos 7 dias',
+                              'Dados reais dos últimos 7 dias',
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,
                                 color: Color(0xFF527A6F),

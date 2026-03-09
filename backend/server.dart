@@ -2757,23 +2757,23 @@ CREATE TABLE IF NOT EXISTS app_state (
         return label;
       }
     }
-    return 'Regiao atual';
+    return 'Região atual';
   }
 
   String _crowdLeaderboardDisplayName(String userId) {
     final normalized = userId.trim();
     if (normalized.isEmpty) {
-      return 'Usuario';
+      return 'Usuário';
     }
     if (normalized == 'local-device-user') {
-      return 'Usuario local';
+      return 'Usuário local';
     }
     final compact = normalized.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '');
     if (compact.isEmpty) {
-      return 'Usuario';
+      return 'Usuário';
     }
     final prefix = compact.length <= 4 ? compact : compact.substring(0, 4);
-    return 'Usuario $prefix';
+    return 'Usuário $prefix';
   }
 
   double _estimateCrowdReliabilityWeight({
