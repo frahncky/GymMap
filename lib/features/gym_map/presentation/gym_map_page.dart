@@ -151,7 +151,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   static const double _backgroundLocationDistanceFilterMeters = 35;
   static const double _backgroundLocationUiRefreshMinDistanceMeters = 25;
   static const double _dataSaverPoiReloadMinDistanceMeters = 3200;
-  static const double _mapMarkerBodyAnchorOffset = 0;
+  static const double _mapMarkerBodyAnchorOffset = -6;
   static const int _maxMapPoiMarkers = 90;
   static const int _maxMapPoiMarkersZoomedOut = 48;
   static const int _layoutTotalFlex = 100;
