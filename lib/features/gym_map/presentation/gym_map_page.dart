@@ -166,6 +166,14 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     'PLAN_PLAY_PRODUCT_ID_ELITE',
     defaultValue: 'elite_mensal',
   );
+  static const String _paywallPromoMessage = String.fromEnvironment(
+    'PAYWALL_PROMO_MESSAGE',
+    defaultValue: '',
+  );
+  static const String _paywallPromoDeadline = String.fromEnvironment(
+    'PAYWALL_PROMO_DEADLINE',
+    defaultValue: '',
+  );
   static const Map<AppPlanTier, String> _planProductIds = {
     AppPlanTier.smart: _smartPlayProductId,
     AppPlanTier.pro: _proPlayProductId,
@@ -3221,6 +3229,18 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     }
   }
 
+  String? _paywallPromoLabel() {
+    final message = _paywallPromoMessage.trim();
+    if (message.isEmpty) {
+      return null;
+    }
+    final deadline = _paywallPromoDeadline.trim();
+    if (deadline.isEmpty) {
+      return message;
+    }
+    return '$message • até $deadline';
+  }
+
   List<String> _planCardHighlights(AppPlanTier tier) {
     final currentInsights = kPlanCatalog[tier]!.insights;
     switch (tier) {
@@ -3651,6 +3671,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         final service = _planSubscriptionService;
         final hasRemoteBackend = service?.hasRemoteBackend ?? false;
         final hasAuthSession = service?.hasAuthSession ?? false;
+        final promoLabel = _paywallPromoLabel();
         const recommendedTier = AppPlanTier.pro;
         return SafeArea(
           child: Padding(
@@ -3660,7 +3681,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Desbloqueie o maximo do GymMap',
+                    'Desbloqueie o máximo do GymMap',
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: 4),
@@ -3743,6 +3764,43 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                     ),
                   ),
                   const SizedBox(height: 6),
+                  if (promoLabel != null) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 9,
+                      ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: withUiOpacity(const Color(0xFFFFA500), 0.16),
+                        border: Border.all(
+                          color: withUiOpacity(const Color(0xFFFFA500), 0.46),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.local_offer_outlined,
+                            size: 16,
+                            color: Color(0xFF8B5A00),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              promoLabel,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF6A4300),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                  ],
                   Text(
                     _isLoadingPlanSubscription
                         ? 'Carregando assinatura...'
