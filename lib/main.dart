@@ -1229,6 +1229,7 @@ class _CommunityFeedPage extends StatefulWidget {
 class _CommunityFeedPageState extends State<_CommunityFeedPage> {
   static const String _communityPointsPrefKey = 'gymmap_community_points_v1';
   static const int _verificationPoints = 2;
+  static const Duration _communityReloadInterval = Duration(minutes: 3);
   static const List<_CommunityReportItem> _seedReports = <_CommunityReportItem>[
     _CommunityReportItem(
       id: 'report-1',
@@ -1301,6 +1302,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
   bool _isLocationScopedReports = false;
   bool _hasLocationContext = false;
   bool _hasRequestedLocalizedReports = false;
+  DateTime? _lastLocalizedReportsLoadAt;
 
   @override
   void initState() {
@@ -1316,12 +1318,24 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
   void didUpdateWidget(covariant _CommunityFeedPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!oldWidget.isActive && widget.isActive) {
-      _ensureLocalizedReportsLoaded(notify: true);
+      final forceRetryWithoutLocation = !_hasLocationContext || _reports.isEmpty;
+      _ensureLocalizedReportsLoaded(
+        notify: true,
+        force: forceRetryWithoutLocation,
+      );
     }
   }
 
-  void _ensureLocalizedReportsLoaded({required bool notify}) {
-    if (_hasRequestedLocalizedReports) {
+  void _ensureLocalizedReportsLoaded({
+    required bool notify,
+    bool force = false,
+  }) {
+    final now = DateTime.now();
+    final isCacheFresh =
+        _lastLocalizedReportsLoadAt != null &&
+        now.difference(_lastLocalizedReportsLoadAt!) <=
+            _communityReloadInterval;
+    if (_hasRequestedLocalizedReports && isCacheFresh && !force) {
       return;
     }
     _hasRequestedLocalizedReports = true;
@@ -1336,6 +1350,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
   }
 
   Future<void> _loadLocalizedCommunityReports() async {
+    final loadStartedAt = DateTime.now();
     try {
       final userPoint = await _resolveCommunityUserLocation();
       final hasLocationContext = userPoint != null;
@@ -1357,6 +1372,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
           _isLoadingLocalizedReports = false;
           _isLocationScopedReports = false;
           _hasLocationContext = hasLocationContext;
+          _lastLocalizedReportsLoadAt = loadStartedAt;
         });
         return;
       }
@@ -1395,6 +1411,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
         _isLoadingLocalizedReports = false;
         _isLocationScopedReports = hasLocationContext && mappedReports.isNotEmpty;
         _hasLocationContext = hasLocationContext;
+        _lastLocalizedReportsLoadAt = loadStartedAt;
       });
     } catch (_) {
       if (!mounted) {
@@ -1404,6 +1421,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
         _isLoadingLocalizedReports = false;
         _isLocationScopedReports = false;
         _hasLocationContext = false;
+        _lastLocalizedReportsLoadAt = loadStartedAt;
       });
     }
   }
@@ -2058,14 +2076,37 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Text(
-                      _hasLocationContext
-                          ? 'Relatos recentes da sua região'
-                          : 'Relatos recentes',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF1C5649),
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _hasLocationContext
+                                ? 'Relatos recentes da sua região'
+                                : 'Relatos recentes',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF1C5649),
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Atualizar relatos',
+                          onPressed:
+                              _isLoadingLocalizedReports
+                                  ? null
+                                  : () {
+                                    _ensureLocalizedReportsLoaded(
+                                      notify: true,
+                                      force: true,
+                                    );
+                                  },
+                          icon: const Icon(
+                            Icons.refresh_rounded,
+                            size: 20,
+                            color: Color(0xFF1C5649),
+                          ),
+                        ),
+                      ],
                     ),
                     if (_isLoadingLocalizedReports) ...[
                       const SizedBox(height: 8),
