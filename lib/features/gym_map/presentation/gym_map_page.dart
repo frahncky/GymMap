@@ -954,7 +954,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     return <QuickFilterChipData>[
       QuickFilterChipData(
         id: 'open',
-        label: 'Abertas',
+        label: 'Abertas agora',
         icon: Icons.schedule_rounded,
         selected: _activeQuickFilters.contains(MapQuickFilter.openNow),
       ),
@@ -978,7 +978,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       ),
       QuickFilterChipData(
         id: 'pool',
-        label: 'Piscina',
+        label: 'Com piscina',
         icon: Icons.pool_outlined,
         selected: _activeQuickFilters.contains(MapQuickFilter.withPool),
       ),
@@ -2088,7 +2088,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     if (searchLocation.isNotEmpty) {
       return searchLocation;
     }
-    return 'Regiao atual';
+    return 'Região atual';
   }
 
   _CommunityLeaderboardSheetData _buildLocalLeaderboardSheetData({
@@ -2163,7 +2163,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     final regionKey =
         userPoint == null ? '' : _leaderboardRegionKeyFromPoint(userPoint);
     final regionLabel =
-        userPoint == null ? 'Regiao indisponivel' : 'Sua regiao';
+        userPoint == null ? 'Região indisponível' : 'Sua região';
     final fallbackData = _buildLocalLeaderboardSheetData(
       regionLabel: regionLabel,
     );
@@ -2213,7 +2213,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Regiao: ${data.regionLabel}',
+                        'Região: ${data.regionLabel}',
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,

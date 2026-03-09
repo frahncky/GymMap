@@ -281,7 +281,7 @@ class MapQuickFiltersBar extends StatelessWidget {
 
   int _chipFlex(QuickFilterChipData filter) {
     if (filter.id == 'open') {
-      return 3;
+      return 4;
     }
     if (filter.id == 'low') {
       return 3;
@@ -304,11 +304,11 @@ class _QuickFilterToggleChip extends StatelessWidget {
     return Semantics(
       button: true,
       selected: filter.selected,
-      label: filter.label,
+      label: 'Filtro ${filter.label}',
       hint:
           filter.selected
-              ? 'Toque novamente para desativar'
-              : 'Toque para ativar',
+              ? 'Toque novamente para remover o filtro'
+              : 'Toque para aplicar o filtro',
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
         child: FilterChip(
