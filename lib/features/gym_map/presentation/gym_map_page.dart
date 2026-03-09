@@ -71,6 +71,22 @@ class _CommunityLeaderboardEntry {
   final bool isCurrentUser;
 }
 
+class _CommunityLeaderboardSheetData {
+  const _CommunityLeaderboardSheetData({
+    required this.entries,
+    required this.userRank,
+    required this.userPoints,
+    required this.regionLabel,
+    required this.isRegional,
+  });
+
+  final List<_CommunityLeaderboardEntry> entries;
+  final int userRank;
+  final int userPoints;
+  final String regionLabel;
+  final bool isRegional;
+}
+
 const Map<AppPlanTier, PlanInfo> kPlanCatalog = {
   AppPlanTier.free: PlanInfo(
     label: 'Grátis',
@@ -128,6 +144,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   static const Duration _dataSaverPoiReloadCooldown = Duration(seconds: 16);
   static const Duration _dataSaverCrowdSyncCooldown = Duration(minutes: 3);
   static const double _dataSaverPoiReloadMinDistanceMeters = 3200;
+  static const double _mapMarkerBodyAnchorOffset = 20;
   static const int _maxMapPoiMarkers = 90;
   static const int _maxMapPoiMarkersZoomedOut = 48;
   static const int _layoutTotalFlex = 100;
@@ -1547,6 +1564,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     }
     final int report = _reportPercent.round().clamp(0, 100).toInt();
     final reporterId = _resolveCrowdReporterId();
+    final regionKey = _leaderboardRegionKey(preferredGym: selectedGym);
+    final regionLabel = _leaderboardRegionLabel(preferredGym: selectedGym);
     final remoteService = _crowdReportRemoteService;
     try {
       if (remoteService != null && remoteService.hasRemoteBackend) {
@@ -1555,6 +1574,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
             gymId: selectedGym.id,
             occupancyPercent: report,
             reporterId: reporterId,
+            regionKey: regionKey,
+            regionLabel: regionLabel,
           );
           if (!remoteResult.accepted) {
             final retryAfter =
@@ -1945,13 +1966,139 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     }
   }
 
+  LatLng _leaderboardRegionPoint({Gym? preferredGym}) {
+    if (preferredGym != null) {
+      return preferredGym.position;
+    }
+    final userPoint = _userLocation;
+    if (userPoint != null) {
+      return userPoint;
+    }
+    final selected = _selectedGym;
+    if (selected != null) {
+      return selected.position;
+    }
+    if (_isMapReady) {
+      try {
+        return _mapController.camera.center;
+      } catch (_) {
+        // Ignora quando a camera ainda nao esta pronta.
+      }
+    }
+    return _fallbackMapCenter;
+  }
+
+  String _leaderboardRegionKey({Gym? preferredGym}) {
+    final point = _leaderboardRegionPoint(preferredGym: preferredGym);
+    final latBucket = (point.latitude * 10).round() / 10;
+    final lngBucket = (point.longitude * 10).round() / 10;
+    return '${latBucket.toStringAsFixed(1)},${lngBucket.toStringAsFixed(1)}';
+  }
+
+  String _leaderboardRegionLabel({Gym? preferredGym}) {
+    final gym = preferredGym;
+    if (gym != null) {
+      final address = gym.address.trim();
+      if (address.isNotEmpty && address != 'Academia encontrada no mapa') {
+        return address;
+      }
+    }
+    if (_userLocation != null) {
+      return 'Sua localização atual';
+    }
+    final selected = _selectedGym;
+    if (selected != null) {
+      final selectedAddress = selected.address.trim();
+      if (selectedAddress.isNotEmpty &&
+          selectedAddress != 'Academia encontrada no mapa') {
+        return selectedAddress;
+      }
+    }
+    final searchLocation = (_searchLocationQuery ?? '').trim();
+    if (searchLocation.isNotEmpty) {
+      return searchLocation;
+    }
+    return 'Regiao atual';
+  }
+
+  _CommunityLeaderboardSheetData _buildLocalLeaderboardSheetData({
+    required String regionLabel,
+  }) {
+    final entries = _buildCommunityLeaderboardEntries();
+    final userRank = entries.indexWhere((entry) => entry.isCurrentUser) + 1;
+    return _CommunityLeaderboardSheetData(
+      entries: entries,
+      userRank: userRank,
+      userPoints: _communityPoints.clamp(0, 1000000).toInt(),
+      regionLabel: regionLabel,
+      isRegional: false,
+    );
+  }
+
+  Future<_CommunityLeaderboardSheetData> _loadRegionalLeaderboardSheetData({
+    required String regionKey,
+    required String regionLabel,
+  }) async {
+    final fallback = _buildLocalLeaderboardSheetData(regionLabel: regionLabel);
+    final remoteService = _crowdReportRemoteService;
+    if (remoteService == null || !remoteService.hasRemoteBackend) {
+      return fallback;
+    }
+    try {
+      final result = await remoteService.loadRegionalLeaderboard(
+        regionKey: regionKey,
+        regionLabel: regionLabel,
+        limit: 10,
+        windowDays: 7,
+      );
+      if (result == null || result.entries.isEmpty) {
+        return fallback;
+      }
+      final entries = result.entries
+          .map(
+            (entry) => _CommunityLeaderboardEntry(
+              name: entry.displayName,
+              points: entry.points,
+              isCurrentUser: entry.isCurrentUser,
+            ),
+          )
+          .toList(growable: false);
+      final userRankFromEntries =
+          entries.indexWhere((entry) => entry.isCurrentUser) + 1;
+      final userRank =
+          result.userRank > 0
+              ? result.userRank
+              : (userRankFromEntries > 0 ? userRankFromEntries : 0);
+      final normalizedRegionLabel =
+          result.regionLabel.trim().isEmpty
+              ? regionLabel
+              : result.regionLabel.trim();
+      return _CommunityLeaderboardSheetData(
+        entries: entries,
+        userRank: userRank,
+        userPoints: result.userPoints.clamp(0, 1000000),
+        regionLabel: normalizedRegionLabel,
+        isRegional: true,
+      );
+    } catch (_) {
+      return fallback;
+    }
+  }
+
   void _openCommunityLeaderboard() {
     if (!mounted) {
       return;
     }
     HapticFeedback.selectionClick();
-    final entries = _buildCommunityLeaderboardEntries();
-    final userRank = entries.indexWhere((entry) => entry.isCurrentUser) + 1;
+    final regionKey = _leaderboardRegionKey();
+    final regionLabel = _leaderboardRegionLabel();
+    final fallbackData = _buildLocalLeaderboardSheetData(
+      regionLabel: regionLabel,
+    );
+    final leaderboardFuture = _loadRegionalLeaderboardSheetData(
+      regionKey: regionKey,
+      regionLabel: regionLabel,
+    );
 
     showModalBottomSheet<void>(
       context: context,
@@ -1959,143 +2106,202 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       isScrollControlled: true,
       builder: (sheetContext) {
         final primary = Theme.of(sheetContext).colorScheme.primary;
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Top 10 contribuidores da semana',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Sua posicao atual: #$userRank  •  ${_communityPoints.clamp(0, 1000000)} pts',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: GymMapColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      color: withUiOpacity(primary, 0.08),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.bolt_rounded, size: 16),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Cada envio valido soma +5 pontos. Continue contribuindo para subir no ranking.',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              color: GymMapColors.textStrong,
+        return FutureBuilder<_CommunityLeaderboardSheetData>(
+          future: leaderboardFuture,
+          initialData: fallbackData,
+          builder: (context, snapshot) {
+            final data = snapshot.data ?? fallbackData;
+            final entries = data.entries;
+            final userRank = data.userRank;
+            final userPoints = data.userPoints;
+            final rankLabel = userRank > 0 ? '#$userRank' : 'sem ranking';
+
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Top 10 contribuidores da semana',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Sua posicao atual: $rankLabel  .  $userPoints pts',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: GymMapColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Regiao: ${data.regionLabel}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: GymMapColors.textSecondary,
+                        ),
+                      ),
+                      if (snapshot.connectionState == ConnectionState.waiting &&
+                          !data.isRegional) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Atualizando ranking regional...',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: withUiOpacity(primary, 0.8),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                      const SizedBox(height: 10),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          color: withUiOpacity(primary, 0.08),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.bolt_rounded, size: 16),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                data.isRegional
+                                    ? 'Pontuacao regional real dos ultimos 7 dias. Cada envio valido soma +5 pontos.'
+                                    : 'Cada envio valido soma +5 pontos. Continue contribuindo para subir no ranking.',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: GymMapColors.textStrong,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      for (var i = 0; i < entries.length; i++) ...[
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 9,
+                          ),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            color:
+                                entries[i].isCurrentUser
+                                    ? withUiOpacity(primary, 0.10)
+                                    : Colors.white,
+                            border: Border.all(
+                              color:
+                                  entries[i].isCurrentUser
+                                      ? withUiOpacity(primary, 0.34)
+                                      : withUiOpacity(
+                                        GymMapColors.northControl,
+                                        0.10,
+                                      ),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: 30,
+                                child:
+                                    i < 3
+                                        ? Icon(
+                                          Icons.emoji_events_rounded,
+                                          size: 19,
+                                          color: _leaderboardMedalColor(i),
+                                        )
+                                        : Text(
+                                          '#${i + 1}',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w800,
+                                            color: GymMapColors.textSecondary,
+                                          ),
+                                        ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  entries[i].name,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    color:
+                                        entries[i].isCurrentUser
+                                            ? GymMapColors.textPrimary
+                                            : GymMapColors.textStrong,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(999),
+                                  color: withUiOpacity(primary, 0.09),
+                                ),
+                                child: Text(
+                                  '${entries[i].points} pts',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: GymMapColors.textStrong,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  for (var i = 0; i < entries.length; i++) ...[
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 9,
-                      ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        color:
-                            entries[i].isCurrentUser
-                                ? withUiOpacity(primary, 0.10)
-                                : Colors.white,
-                        border: Border.all(
-                          color:
-                              entries[i].isCurrentUser
-                                  ? withUiOpacity(primary, 0.34)
-                                  : withUiOpacity(
-                                    GymMapColors.northControl,
-                                    0.10,
-                                  ),
+                      if (entries.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 8),
+                          child: Text(
+                            'Ainda nao ha pontuacao suficiente nesta regiao.',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: GymMapColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 4),
+                      SizedBox(
+                        width: double.infinity,
+                        child: TextButton(
+                          onPressed: () => Navigator.of(sheetContext).pop(),
+                          child: const Text('Fechar'),
                         ),
                       ),
-                      child: Row(
-                        children: [
-                          SizedBox(
-                            width: 30,
-                            child:
-                                i < 3
-                                    ? Icon(
-                                      Icons.emoji_events_rounded,
-                                      size: 19,
-                                      color: _leaderboardMedalColor(i),
-                                    )
-                                    : Text(
-                                      '#${i + 1}',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w800,
-                                        color: GymMapColors.textSecondary,
-                                      ),
-                                    ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              entries[i].name,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                color:
-                                    entries[i].isCurrentUser
-                                        ? GymMapColors.textPrimary
-                                        : GymMapColors.textStrong,
-                              ),
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(999),
-                              color: withUiOpacity(primary, 0.09),
-                            ),
-                            child: Text(
-                              '${entries[i].points} pts',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                color: GymMapColors.textStrong,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 4),
-                  SizedBox(
-                    width: double.infinity,
-                    child: TextButton(
-                      onPressed: () => Navigator.of(sheetContext).pop(),
-                      child: const Text('Fechar'),
-                    ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
@@ -2956,7 +3162,9 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     final isPrimaryTrialCta =
         current == AppPlanTier.free && tier == AppPlanTier.pro;
     final actionLabel =
-        isPrimaryTrialCta ? 'Comecar agora' : _planActionLabel(tier, current);
+        isPrimaryTrialCta
+            ? 'Comecar teste gratis'
+            : _planActionLabel(tier, current);
     final fullPriceLabel = _planPriceLabel(tier);
     final periodSeparatorIndex = fullPriceLabel.indexOf('/');
     final priceMain =
@@ -3144,6 +3352,17 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                       label: Text(actionLabel),
                     ),
           ),
+          if (isPrimaryTrialCta) ...[
+            const SizedBox(height: 4),
+            const Text(
+              'Acesso imediato e cancelamento quando quiser.',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: GymMapColors.textSecondary,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -3171,8 +3390,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       (feature: 'Previsao e alertas', available: {AppPlanTier.elite}),
       (feature: 'Cobertura nacional', available: {AppPlanTier.elite}),
     ];
-    const featureColumnWidth = 164.0;
-    const tierColumnWidth = 52.0;
+    const featureColumnWidth = 156.0;
+    const tierColumnWidth = 72.0;
     final matrixMinWidth =
         featureColumnWidth + (tierColumnWidth * AppPlanTier.values.length);
 
@@ -3207,12 +3426,27 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                   for (final tier in AppPlanTier.values)
                     SizedBox(
                       width: tierColumnWidth,
-                      child: Center(
-                        child: Text(
-                          kPlanCatalog[tier]!.label[0],
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w800,
-                            color: GymMapColors.textStrong,
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 2),
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          color: withUiOpacity(
+                            GymMapColors.northControl,
+                            tier == AppPlanTier.pro ? 0.10 : 0.06,
+                          ),
+                        ),
+                        child: Center(
+                          child: Text(
+                            kPlanCatalog[tier]!.label,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 11,
+                              color:
+                                  tier == AppPlanTier.pro
+                                      ? Theme.of(context).colorScheme.primary
+                                      : GymMapColors.textStrong,
+                            ),
                           ),
                         ),
                       ),
@@ -3244,7 +3478,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                               row.available.contains(tier)
                                   ? Icons.check_circle
                                   : Icons.remove_circle_outline,
-                              size: 16,
+                              size: 18,
                               color:
                                   row.available.contains(tier)
                                       ? GymMapColors.occupancyLow
@@ -3449,7 +3683,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                                   ),
                                 )
                                 : const Icon(Icons.rocket_launch),
-                        label: const Text('Comecar no Pro'),
+                        label: const Text('Comecar teste gratis'),
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -3674,20 +3908,24 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
             point: gym.position,
             width: 250 * markerScale,
             height: 145 * markerScale,
-            child: Transform.scale(
-              scale: markerScale,
-              alignment: Alignment.bottomCenter,
-              child: GymMarkerBubble(
-                label: gym.name,
-                percent:
-                    snapshotsByGymId[gym.id]?.occupancyPercent ??
-                    gym.baseOccupancyPercent,
-                isFavorite: _isFavoriteGymId(gym.id),
-                selected: gym.id == _selectedGym?.id,
-                revealDetails: _showMarkerDetails,
-                onTap:
-                    () =>
-                        _handleMarkerTap(() => _selectGym(gym, moveMap: false)),
+            child: Transform.translate(
+              offset: Offset(0, _markerBodyAnchorOffset(markerScale)),
+              child: Transform.scale(
+                scale: markerScale,
+                alignment: Alignment.bottomCenter,
+                child: GymMarkerBubble(
+                  label: gym.name,
+                  percent:
+                      snapshotsByGymId[gym.id]?.occupancyPercent ??
+                      gym.baseOccupancyPercent,
+                  isFavorite: _isFavoriteGymId(gym.id),
+                  selected: gym.id == _selectedGym?.id,
+                  revealDetails: _showMarkerDetails,
+                  onTap:
+                      () => _handleMarkerTap(
+                        () => _selectGym(gym, moveMap: false),
+                      ),
+                ),
               ),
             ),
           );
@@ -3805,6 +4043,10 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     );
   }
 
+  double _markerBodyAnchorOffset(double markerScale) {
+    return _mapMarkerBodyAnchorOffset * markerScale;
+  }
+
   Marker _buildPoiMarker(MapGymPoi poi) {
     final poiGym = _gymFromPoi(poi);
     final poiPercent = _crowdService.snapshotFor(poiGym).occupancyPercent;
@@ -3814,17 +4056,21 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       point: poi.position,
       width: 250 * markerScale,
       height: 145 * markerScale,
-      child: Transform.scale(
-        scale: markerScale,
-        alignment: Alignment.bottomCenter,
-        child: GymMarkerBubble(
-          label: poi.name,
-          percent: poiPercent,
-          isFavorite: _isFavoriteGymId(poiGym.id),
-          selected: poiGym.id == _selectedGym?.id,
-          revealDetails: _showMarkerDetails,
-          onTap:
-              () => _handleMarkerTap(() => _selectGym(poiGym, moveMap: false)),
+      child: Transform.translate(
+        offset: Offset(0, _markerBodyAnchorOffset(markerScale)),
+        child: Transform.scale(
+          scale: markerScale,
+          alignment: Alignment.bottomCenter,
+          child: GymMarkerBubble(
+            label: poi.name,
+            percent: poiPercent,
+            isFavorite: _isFavoriteGymId(poiGym.id),
+            selected: poiGym.id == _selectedGym?.id,
+            revealDetails: _showMarkerDetails,
+            onTap:
+                () =>
+                    _handleMarkerTap(() => _selectGym(poiGym, moveMap: false)),
+          ),
         ),
       ),
     );

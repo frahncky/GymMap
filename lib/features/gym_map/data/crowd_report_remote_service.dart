@@ -18,6 +18,40 @@ class RemoteCrowdSubmitResult {
   final CrowdReport? report;
 }
 
+class RemoteCrowdLeaderboardEntry {
+  const RemoteCrowdLeaderboardEntry({
+    required this.userId,
+    required this.displayName,
+    required this.points,
+    required this.rank,
+    required this.isCurrentUser,
+  });
+
+  final String userId;
+  final String displayName;
+  final int points;
+  final int rank;
+  final bool isCurrentUser;
+}
+
+class RemoteCrowdLeaderboardResult {
+  const RemoteCrowdLeaderboardResult({
+    required this.regionKey,
+    required this.regionLabel,
+    required this.windowDays,
+    required this.userRank,
+    required this.userPoints,
+    required this.entries,
+  });
+
+  final String regionKey;
+  final String regionLabel;
+  final int windowDays;
+  final int userRank;
+  final int userPoints;
+  final List<RemoteCrowdLeaderboardEntry> entries;
+}
+
 class CrowdReportRemoteService {
   CrowdReportRemoteService._({
     required SharedPreferences prefs,
@@ -88,6 +122,8 @@ class CrowdReportRemoteService {
     required String gymId,
     required int occupancyPercent,
     required String reporterId,
+    String? regionKey,
+    String? regionLabel,
   }) async {
     if (!hasRemoteBackend) {
       throw StateError('Backend crowd service not configured');
@@ -107,6 +143,10 @@ class CrowdReportRemoteService {
             'gymId': gymId,
             'occupancyPercent': occupancyPercent.clamp(0, 100),
             'reporterId': reporterId,
+            if ((regionKey ?? '').trim().isNotEmpty)
+              'regionKey': regionKey!.trim(),
+            if ((regionLabel ?? '').trim().isNotEmpty)
+              'regionLabel': regionLabel!.trim(),
           }),
         )
         .timeout(_requestTimeout);
@@ -194,6 +234,94 @@ class CrowdReportRemoteService {
       }
     }
     return reports;
+  }
+
+  Future<RemoteCrowdLeaderboardResult?> loadRegionalLeaderboard({
+    required String regionKey,
+    String? regionLabel,
+    int limit = 10,
+    int windowDays = 7,
+  }) async {
+    if (!hasRemoteBackend) {
+      return null;
+    }
+    refreshAuthFromStorage();
+    final userId = _userId.trim();
+    if (userId.isEmpty) {
+      return null;
+    }
+
+    final normalizedRegionKey = regionKey.trim();
+    final normalizedRegionLabel = (regionLabel ?? '').trim();
+    final uri = _buildRemoteUri(<String>[
+      'v1',
+      'crowd',
+      'leaderboard',
+      userId,
+    ]).replace(
+      queryParameters: <String, String>{
+        'windowDays': '${windowDays.clamp(1, 30)}',
+        'limit': '${limit.clamp(1, 50)}',
+        if (normalizedRegionKey.isNotEmpty) 'regionKey': normalizedRegionKey,
+        if (normalizedRegionLabel.isNotEmpty)
+          'regionLabel': normalizedRegionLabel,
+      },
+    );
+
+    final response = await _httpClient
+        .get(uri, headers: _remoteHeaders())
+        .timeout(_requestTimeout);
+    if (response.statusCode != HttpStatus.ok) {
+      return null;
+    }
+    final decoded = _decodeJsonMap(response.body);
+    final rawEntries = decoded['entries'];
+    if (rawEntries is! List) {
+      return null;
+    }
+
+    final entries = <RemoteCrowdLeaderboardEntry>[];
+    for (final raw in rawEntries) {
+      if (raw is! Map) {
+        continue;
+      }
+      final map = Map<String, dynamic>.from(raw);
+      final entryUserId = '${map['userId'] ?? ''}'.trim();
+      if (entryUserId.isEmpty) {
+        continue;
+      }
+      final points = int.tryParse('${map['points'] ?? ''}') ?? 0;
+      final rank = int.tryParse('${map['rank'] ?? ''}') ?? 0;
+      final displayName = '${map['displayName'] ?? ''}'.trim();
+      final isCurrentUser = map['isCurrentUser'] == true;
+      entries.add(
+        RemoteCrowdLeaderboardEntry(
+          userId: entryUserId,
+          displayName: displayName.isEmpty ? entryUserId : displayName,
+          points: points.clamp(0, 1000000),
+          rank: rank.clamp(0, 1000000),
+          isCurrentUser: isCurrentUser,
+        ),
+      );
+    }
+
+    final userRank = int.tryParse('${decoded['userRank'] ?? ''}') ?? 0;
+    final userPoints = int.tryParse('${decoded['userPoints'] ?? ''}') ?? 0;
+    final responseRegionKey =
+        '${decoded['regionKey'] ?? normalizedRegionKey}'.trim();
+    final responseRegionLabel =
+        '${decoded['regionLabel'] ?? normalizedRegionLabel}'.trim();
+    final responseWindowDays =
+        int.tryParse('${decoded['windowDays'] ?? ''}') ?? windowDays;
+
+    return RemoteCrowdLeaderboardResult(
+      regionKey: responseRegionKey,
+      regionLabel: responseRegionLabel,
+      windowDays: responseWindowDays.clamp(1, 30),
+      userRank: userRank.clamp(0, 1000000),
+      userPoints: userPoints.clamp(0, 1000000),
+      entries: List<RemoteCrowdLeaderboardEntry>.unmodifiable(entries),
+    );
   }
 
   Uri _buildRemoteUri(List<String> pathSegments) {

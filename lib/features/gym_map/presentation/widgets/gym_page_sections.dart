@@ -92,11 +92,11 @@ class GymPageHeader extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   onTap: onOpenCommunityRanking,
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(minHeight: 44),
+                    constraints: const BoxConstraints(minHeight: 34),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 9,
-                        vertical: 6,
+                        horizontal: 8,
+                        vertical: 4,
                       ),
                       decoration: BoxDecoration(
                         color: withUiOpacity(Colors.white, 0.16),
@@ -107,16 +107,16 @@ class GymPageHeader extends StatelessWidget {
                         children: [
                           const Icon(
                             Icons.workspace_premium_rounded,
-                            size: 14,
+                            size: 13,
                             color: Colors.white,
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 3),
                           Text(
                             '${communityPoints.clamp(0, 1000000)} pts',
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w800,
-                              fontSize: 11,
+                              fontSize: 10.5,
                             ),
                           ),
                         ],

@@ -761,6 +761,116 @@ class _PixBillingBackend {
           segments.length == 4 &&
           segments[0] == 'v1' &&
           segments[1] == 'crowd' &&
+          segments[2] == 'leaderboard') {
+        final requested = segments[3].trim();
+        final authUser = _authenticate(req, expectedUserId: requested);
+        if (_jwtEnabled && authUser == null) {
+          return _json(req, HttpStatus.unauthorized, <String, dynamic>{
+            'error': 'unauthorized',
+          });
+        }
+        final userId = authUser ?? requested;
+        if (userId.isEmpty) {
+          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+            'error': 'missing_user_id',
+          });
+        }
+
+        final windowDays =
+            int.tryParse(req.uri.queryParameters['windowDays'] ?? '') ?? 7;
+        final normalizedWindowDays = windowDays.clamp(1, 30);
+        final limit =
+            int.tryParse(req.uri.queryParameters['limit'] ?? '') ?? 10;
+        final normalizedLimit = limit.clamp(1, 50);
+        final requestedRegionLabel =
+            (req.uri.queryParameters['regionLabel'] ?? '').trim();
+        final requestedRegionKey = _normalizeCrowdRegionKey(
+          req.uri.queryParameters['regionKey'] ?? '',
+        );
+
+        final now = DateTime.now().toUtc();
+        final cutoff = now.subtract(Duration(days: normalizedWindowDays));
+
+        final filteredReports = <Map<String, dynamic>>[];
+        for (final raw in crowdReports.values) {
+          final createdAt =
+              DateTime.tryParse('${raw['createdAt'] ?? ''}')?.toUtc();
+          if (createdAt == null || createdAt.isBefore(cutoff)) {
+            continue;
+          }
+          final regionKey = _normalizeCrowdRegionKey(
+            '${raw['regionKey'] ?? raw['region'] ?? ''}',
+          );
+          if (requestedRegionKey.isNotEmpty &&
+              regionKey != requestedRegionKey) {
+            continue;
+          }
+          filteredReports.add(Map<String, dynamic>.from(raw));
+        }
+
+        final pointsByUser = <String, int>{};
+        for (final report in filteredReports) {
+          final reportUserId = '${report['userId'] ?? ''}'.trim();
+          if (reportUserId.isEmpty) {
+            continue;
+          }
+          pointsByUser[reportUserId] = (pointsByUser[reportUserId] ?? 0) + 5;
+        }
+
+        final ranking = pointsByUser.entries.toList(growable: false)
+          ..sort((left, right) {
+            final byPoints = right.value.compareTo(left.value);
+            if (byPoints != 0) {
+              return byPoints;
+            }
+            return left.key.compareTo(right.key);
+          });
+
+        var userRank = 0;
+        for (var i = 0; i < ranking.length; i++) {
+          if (ranking[i].key == userId) {
+            userRank = i + 1;
+            break;
+          }
+        }
+        final userPoints = pointsByUser[userId] ?? 0;
+        final resolvedRegionLabel = _resolveCrowdRegionLabel(
+          explicitLabel: requestedRegionLabel,
+          normalizedRegionKey: requestedRegionKey,
+          reports: filteredReports,
+        );
+
+        final entries = <Map<String, dynamic>>[];
+        final maxIndex =
+            normalizedLimit <= ranking.length
+                ? normalizedLimit
+                : ranking.length;
+        for (var i = 0; i < maxIndex; i++) {
+          final entry = ranking[i];
+          entries.add(<String, dynamic>{
+            'userId': entry.key,
+            'displayName': _crowdLeaderboardDisplayName(entry.key),
+            'points': entry.value,
+            'rank': i + 1,
+            'isCurrentUser': entry.key == userId,
+          });
+        }
+
+        return _json(req, HttpStatus.ok, <String, dynamic>{
+          'userId': userId,
+          'regionKey': requestedRegionKey,
+          'regionLabel': resolvedRegionLabel,
+          'windowDays': normalizedWindowDays,
+          'entries': entries,
+          'userRank': userRank,
+          'userPoints': userPoints,
+        });
+      }
+
+      if (req.method == 'GET' &&
+          segments.length == 4 &&
+          segments[0] == 'v1' &&
+          segments[1] == 'crowd' &&
           segments[2] == 'reports') {
         final requested = segments[3].trim();
         final authUser = _authenticate(req, expectedUserId: requested);
@@ -859,6 +969,13 @@ class _PixBillingBackend {
         final reporterIdRaw = '${payload['reporterId'] ?? ''}'.trim();
         final reporterId =
             reporterIdRaw.isEmpty ? 'user:$userId' : reporterIdRaw;
+        var regionKey = _normalizeCrowdRegionKey(
+          '${payload['regionKey'] ?? payload['region'] ?? ''}',
+        );
+        final regionLabel = '${payload['regionLabel'] ?? ''}'.trim();
+        if (regionKey.isEmpty && regionLabel.isNotEmpty) {
+          regionKey = _normalizeCrowdRegionKey(regionLabel);
+        }
 
         final now = DateTime.now().toUtc();
         final retryAfter = _remainingCrowdReportCooldown(
@@ -891,6 +1008,8 @@ class _PixBillingBackend {
           'createdAt': now.toIso8601String(),
           'reporterId': reporterId,
           'reliabilityWeight': reliabilityWeight,
+          'regionKey': regionKey,
+          'regionLabel': regionLabel,
         };
         crowdReports[reportId] = report;
         await _persist();
@@ -1623,6 +1742,12 @@ class _PixBillingBackend {
         segments[1] == 'gyms' &&
         segments[2] == 'locations') {
       return '$method /v1/gyms/locations/:userId';
+    }
+    if (segments.length == 4 &&
+        segments[0] == 'v1' &&
+        segments[1] == 'crowd' &&
+        segments[2] == 'leaderboard') {
+      return '$method /v1/crowd/leaderboard/:userId';
     }
     if (segments.length == 4 &&
         segments[0] == 'v1' &&
@@ -2590,6 +2715,65 @@ CREATE TABLE IF NOT EXISTS app_state (
       return null;
     }
     return _crowdReportCooldownWindow - elapsed;
+  }
+
+  String _normalizeCrowdRegionKey(String raw) {
+    final trimmed = raw.trim().toLowerCase();
+    if (trimmed.isEmpty) {
+      return '';
+    }
+    final collapsedWhitespace = trimmed.replaceAll(RegExp(r'\s+'), '-');
+    final sanitized = collapsedWhitespace.replaceAll(
+      RegExp(r'[^a-z0-9,._-]'),
+      '',
+    );
+    if (sanitized.length <= 64) {
+      return sanitized;
+    }
+    return sanitized.substring(0, 64);
+  }
+
+  String _resolveCrowdRegionLabel({
+    required String explicitLabel,
+    required String normalizedRegionKey,
+    required Iterable<Map<String, dynamic>> reports,
+  }) {
+    final fromQuery = explicitLabel.trim();
+    if (fromQuery.isNotEmpty) {
+      return fromQuery;
+    }
+    if (normalizedRegionKey.isEmpty) {
+      return 'Todas as regioes';
+    }
+    for (final report in reports) {
+      final reportRegionKey = _normalizeCrowdRegionKey(
+        '${report['regionKey'] ?? report['region'] ?? ''}',
+      );
+      if (reportRegionKey != normalizedRegionKey) {
+        continue;
+      }
+      final label = '${report['regionLabel'] ?? ''}'.trim();
+      if (label.isNotEmpty) {
+        return label;
+      }
+    }
+    return 'Regiao atual';
+  }
+
+  String _crowdLeaderboardDisplayName(String userId) {
+    final normalized = userId.trim();
+    if (normalized.isEmpty) {
+      return 'Usuario';
+    }
+    if (normalized == 'local-device-user') {
+      return 'Usuario local';
+    }
+    final compact = normalized.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '');
+    if (compact.isEmpty) {
+      return 'Usuario';
+    }
+    final prefix = compact.length <= 4 ? compact : compact.substring(0, 4);
+    return 'Usuario $prefix';
   }
 
   double _estimateCrowdReliabilityWeight({
