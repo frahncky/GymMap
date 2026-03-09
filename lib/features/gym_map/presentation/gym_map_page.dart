@@ -129,6 +129,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   static const LatLng _fallbackMapCenter = LatLng(-23.5615, -46.6560);
   static const String _localReporterId = 'local-device-user';
   static const String _mapTutorialSeenPrefKey = 'gymmap_map_tutorial_seen_v1';
+  static const String _initialLocationPromptDonePrefKey =
+      'gymmap_initial_location_prompt_done_v1';
   static const String _favoriteGymIdsPrefKey = 'gymmap_favorite_gym_ids_v1';
   static const String _communityPointsPrefKey = 'gymmap_community_points_v1';
   static const String _dataSaverPrefKey = 'gymmap_pref_data_saver_v1';
@@ -298,12 +300,12 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
           return;
         }
         _hasTriggeredInitialMapBootstrap = true;
-        _runInitialMapBootstrap();
+        unawaited(_runInitialMapBootstrap());
       });
     }
   }
 
-  void _runInitialMapBootstrap() {
+  Future<void> _runInitialMapBootstrap() async {
     if (mounted) {
       setState(() {
         _hasCompletedInitialLocationAttempt = true;
@@ -315,8 +317,60 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     unawaited(_restoreCachedMapPoisNear(_fallbackMapCenter, force: true));
     unawaited(_loadMapPoisAround(_fallbackMapCenter));
     unawaited(_startBackgroundLocationStream());
+
+    await _resolveInitialLocationFlow();
+
     _maybeStartOpeningSearchIntro();
     _maybeShowMapTutorialOverlay();
+  }
+
+  Future<void> _resolveInitialLocationFlow() async {
+    final shouldPrompt = await _shouldPromptInitialLocationPermission();
+    if (!mounted) {
+      return;
+    }
+
+    if (shouldPrompt) {
+      await _markInitialLocationPromptDone();
+      await _centerMapOnDeviceLocation(
+        requestPermissionIfDenied: true,
+        showDeniedSnack: true,
+      );
+      return;
+    }
+
+    LocationPermission permission;
+    try {
+      permission = await Geolocator.checkPermission();
+    } catch (_) {
+      return;
+    }
+    if (!_hasLocationPermission(permission)) {
+      return;
+    }
+
+    await _centerMapOnDeviceLocation(
+      requestPermissionIfDenied: false,
+      showDeniedSnack: false,
+    );
+  }
+
+  Future<bool> _shouldPromptInitialLocationPermission() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return !(prefs.getBool(_initialLocationPromptDonePrefKey) ?? false);
+    } catch (_) {
+      return true;
+    }
+  }
+
+  Future<void> _markInitialLocationPromptDone() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_initialLocationPromptDonePrefKey, true);
+    } catch (_) {
+      // Falha local não deve bloquear o fluxo.
+    }
   }
 
   @override
@@ -1860,7 +1914,10 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     _positionStreamSubscription = null;
   }
 
-  Future<void> _centerMapOnDeviceLocation() async {
+  Future<void> _centerMapOnDeviceLocation({
+    bool requestPermissionIfDenied = true,
+    bool showDeniedSnack = true,
+  }) async {
     if (!widget.showMap) {
       return;
     }
@@ -1883,7 +1940,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     try {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        if (!hasImmediateCenter) {
+        if (!hasImmediateCenter && showDeniedSnack) {
           _showMapSnack('Ative o GPS para centralizar sua localização.');
         }
         return;
@@ -1891,9 +1948,12 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
 
       var permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
+        if (!requestPermissionIfDenied) {
+          return;
+        }
         final shouldRequest = await _confirmLocationPermissionRequest();
         if (!shouldRequest) {
-          if (!hasImmediateCenter) {
+          if (!hasImmediateCenter && showDeniedSnack) {
             _showMapSnack(
               'Sem permissão de localização. Você pode ativar isso depois nas configurações.',
             );
@@ -1905,7 +1965,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
 
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
-        if (!hasImmediateCenter) {
+        if (!hasImmediateCenter && showDeniedSnack) {
           if (permission == LocationPermission.deniedForever) {
             _showMapSnack(
               'Permissão de localização negada permanentemente. Ajuste nas configurações do aparelho.',
@@ -1942,13 +2002,13 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       final userPoint = LatLng(position.latitude, position.longitude);
       _applyResolvedUserLocation(userPoint, moveMap: true);
     } on TimeoutException {
-      if (!hasImmediateCenter) {
+      if (!hasImmediateCenter && showDeniedSnack) {
         _showMapSnack(
           'Tempo esgotado ao obter localização. Tente novamente em instantes.',
         );
       }
     } catch (_) {
-      if (!hasImmediateCenter) {
+      if (!hasImmediateCenter && showDeniedSnack) {
         _showMapSnack('Não foi possível obter sua localização no momento.');
       }
     } finally {
