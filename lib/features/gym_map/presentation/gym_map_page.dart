@@ -250,7 +250,6 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   DateTime? _lastDataSaverPoiReloadAt;
   DateTime? _lastDataSaverCrowdSyncAt;
   Timer? _mapBrowseCenterUiDebounce;
-  Timer? _mapTutorialDismissTimer;
   Timer? _contributionCelebrationTimer;
   Timer? _planSyncTimer;
   StreamSubscription<List<PurchaseDetails>>? _purchaseStreamSubscription;
@@ -436,7 +435,6 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _mapBrowseCenterUiDebounce?.cancel();
-    _mapTutorialDismissTimer?.cancel();
     _contributionCelebrationTimer?.cancel();
     _planSyncTimer?.cancel();
     _purchaseStreamSubscription?.cancel();
@@ -1545,14 +1543,9 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     setState(() {
       _showMapTutorialOverlay = true;
     });
-    _mapTutorialDismissTimer?.cancel();
-    _mapTutorialDismissTimer = Timer(const Duration(seconds: 5), () {
-      _dismissMapTutorialOverlay();
-    });
   }
 
   Future<void> _dismissMapTutorialOverlay({bool persist = true}) async {
-    _mapTutorialDismissTimer?.cancel();
     if (mounted && _showMapTutorialOverlay) {
       setState(() {
         _showMapTutorialOverlay = false;
