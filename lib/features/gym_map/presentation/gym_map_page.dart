@@ -260,6 +260,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   bool _isLoadingPlayProducts = false;
   List<ProductDetails> _playProducts = const <ProductDetails>[];
   final Set<String> _processingPlayPurchases = <String>{};
+  final Set<String> _purchaseSuccessNotificationKeys = <String>{};
   bool _isPlanAuthBusy = false;
   String? _lastPlanExpiryWarningKey;
   int _mapVisualReloadTick = 0;
@@ -1949,6 +1950,126 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     );
   }
 
+  bool _markPurchaseSuccessNotified(String key) {
+    final normalizedKey = key.trim();
+    if (normalizedKey.isEmpty) {
+      return false;
+    }
+    final added = _purchaseSuccessNotificationKeys.add(normalizedKey);
+    if (added && _purchaseSuccessNotificationKeys.length > 24) {
+      _purchaseSuccessNotificationKeys.remove(
+        _purchaseSuccessNotificationKeys.first,
+      );
+    }
+    return added;
+  }
+
+  Future<void> _showPlanActivationSuccessDialog(AppPlanTier tier) async {
+    if (!mounted) {
+      return;
+    }
+    final plan = kPlanCatalog[tier]!;
+    final highlights = plan.insights.take(2).toList(growable: false);
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        final primary = Theme.of(dialogContext).colorScheme.primary;
+        return Dialog(
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: 0.88, end: 1),
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeOutBack,
+            builder: (context, scale, child) {
+              return Transform.scale(scale: scale, child: child);
+            },
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: withUiOpacity(primary, 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.check_circle_rounded,
+                          color: primary,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Text(
+                          'Assinatura ativada!',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            color: GymMapColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Plano ${plan.label} liberado com sucesso.',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: GymMapColors.textStrong,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  for (final highlight in highlights)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.bolt_rounded,
+                            size: 14,
+                            color: withUiOpacity(primary, 0.90),
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              highlight,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: GymMapColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      icon: const Icon(Icons.rocket_launch_rounded),
+                      label: const Text('Continuar'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _showContributionSnack({
     required String gymName,
     required int report,
@@ -3100,10 +3221,15 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       if (!mounted) {
         return;
       }
-      _showMapSnack(
-        'Assinatura ${kPlanCatalog[tier]!.label} ativada com sucesso.',
-      );
       await _completePlayPurchaseIfNeeded(purchase);
+      final notificationKey = '$productId|$token';
+      if (_markPurchaseSuccessNotified(notificationKey)) {
+        unawaited(_showPlanActivationSuccessDialog(tier));
+      } else {
+        _showMapSnack(
+          'Assinatura ${kPlanCatalog[tier]!.label} ativada com sucesso.',
+        );
+      }
     } catch (error) {
       if (!mounted) {
         return;
