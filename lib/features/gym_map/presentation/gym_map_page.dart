@@ -128,6 +128,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   static const LatLng _fallbackMapCenter = LatLng(-23.5615, -46.6560);
   static const String _localReporterId = 'local-device-user';
   static const String _mapTutorialSeenPrefKey = 'gymmap_map_tutorial_seen_v1';
+  static const String _mapWelcomeSeenPrefKey = 'gymmap_map_welcome_seen_v1';
   static const String _favoriteGymIdsPrefKey = 'gymmap_favorite_gym_ids_v1';
   static const String _communityPointsPrefKey = 'gymmap_community_points_v1';
   static const String _dataSaverPrefKey = 'gymmap_pref_data_saver_v1';
@@ -222,6 +223,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   List<MapGymPoi> _mapPois = const [];
   bool _isLoadingMapPois = false;
   int _mapPoiLoadingRequests = 0;
+  bool _hasTriggeredInitialMapBootstrap = false;
   final Map<String, Gym> _generatedGymsByPoiId = <String, Gym>{};
   bool _isResolvingSearchLocation = false;
   bool _hasLoadedMapTutorialState = false;
@@ -278,9 +280,102 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     unawaited(_initializePlayStoreBilling());
     if (widget.showMap) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _centerMapOnDeviceLocation();
+        if (!mounted || _hasTriggeredInitialMapBootstrap) {
+          return;
+        }
+        _hasTriggeredInitialMapBootstrap = true;
+        unawaited(_runInitialMapBootstrap());
       });
     }
+  }
+
+  Future<void> _runInitialMapBootstrap() async {
+    final shouldRequestLocation = await _showWelcomeOnboardingIfNeeded();
+    if (!mounted) {
+      return;
+    }
+    if (shouldRequestLocation) {
+      await _centerMapOnDeviceLocation();
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _hasCompletedInitialLocationAttempt = true;
+      });
+    } else {
+      _hasCompletedInitialLocationAttempt = true;
+    }
+    _moveMapTo(_fallbackMapCenter, 13.4);
+    unawaited(_restoreCachedMapPoisNear(_fallbackMapCenter, force: true));
+    unawaited(_loadMapPoisAround(_fallbackMapCenter));
+    _maybeStartOpeningSearchIntro();
+    _maybeShowMapTutorialOverlay();
+  }
+
+  Future<bool> _showWelcomeOnboardingIfNeeded() async {
+    if (!mounted) {
+      return true;
+    }
+    bool hasSeen = false;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      hasSeen = prefs.getBool(_mapWelcomeSeenPrefKey) ?? false;
+    } catch (_) {
+      hasSeen = false;
+    }
+    if (!mounted) {
+      return true;
+    }
+    if (hasSeen) {
+      return true;
+    }
+
+    final wantsLocationNow =
+            await showDialog<bool>(
+              context: context,
+              barrierDismissible: false,
+              builder: (dialogContext) {
+                return AlertDialog(
+                  icon: const Icon(Icons.fitness_center_rounded),
+                  title: const Text('Bem-vindo ao GymMap'),
+                  content: const Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Encontre academias próximas, veja lotação em tempo real e contribua com a comunidade.',
+                      ),
+                      SizedBox(height: 10),
+                      Text('• Descubra academias perto de você.'),
+                      Text('• Compare lotação antes de sair.'),
+                      Text('• Ganhe pontos ao enviar relatos.'),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(false),
+                      child: const Text('Agora não'),
+                    ),
+                    FilledButton.icon(
+                      onPressed: () => Navigator.of(dialogContext).pop(true),
+                      icon: const Icon(Icons.my_location_rounded),
+                      label: const Text('Ativar localização'),
+                    ),
+                  ],
+                );
+              },
+            ) ??
+        false;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_mapWelcomeSeenPrefKey, true);
+    } catch (_) {
+      // Falha local nao interrompe o fluxo.
+    }
+
+    return wantsLocationNow;
   }
 
   @override
@@ -1287,9 +1382,6 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
 
   void _onMapReady() {
     _isMapReady = true;
-    if (!_hasCompletedInitialLocationAttempt) {
-      unawaited(_centerMapOnDeviceLocation());
-    }
     final userPoint = _userLocation;
     if (userPoint != null) {
       _moveMapTo(userPoint, 14.8);
