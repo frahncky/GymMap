@@ -91,36 +91,33 @@ class GymPageHeader extends StatelessWidget {
                 child: InkWell(
                   borderRadius: BorderRadius.circular(12),
                   onTap: onOpenCommunityRanking,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(minHeight: 34),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: withUiOpacity(Colors.white, 0.16),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.workspace_premium_rounded,
-                            size: 13,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: withUiOpacity(Colors.white, 0.16),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.workspace_premium_rounded,
+                          size: 12,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${communityPoints.clamp(0, 1000000)} pts',
+                          style: const TextStyle(
                             color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 12,
                           ),
-                          const SizedBox(width: 3),
-                          Text(
-                            '${communityPoints.clamp(0, 1000000)} pts',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 10.5,
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ),

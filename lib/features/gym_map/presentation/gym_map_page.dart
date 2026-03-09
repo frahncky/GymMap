@@ -144,7 +144,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   static const Duration _dataSaverPoiReloadCooldown = Duration(seconds: 16);
   static const Duration _dataSaverCrowdSyncCooldown = Duration(minutes: 3);
   static const double _dataSaverPoiReloadMinDistanceMeters = 3200;
-  static const double _mapMarkerBodyAnchorOffset = 20;
+  static const double _mapMarkerBodyAnchorOffset = 0;
   static const int _maxMapPoiMarkers = 90;
   static const int _maxMapPoiMarkersZoomedOut = 48;
   static const int _layoutTotalFlex = 100;

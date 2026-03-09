@@ -72,6 +72,7 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
   @override
   Widget build(BuildContext context) {
     final color = occupancyColor(widget.percent);
+    const markerInfoOffsetY = 18.0;
 
     return Semantics(
       button: true,
@@ -88,48 +89,90 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              AnimatedOpacity(
-                opacity: widget.revealDetails ? 1 : 0,
-                duration: const Duration(milliseconds: 320),
-                curve: Curves.easeOutCubic,
-                child: AnimatedScale(
-                  scale: widget.revealDetails ? 1 : 0.84,
+              Transform.translate(
+                offset: const Offset(0, markerInfoOffsetY),
+                child: AnimatedOpacity(
+                  opacity: widget.revealDetails ? 1 : 0,
                   duration: const Duration(milliseconds: 320),
                   curve: Curves.easeOutCubic,
-                  child: SizedBox(
-                    width: 138,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (widget.isFavorite) ...[
-                          const Icon(
-                            Icons.favorite_rounded,
-                            size: 12,
-                            color: GymMapColors.occupancyCritical,
+                  child: AnimatedScale(
+                    scale: widget.revealDetails ? 1 : 0.84,
+                    duration: const Duration(milliseconds: 320),
+                    curve: Curves.easeOutCubic,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(999),
+                        boxShadow: [
+                          BoxShadow(
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                            color: withUiOpacity(color, 0.32),
                           ),
-                          const SizedBox(width: 4),
                         ],
-                        Flexible(
-                          child: Text(
-                            widget.label,
-                            textAlign: TextAlign.center,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: GymMapColors.mapLabel,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 13,
-                              height: 1.04,
-                              shadows: [
-                                Shadow(
-                                  color: GymMapColors.textShadow,
-                                  blurRadius: 4,
-                                ),
-                              ],
+                      ),
+                      child: Text(
+                        '${widget.percent}%',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Transform.translate(
+                offset: const Offset(0, markerInfoOffsetY),
+                child: AnimatedOpacity(
+                  opacity: widget.revealDetails ? 1 : 0,
+                  duration: const Duration(milliseconds: 320),
+                  curve: Curves.easeOutCubic,
+                  child: AnimatedScale(
+                    scale: widget.revealDetails ? 1 : 0.84,
+                    duration: const Duration(milliseconds: 320),
+                    curve: Curves.easeOutCubic,
+                    child: SizedBox(
+                      width: 138,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (widget.isFavorite) ...[
+                            const Icon(
+                              Icons.favorite_rounded,
+                              size: 12,
+                              color: GymMapColors.occupancyCritical,
+                            ),
+                            const SizedBox(width: 4),
+                          ],
+                          Flexible(
+                            child: Text(
+                              widget.label,
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: GymMapColors.mapLabel,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 13,
+                                height: 1.04,
+                                shadows: [
+                                  Shadow(
+                                    color: GymMapColors.textShadow,
+                                    blurRadius: 4,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -208,50 +251,9 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
                         borderRadius: BorderRadius.circular(8),
                         child: Image.asset(
                           'assets/logo/pinGym.png',
-                          width: 52,
-                          height: 52,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                    AnimatedOpacity(
-                      opacity: widget.revealDetails ? 1 : 0,
-                      duration: const Duration(milliseconds: 320),
-                      curve: Curves.easeOutCubic,
-                      child: Align(
-                        alignment: Alignment.topRight,
-                        child: Transform.translate(
-                          offset: const Offset(10, 2),
-                          child: AnimatedScale(
-                            scale: widget.revealDetails ? 1 : 0.84,
-                            duration: const Duration(milliseconds: 320),
-                            curve: Curves.easeOutCubic,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: color,
-                                borderRadius: BorderRadius.circular(999),
-                                boxShadow: [
-                                  BoxShadow(
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                    color: withUiOpacity(color, 0.32),
-                                  ),
-                                ],
-                              ),
-                              child: Text(
-                                '${widget.percent}%',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          ),
+                          width: 32,
+                          height: 32,
+                          fit: BoxFit.contain,
                         ),
                       ),
                     ),
