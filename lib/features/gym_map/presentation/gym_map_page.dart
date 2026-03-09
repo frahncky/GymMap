@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
@@ -145,6 +146,9 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   );
   static const Duration _dataSaverPoiReloadCooldown = Duration(seconds: 16);
   static const Duration _dataSaverCrowdSyncCooldown = Duration(minutes: 3);
+  static const Duration _backgroundLocationInterval = Duration(seconds: 25);
+  static const double _backgroundLocationDistanceFilterMeters = 35;
+  static const double _backgroundLocationUiRefreshMinDistanceMeters = 25;
   static const double _dataSaverPoiReloadMinDistanceMeters = 3200;
   static const double _mapMarkerBodyAnchorOffset = 0;
   static const int _maxMapPoiMarkers = 90;
@@ -249,6 +253,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   Timer? _contributionCelebrationTimer;
   Timer? _planSyncTimer;
   StreamSubscription<List<PurchaseDetails>>? _purchaseStreamSubscription;
+  StreamSubscription<Position>? _positionStreamSubscription;
+  bool _isStartingBackgroundLocationStream = false;
 
   // Plano atual do usuário para liberar informações e propaganda.
   AppPlanTier _activePlan = AppPlanTier.free;
@@ -318,6 +324,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     _moveMapTo(_fallbackMapCenter, 13.4);
     unawaited(_restoreCachedMapPoisNear(_fallbackMapCenter, force: true));
     unawaited(_loadMapPoisAround(_fallbackMapCenter));
+    unawaited(_startBackgroundLocationStream());
     _maybeStartOpeningSearchIntro();
     _maybeShowMapTutorialOverlay();
   }
@@ -390,8 +397,14 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   @override
   void didUpdateWidget(covariant GymMapPage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!oldWidget.showMap && widget.showMap) {
+      unawaited(_startBackgroundLocationStream());
+    } else if (oldWidget.showMap && !widget.showMap) {
+      unawaited(_stopBackgroundLocationStream());
+    }
     if (!oldWidget.isActive && widget.isActive) {
       unawaited(_loadCommunityPoints());
+      unawaited(_startBackgroundLocationStream());
     }
   }
 
@@ -403,6 +416,9 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       unawaited(_reloadMapImages());
       unawaited(_refreshGymLocationCacheFromRemote());
       unawaited(_syncCrowdReportsForCurrentContext());
+      unawaited(_startBackgroundLocationStream());
+    } else if (state == AppLifecycleState.detached) {
+      unawaited(_stopBackgroundLocationStream());
     }
   }
 
@@ -414,6 +430,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     _contributionCelebrationTimer?.cancel();
     _planSyncTimer?.cancel();
     _purchaseStreamSubscription?.cancel();
+    _positionStreamSubscription?.cancel();
     _mapPoiReloadController.dispose();
     _mapPoiController.dispose();
     _mapController.dispose();
@@ -1811,6 +1828,113 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     unawaited(_loadMapPoisAround(userPoint));
   }
 
+  bool _hasLocationPermission(LocationPermission permission) =>
+      permission == LocationPermission.whileInUse ||
+      permission == LocationPermission.always;
+
+  LocationSettings _backgroundLocationSettings() {
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return AndroidSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: _backgroundLocationDistanceFilterMeters.round(),
+        intervalDuration: _backgroundLocationInterval,
+        foregroundNotificationConfig: const ForegroundNotificationConfig(
+          notificationTitle: 'GymMap localizacao ativa',
+          notificationText:
+              'GymMap esta atualizando sua localizacao em segundo plano.',
+          enableWakeLock: true,
+        ),
+      );
+    }
+
+    if (defaultTargetPlatform == TargetPlatform.iOS ||
+        defaultTargetPlatform == TargetPlatform.macOS) {
+      return AppleSettings(
+        accuracy: LocationAccuracy.best,
+        distanceFilter: _backgroundLocationDistanceFilterMeters.round(),
+        pauseLocationUpdatesAutomatically: false,
+        allowBackgroundLocationUpdates: true,
+        showBackgroundLocationIndicator: true,
+        activityType: ActivityType.fitness,
+      );
+    }
+
+    return LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: _backgroundLocationDistanceFilterMeters.round(),
+    );
+  }
+
+  void _onBackgroundLocationUpdate(Position position) {
+    final userPoint = LatLng(position.latitude, position.longitude);
+    final previousLocation = _userLocation;
+    if (previousLocation != null &&
+        _isWithinDistanceMeters(
+          previousLocation,
+          userPoint,
+          _backgroundLocationUiRefreshMinDistanceMeters,
+        )) {
+      return;
+    }
+
+    if (!mounted) {
+      _userLocation = userPoint;
+      return;
+    }
+
+    setState(() {
+      _userLocation = userPoint;
+      final selectedGym = _selectedGym;
+      if (selectedGym != null &&
+          !_isWithinLocalRadius(selectedGym, userPoint)) {
+        _selectedGym = null;
+      }
+    });
+
+    unawaited(_restoreCachedMapPoisNear(userPoint));
+    _scheduleMapPoiReload(userPoint);
+  }
+
+  Future<void> _startBackgroundLocationStream() async {
+    if (!widget.showMap ||
+        _positionStreamSubscription != null ||
+        _isStartingBackgroundLocationStream) {
+      return;
+    }
+
+    _isStartingBackgroundLocationStream = true;
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        return;
+      }
+
+      final permission = await Geolocator.checkPermission();
+      if (!_hasLocationPermission(permission)) {
+        return;
+      }
+
+      _positionStreamSubscription = Geolocator.getPositionStream(
+        locationSettings: _backgroundLocationSettings(),
+      ).listen(
+        _onBackgroundLocationUpdate,
+        onError: (_) {},
+        onDone: () {
+          _positionStreamSubscription = null;
+        },
+      );
+    } catch (_) {
+      // Falha de stream nao deve interromper o restante da tela.
+    } finally {
+      _isStartingBackgroundLocationStream = false;
+    }
+  }
+
+  Future<void> _stopBackgroundLocationStream() async {
+    await _positionStreamSubscription?.cancel();
+    _positionStreamSubscription = null;
+  }
+
   Future<void> _centerMapOnDeviceLocation() async {
     if (!widget.showMap) {
       return;
@@ -1867,6 +1991,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         }
         return;
       }
+
+      unawaited(_startBackgroundLocationStream());
 
       if (!hasImmediateCenter) {
         final lastKnown = await Geolocator.getLastKnownPosition();

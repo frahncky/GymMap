@@ -47,6 +47,14 @@
 		<true/>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>Usamos sua localização para centralizar o mapa e mostrar academias próximas.</string>
+		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+		<string>Usamos sua localizacao em segundo plano para manter o mapa atualizado.</string>
+		<key>NSLocationAlwaysUsageDescription</key>
+		<string>Usamos sua localizacao em segundo plano para manter o mapa atualizado.</string>
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>location</string>
+		</array>
 		<key>UIStatusBarHidden</key>
 		<false/>
 	</dict>
