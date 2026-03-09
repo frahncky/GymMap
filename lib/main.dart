@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'features/gym_map/data/crowd_report_remote_service.dart';
 import 'features/gym_map/data/gym_location_cache_service.dart';
 import 'features/gym_map/domain/gym_models.dart';
+import 'features/gym_map/presentation/gym_map_poi_controller.dart';
 import 'features/gym_map/presentation/gym_map_page.dart';
 
 void main() {
@@ -206,7 +207,10 @@ class _AppShellState extends State<AppShell> {
         refreshToken: _favoritesRefreshToken,
         onOpenMap: _goToMapTab,
       ),
-      _CommunityFeedPage(onContributeTap: _goToMapTab),
+      _CommunityFeedPage(
+        onContributeTap: _goToMapTab,
+        isActive: _selectedIndex == 2,
+      ),
       _ProfilePage(
         onOpenMap: _goToMapTab,
         useDarkTheme: widget.useDarkTheme,
@@ -1210,9 +1214,13 @@ class _CommunityReportItem {
 }
 
 class _CommunityFeedPage extends StatefulWidget {
-  const _CommunityFeedPage({required this.onContributeTap});
+  const _CommunityFeedPage({
+    required this.onContributeTap,
+    required this.isActive,
+  });
 
   final VoidCallback onContributeTap;
+  final bool isActive;
 
   @override
   State<_CommunityFeedPage> createState() => _CommunityFeedPageState();
@@ -1289,21 +1297,53 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
 
   late final List<_CommunityReportItem> _reports;
   int _communityPoints = 0;
-  bool _isLoadingLocalizedReports = true;
+  bool _isLoadingLocalizedReports = false;
   bool _isLocationScopedReports = false;
+  bool _hasLocationContext = false;
+  bool _hasRequestedLocalizedReports = false;
 
   @override
   void initState() {
     super.initState();
-    _reports = List<_CommunityReportItem>.of(_seedReports);
+    _reports = <_CommunityReportItem>[];
     unawaited(_loadCommunityPoints());
+    if (widget.isActive) {
+      _ensureLocalizedReportsLoaded(notify: false);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _CommunityFeedPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.isActive && widget.isActive) {
+      _ensureLocalizedReportsLoaded(notify: true);
+    }
+  }
+
+  void _ensureLocalizedReportsLoaded({required bool notify}) {
+    if (_hasRequestedLocalizedReports) {
+      return;
+    }
+    _hasRequestedLocalizedReports = true;
+    if (notify && mounted) {
+      setState(() {
+        _isLoadingLocalizedReports = true;
+      });
+    } else {
+      _isLoadingLocalizedReports = true;
+    }
     unawaited(_loadLocalizedCommunityReports());
   }
 
   Future<void> _loadLocalizedCommunityReports() async {
     try {
       final userPoint = await _resolveCommunityUserLocation();
+      final hasLocationContext = userPoint != null;
       final cacheService = await GymLocationCacheService.create();
+      await _hydrateCommunityLocationsNearUser(
+        userPoint: userPoint,
+        cacheService: cacheService,
+      );
       await cacheService.pullRemoteToLocal();
       final cachedLocations = await cacheService.loadLocations();
       if (!mounted) {
@@ -1311,8 +1351,12 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
       }
       if (cachedLocations.isEmpty) {
         setState(() {
+          _reports
+            ..clear()
+            ..addAll(const <_CommunityReportItem>[]);
           _isLoadingLocalizedReports = false;
           _isLocationScopedReports = false;
+          _hasLocationContext = hasLocationContext;
         });
         return;
       }
@@ -1338,7 +1382,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
         );
       }
 
-      if (mappedReports.isEmpty) {
+      if (mappedReports.isEmpty && hasLocationContext) {
         mappedReports = _buildNearbyFallbackReports(scopedLocations);
       }
       if (!mounted) {
@@ -1347,9 +1391,10 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
       setState(() {
         _reports
           ..clear()
-          ..addAll(mappedReports.isEmpty ? _seedReports : mappedReports);
+          ..addAll(mappedReports);
         _isLoadingLocalizedReports = false;
-        _isLocationScopedReports = mappedReports.isNotEmpty;
+        _isLocationScopedReports = hasLocationContext && mappedReports.isNotEmpty;
+        _hasLocationContext = hasLocationContext;
       });
     } catch (_) {
       if (!mounted) {
@@ -1358,7 +1403,45 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
       setState(() {
         _isLoadingLocalizedReports = false;
         _isLocationScopedReports = false;
+        _hasLocationContext = false;
       });
+    }
+  }
+
+  Future<void> _hydrateCommunityLocationsNearUser({
+    required LatLng? userPoint,
+    required GymLocationCacheService cacheService,
+  }) async {
+    if (userPoint == null) {
+      return;
+    }
+    final poiController = GymMapPoiController();
+    try {
+      final nearbyPois = await poiController.fetchOverpassPoisAround(
+        center: userPoint,
+        knownGyms: const <Gym>[],
+      );
+      if (nearbyPois == null || nearbyPois.isEmpty) {
+        return;
+      }
+      final now = DateTime.now().toUtc();
+      final nearbyLocations = nearbyPois
+          .take(80)
+          .map(
+            (poi) => CachedGymLocation(
+              id: poi.id,
+              name: poi.name,
+              address: 'Próximo de você',
+              position: poi.position,
+              updatedAtUtc: now,
+            ),
+          )
+          .toList(growable: false);
+      await cacheService.mergeAndSave(nearbyLocations, syncRemote: false);
+    } catch (_) {
+      // Falha de rede nao bloqueia o carregamento local da comunidade.
+    } finally {
+      poiController.dispose();
     }
   }
 
@@ -1374,17 +1457,27 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
         return null;
       }
 
-      final lastKnown = await Geolocator.getLastKnownPosition();
-      if (lastKnown != null) {
-        return LatLng(lastKnown.latitude, lastKnown.longitude);
-      }
+      // Prioriza coordenada atual para evitar usar cache antigo de outra cidade.
       final current = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.medium,
+        desiredAccuracy: LocationAccuracy.high,
         timeLimit: const Duration(seconds: 5),
       );
       return LatLng(current.latitude, current.longitude);
     } catch (_) {
-      return null;
+      try {
+        final lastKnown = await Geolocator.getLastKnownPosition();
+        if (lastKnown == null) {
+          return null;
+        }
+        final timestamp = lastKnown.timestamp;
+        if (timestamp != null &&
+            DateTime.now().difference(timestamp) > const Duration(hours: 2)) {
+          return null;
+        }
+        return LatLng(lastKnown.latitude, lastKnown.longitude);
+      } catch (_) {
+        return null;
+      }
     }
   }
 
@@ -1411,12 +1504,14 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
           .where(
             (location) =>
                 _distanceSquaredMeters(userPoint, location.position) <=
-                (45000 * 45000),
+                (25000 * 25000),
           )
           .toList(growable: false);
       if (nearby.isNotEmpty) {
         return nearby.take(12).toList(growable: false);
       }
+      // Com localizacao disponivel mas sem academias no raio, evita usar locais distantes.
+      return const <CachedGymLocation>[];
     } else {
       sorted.sort((a, b) => b.updatedAtUtc.compareTo(a.updatedAtUtc));
     }
@@ -1800,6 +1895,8 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                     Text(
                       _isLoadingLocalizedReports
                           ? 'Carregando relatos da sua região...'
+                          : _hasLocationContext && _reports.isEmpty
+                          ? 'Ainda não há relatos recentes das academias da sua região.'
                           : _isLocationScopedReports
                           ? 'Relatos recentes das academias da sua região.'
                           : 'Feed de relatos recentes com validação colaborativa.',
@@ -1962,7 +2059,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      _isLocationScopedReports
+                      _hasLocationContext
                           ? 'Relatos recentes da sua região'
                           : 'Relatos recentes',
                       style: const TextStyle(
@@ -1978,6 +2075,30 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                 ),
               ),
             ),
+            if (!_isLoadingLocalizedReports && _reports.isEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFE1ECE8)),
+                    ),
+                    child: Text(
+                      _hasLocationContext
+                          ? 'Sem relatos recentes na sua região agora. Abra o mapa e contribua para aparecer aqui.'
+                          : 'Ative sua localização para ver relatos recentes da sua região.',
+                      style: const TextStyle(
+                        color: Color(0xFF527A6F),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             SliverList.separated(
               itemBuilder: (context, index) {
                 final report = _reports[index];
@@ -2187,4 +2308,3 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     );
   }
 }
-
