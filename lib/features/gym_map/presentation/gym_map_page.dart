@@ -177,7 +177,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   final MapController _mapController = MapController();
   final InAppPurchase _inAppPurchase = InAppPurchase.instance;
 
-  // Servico que agrega relatos colaborativos de lotação.
+  // Serviço que agrega relatos colaborativos de lotação.
   final CollaborativeCrowdService _crowdService =
       CollaborativeCrowdService.withSeedData();
   final GymMapPoiController _mapPoiController = GymMapPoiController();
@@ -205,7 +205,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   // Valor de lotação usado no slider de envio de relato.
   double _reportPercent = 50;
 
-  // Coordenada atual do usuario (quando permitida).
+  // Coordenada atual do usuário (quando permitida).
   LatLng? _userLocation;
 
   // Estado de carregamento da geolocalização para bloquear clique repetido.
@@ -239,7 +239,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   Timer? _planSyncTimer;
   StreamSubscription<List<PurchaseDetails>>? _purchaseStreamSubscription;
 
-  // Plano atual do usuario para liberar informacoes e propaganda.
+  // Plano atual do usuário para liberar informações e propaganda.
   AppPlanTier _activePlan = AppPlanTier.free;
   DateTime? _activePlanExpiresAtUtc;
   PlanSubscriptionService? _planSubscriptionService;
@@ -311,7 +311,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   /// Algoritmo de busca local:
   /// - normaliza para minusculas;
   /// - se vazio, retorna todas as academias;
-  /// - senao, filtra por nome ou endereco.
+  /// - senão, filtra por nome ou endereço.
   List<Gym> _filterGyms(String term) => GymMapLogic.filterGyms(
     gyms: _gyms,
     term: term,
@@ -399,7 +399,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       _crowdReportRemoteService = remoteService;
       unawaited(_syncCrowdReportsForCurrentContext());
     } catch (_) {
-      // Falha de inicializacao remota nao bloqueia experiencia local.
+      // Falha de inicialização remota não bloqueia experiência local.
     }
   }
 
@@ -409,7 +409,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       final prefs = await SharedPreferences.getInstance();
       enabled = prefs.getBool(_dataSaverPrefKey) ?? false;
     } catch (_) {
-      // Falha local nao deve bloquear o mapa.
+      // Falha local não deve bloquear o mapa.
     }
     if (!mounted || _isDataSaverEnabled == enabled) {
       return;
@@ -469,7 +469,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         }
       }
     } catch (_) {
-      // Falha de rede remota nao deve interromper fluxo local.
+      // Falha de rede remota não deve interromper fluxo local.
     } finally {
       _isSyncingCrowdReports = false;
     }
@@ -487,7 +487,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       }
       _setMapPoisIfChanged(cachedPois);
     } catch (_) {
-      // Falha de cache local nao deve bloquear o mapa.
+      // Falha de cache local não deve bloquear o mapa.
     }
   }
 
@@ -508,7 +508,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     try {
       await _mapPoiController.persistPois(pois);
     } catch (_) {
-      // Falha de cache local nao deve bloquear o mapa.
+      // Falha de cache local não deve bloquear o mapa.
     }
   }
 
@@ -563,7 +563,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
             }
             return true;
           } catch (_) {
-            // Falha de rede/API nao deve travar o fluxo local do mapa.
+            // Falha de rede/API não deve travar o fluxo local do mapa.
             return false;
           }
         },
@@ -771,7 +771,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       final prefs = await SharedPreferences.getInstance();
       ids = prefs.getStringList(_quickFiltersPrefKey) ?? const <String>[];
     } catch (_) {
-      // Falha local nao impede o uso dos filtros na sessao atual.
+      // Falha local não impede o uso dos filtros na sessão atual.
     }
     final restoredFilters = <MapQuickFilter>{};
     for (final idRaw in ids) {
@@ -802,7 +802,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         .toList(growable: false)..sort();
       await prefs.setStringList(_quickFiltersPrefKey, ids);
     } catch (_) {
-      // Falha local de persistencia nao deve interromper fluxo.
+      // Falha local de persistência não deve interromper fluxo.
     }
   }
 
@@ -888,7 +888,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   }
 
   (int openHour, int closeHour) _heuristicOpenWindowForWeekday(int weekday) {
-    // Janela local heuristica enquanto nao existe cadastro oficial de horarios.
+    // Janela local heurística enquanto não existe cadastro oficial de horários.
     return switch (weekday) {
       DateTime.saturday => (8, 20),
       DateTime.sunday => (8, 14),
@@ -909,7 +909,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     final (openHour, closeHour) = _heuristicOpenWindowForWeekday(now.weekday);
     final isOpen = _isGymOpenNow(gym);
     if (isOpen) {
-      return 'Aberta ate ${_hourTag24(closeHour)}';
+      return 'Aberta até ${_hourTag24(closeHour)}';
     }
     if (now.hour < openHour) {
       return 'Abre as ${_hourTag24(openHour)}';
@@ -917,7 +917,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     final nextWeekday =
         now.weekday == DateTime.sunday ? DateTime.monday : now.weekday + 1;
     final (nextOpenHour, _) = _heuristicOpenWindowForWeekday(nextWeekday);
-    return 'Abre amanha as ${_hourTag24(nextOpenHour)}';
+    return 'Abre amanhã as ${_hourTag24(nextOpenHour)}';
   }
 
   String _gymOpenHoursLabel(Gym gym) {
@@ -1084,11 +1084,11 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     try {
       _mapController.move(point, zoom);
     } catch (_) {
-      // Ignora quando o controlador ainda nao está conectado ao widget do mapa.
+      // Ignora quando o controlador ainda não está conectado ao widget do mapa.
     }
   }
 
-  /// Corrige somente orientacao para norte (0 graus), sem alterar centro/zoom.
+  /// Corrige somente orientação para norte (0 graus), sem alterar centro/zoom.
   void _resetNorthOrientation() {
     if (!widget.showMap) {
       return;
@@ -1096,7 +1096,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     try {
       _mapController.rotate(0);
     } catch (_) {
-      // Ignora quando o controlador ainda nao está conectado ao widget do mapa.
+      // Ignora quando o controlador ainda não está conectado ao widget do mapa.
     }
   }
 
@@ -1297,7 +1297,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       final prefs = await SharedPreferences.getInstance();
       hasSeen = prefs.getBool(_mapTutorialSeenPrefKey) ?? false;
     } catch (_) {
-      // Falha de leitura local nao impede o app.
+      // Falha de leitura local não impede o app.
     }
     if (!mounted) {
       return;
@@ -1315,7 +1315,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       final prefs = await SharedPreferences.getInstance();
       ids = prefs.getStringList(_favoriteGymIdsPrefKey) ?? const <String>[];
     } catch (_) {
-      // Falha local nao impede uso dos favoritos na sessao atual.
+      // Falha local não impede uso dos favoritos na sessão atual.
     }
     if (!mounted) {
       return;
@@ -1333,7 +1333,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       final ids = _favoriteGymIds.toList(growable: false)..sort();
       await prefs.setStringList(_favoriteGymIdsPrefKey, ids);
     } catch (_) {
-      // Falha local de persistencia nao deve interromper fluxo.
+      // Falha local de persistência não deve interromper fluxo.
     }
   }
 
@@ -1343,7 +1343,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       final prefs = await SharedPreferences.getInstance();
       points = prefs.getInt(_communityPointsPrefKey) ?? 0;
     } catch (_) {
-      // Falha local nao bloqueia uso.
+      // Falha local não bloqueia uso.
     }
     if (!mounted) {
       return;
@@ -1358,7 +1358,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_communityPointsPrefKey, _communityPoints);
     } catch (_) {
-      // Falha local nao bloqueia uso.
+      // Falha local não bloqueia uso.
     }
   }
 
@@ -1429,7 +1429,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_mapTutorialSeenPrefKey, true);
     } catch (_) {
-      // Falha de escrita local nao interrompe o fluxo.
+      // Falha de escrita local não interrompe o fluxo.
     }
   }
 
@@ -1438,7 +1438,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     final origin = _userLocation ?? _fallbackMapCenter;
     final nearest = _nearestGymTo(origin, gyms);
     if (nearest == null) {
-      _showMapSnack('Nenhuma academia disponivel para destacar agora.');
+      _showMapSnack('Nenhuma academia disponível para destacar agora.');
       return;
     }
     unawaited(_dismissMapTutorialOverlay());
@@ -1629,7 +1629,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
           );
           return;
         } catch (_) {
-          // Sem rede/backend: segue fluxo local para nao perder envio do usuario.
+          // Sem rede/backend: segue fluxo local para não perder envio do usuário.
         }
       }
 
@@ -1675,10 +1675,10 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   }
 
   /// Fluxo de geolocalização:
-  /// 1) valida servico de GPS;
-  /// 2) valida/solicita permissao;
-  /// 3) centraliza usando cache/ultima posicao conhecida quando disponivel;
-  /// 4) obtem posicao atual para refino.
+  /// 1) valida serviço de GPS;
+  /// 2) valida/solicita permissão;
+  /// 3) centraliza usando cache/última posição conhecida quando disponível;
+  /// 4) obtém posição atual para refino.
   void _applyResolvedUserLocation(LatLng userPoint, {required bool moveMap}) {
     if (!mounted) {
       return;
@@ -1749,10 +1749,10 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         if (!hasImmediateCenter) {
           if (permission == LocationPermission.deniedForever) {
             _showMapSnack(
-              'Permissao de localização negada permanentemente. Ajuste nas configuracoes do aparelho.',
+              'Permissão de localização negada permanentemente. Ajuste nas configurações do aparelho.',
             );
           } else {
-            _showMapSnack('Permissao de localização negada.');
+            _showMapSnack('Permissão de localização negada.');
           }
         }
         return;
@@ -1788,7 +1788,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       }
     } catch (_) {
       if (!hasImmediateCenter) {
-        _showMapSnack('Nao foi possivel obter sua localização no momento.');
+        _showMapSnack('Não foi possível obter sua localização no momento.');
       }
     } finally {
       if (mounted) {
@@ -1811,14 +1811,14 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       builder: (context) {
         return AlertDialog(
           icon: const Icon(Icons.location_on_outlined),
-          title: const Text('Permitir localizacao?'),
+          title: const Text('Permitir localização?'),
           content: const Text(
-            'Com a localizacao ativa, o GymMap encontra academias proximas automaticamente e calcula distancia em tempo real.',
+            'Com a localização ativa, o GymMap encontra academias próximas automaticamente e calcula distância em tempo real.',
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Agora nao'),
+              child: const Text('Agora não'),
             ),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(true),
@@ -1944,7 +1944,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
           isCurrentUser: false,
         ),
       _CommunityLeaderboardEntry(
-        name: 'Voce',
+        name: 'Você',
         points: userPoints,
         isCurrentUser: true,
       ),
@@ -1982,7 +1982,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       try {
         return _mapController.camera.center;
       } catch (_) {
-        // Ignora quando a camera ainda nao esta pronta.
+        // Ignora quando a câmera ainda não está pronta.
       }
     }
     return _fallbackMapCenter;
@@ -2132,7 +2132,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Sua posicao atual: $rankLabel  .  $userPoints pts',
+                        'Sua posição atual: $rankLabel  .  $userPoints pts',
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
@@ -2188,8 +2188,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                             Expanded(
                               child: Text(
                                 data.isRegional
-                                    ? 'Pontuacao regional real dos ultimos 7 dias. Cada envio valido soma +5 pontos.'
-                                    : 'Cada envio valido soma +5 pontos. Continue contribuindo para subir no ranking.',
+                                    ? 'Pontuação regional real dos últimos 7 dias. Cada envio válido soma +5 pontos.'
+                                    : 'Cada envio válido soma +5 pontos. Continue contribuindo para subir no ranking.',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w700,
                                   color: GymMapColors.textStrong,
@@ -2281,7 +2281,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                         const Padding(
                           padding: EdgeInsets.only(bottom: 8),
                           child: Text(
-                            'Ainda nao ha pontuacao suficiente nesta regiao.',
+                            'Ainda não há pontuação suficiente nesta região.',
                             style: TextStyle(
                               fontWeight: FontWeight.w700,
                               color: GymMapColors.textSecondary,
@@ -2332,7 +2332,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     if (_activePlan == AppPlanTier.free || _activePlanExpiresAtUtc == null) {
       return 'Plano gratuito ativo';
     }
-    return 'Valido ate ${_formatDateTimeLabel(_activePlanExpiresAtUtc!)}';
+    return 'Válido até ${_formatDateTimeLabel(_activePlanExpiresAtUtc!)}';
   }
 
   void _maybeWarnPlanNearExpiry(AppPlanTier plan, DateTime? expiresAtUtc) {
@@ -2370,18 +2370,18 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       return 'Autenticacao ainda inicializando';
     }
     if (service.isProductionMode && !service.hasRemoteBackend) {
-      return 'Modo producao ativo sem backend remoto configurado';
+      return 'Modo produção ativo sem backend remoto configurado';
     }
     if (!service.hasRemoteBackend) {
-      return 'Backend remoto nao configurado no app';
+      return 'Backend remoto não configurado no app';
     }
     if (service.isProductionMode && !service.hasAuthSession) {
-      return 'Modo producao exige sessao autenticada';
+      return 'Modo produção exige sessão autenticada';
     }
     if (service.hasAuthSession) {
-      return 'Sessao ativa para ${service.userId}';
+      return 'Sessão ativa para ${service.userId}';
     }
-    return 'Sessao nao autenticada';
+    return 'Sessão não autenticada';
   }
 
   String _playBillingStatusLabel() {
@@ -2389,10 +2389,10 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       return 'Google Play: carregando produtos...';
     }
     if (!_isPlayStoreAvailable) {
-      return 'Google Play indisponivel neste aparelho.';
+      return 'Google Play indisponível neste aparelho.';
     }
     if (_playProducts.length < _planProductIds.length) {
-      return 'Google Play: um ou mais produtos ainda nao encontrados.';
+      return 'Google Play: um ou mais produtos ainda não encontrados.';
     }
     return 'Google Play pronto para checkout.';
   }
@@ -2455,10 +2455,10 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         _playProducts = response.productDetails;
       });
       if (response.error != null) {
-        _showMapSnack('Nao foi possivel carregar produtos do Google Play.');
+        _showMapSnack('Não foi possível carregar produtos do Google Play.');
       } else if (response.notFoundIDs.isNotEmpty) {
         _showMapSnack(
-          'Produtos nao encontrados no Google Play: ${response.notFoundIDs.join(', ')}',
+          'Produtos não encontrados no Google Play: ${response.notFoundIDs.join(', ')}',
         );
       }
     } catch (_) {
@@ -2490,13 +2490,13 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     }
     switch (normalized) {
       case 'invalid_credentials':
-        return 'Usuario ou senha invalidos.';
+        return 'Usuário ou senha inválidos.';
       case 'missing_credentials':
-        return 'Informe usuario e senha.';
+        return 'Informe usuário e senha.';
       case 'unauthorized':
-        return 'Sessao nao autorizada.';
+        return 'Sessão não autorizada.';
       case '':
-        return 'Falha de autenticacao';
+        return 'Falha de autenticação';
       default:
         return normalized;
     }
@@ -2537,52 +2537,52 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     }
     switch (normalized) {
       case 'backend_required_in_production':
-        return 'Modo producao exige backend remoto configurado.';
+        return 'Modo produção exige backend remoto configurado.';
       case 'backend_required_for_play_billing':
         return 'Checkout no Google Play exige backend remoto configurado.';
       case 'user_identity_required_in_production':
-        return 'Modo producao exige usuario autenticado.';
+        return 'Modo produção exige usuário autenticado.';
       case 'play_store_unavailable':
-        return 'Google Play indisponivel neste aparelho.';
+        return 'Google Play indisponível neste aparelho.';
       case 'play_product_not_found':
-        return 'Produto de assinatura nao encontrado no Google Play.';
+        return 'Produto de assinatura não encontrado no Google Play.';
       case 'play_checkout_not_started':
-        return 'Nao foi possivel iniciar checkout no Google Play.';
+        return 'Não foi possível iniciar checkout no Google Play.';
       case 'play_product_id_missing':
-        return 'Produto da assinatura nao informado.';
+        return 'Produto da assinatura não informado.';
       case 'play_purchase_token_missing':
         return 'Token de compra ausente. Tente novamente.';
       case 'play_purchase_not_active':
-        return 'Compra ainda nao esta ativa no Google Play.';
+        return 'Compra ainda não está ativa no Google Play.';
       case 'play_purchase_not_found':
-        return 'Compra nao encontrada no Google Play.';
+        return 'Compra não encontrada no Google Play.';
       case 'play_product_mismatch':
-        return 'Produto da compra nao corresponde ao plano selecionado.';
+        return 'Produto da compra não corresponde ao plano selecionado.';
       case 'play_package_mismatch':
         return 'Compra vinculada a outro aplicativo.';
       case 'play_api_unauthorized':
-        return 'Backend sem permissao para validar Google Play. Verifique credenciais.';
+        return 'Backend sem permissão para validar Google Play. Verifique credenciais.';
       case 'play_validation_unavailable':
       case 'play_api_unavailable':
-        return 'Nao foi possivel validar a compra no Google Play agora.';
+        return 'Não foi possível validar a compra no Google Play agora.';
       case 'payment_pending_webhook':
-        return 'Pagamento ainda nao confirmado pelo webhook. Aguarde alguns segundos e tente novamente.';
+        return 'Pagamento ainda não confirmado pelo webhook. Aguarde alguns segundos e tente novamente.';
       case 'pix_provider_unavailable':
-        return 'Gateway Pix indisponivel no momento. Tente novamente em instantes.';
+        return 'Gateway Pix indisponível no momento. Tente novamente em instantes.';
       case 'invalid_webhook_signature':
-        return 'Webhook do pagamento invalido. Contate o suporte.';
+        return 'Webhook do pagamento inválido. Contate o suporte.';
       case 'unauthorized':
       case 'forbidden':
-        return 'Sessao expirada ou sem permissao. Faca login novamente.';
+        return 'Sessão expirada ou sem permissão. Faça login novamente.';
       default:
         if (normalized == 'Backend HTTP 401') {
-          return 'Sessao expirada. Faca login novamente.';
+          return 'Sessão expirada. Faça login novamente.';
         }
         if (normalized == 'Backend HTTP 429') {
           return 'Limite de tentativas atingido. Aguarde um pouco e tente novamente.';
         }
         if (normalized.isEmpty) {
-          return 'Nao foi possivel processar a assinatura agora.';
+          return 'Não foi possível processar a assinatura agora.';
         }
         return normalized;
     }
@@ -2673,7 +2673,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       return;
     }
     if (!service.hasRemoteBackend) {
-      _showMapSnack('Backend remoto nao configurado para login.');
+      _showMapSnack('Backend remoto não configurado para login.');
       return;
     }
 
@@ -2693,7 +2693,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                 final password = passwordController.text;
                 if (userId.isEmpty || password.isEmpty) {
                   setDialogState(() {
-                    errorMessage = 'Informe usuario e senha';
+                    errorMessage = 'Informe usuário e senha';
                   });
                   return;
                 }
@@ -2755,7 +2755,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                       enabled: !isSubmitting,
                       textInputAction: TextInputAction.next,
                       decoration: const InputDecoration(
-                        labelText: 'Usuario',
+                        labelText: 'Usuário',
                         hintText: 'user-001',
                       ),
                     ),
@@ -2845,7 +2845,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       return;
     }
     if (!service.hasAuthSession) {
-      _showMapSnack('Nao existe sessao autenticada.');
+      _showMapSnack('Não existe sessão autenticada.');
       return;
     }
     if (_isPlanAuthBusy) {
@@ -2863,9 +2863,9 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       if (sheetContext.mounted) {
         Navigator.of(sheetContext).pop();
       }
-      _showMapSnack('Sessao encerrada.');
+      _showMapSnack('Sessão encerrada.');
     } catch (_) {
-      _showMapSnack('Nao foi possivel encerrar sessao agora.');
+      _showMapSnack('Não foi possível encerrar sessão agora.');
     } finally {
       if (mounted) {
         setState(() {
@@ -3045,7 +3045,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         return;
       }
       _showMapSnack(
-        'Compra validada, mas nao foi possivel finalizar no Google Play.',
+        'Compra validada, mas não foi possível finalizar no Google Play.',
       );
     }
   }
@@ -3413,7 +3413,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Comparativo rapido',
+                'Comparativo rápido',
                 style: TextStyle(
                   fontWeight: FontWeight.w800,
                   color: GymMapColors.textPrimary,
@@ -3549,7 +3549,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                         const SizedBox(width: 8),
                         const Expanded(
                           child: Text(
-                            '+10.000 usuarios premium ativos',
+                            '+10.000 usuários premium ativos',
                             style: TextStyle(
                               fontWeight: FontWeight.w800,
                               color: GymMapColors.textStrong,

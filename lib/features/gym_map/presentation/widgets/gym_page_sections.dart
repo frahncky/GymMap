@@ -172,7 +172,7 @@ class GymSearchField extends StatelessWidget {
           prefixIcon: IconButton(
             onPressed: onSearchTap,
             icon: const Icon(Icons.search),
-            tooltip: 'Buscar localizacao',
+            tooltip: 'Buscar localização',
           ),
           suffixIcon:
               searchTerm.isEmpty
@@ -382,7 +382,7 @@ class SelectionHintCard extends StatelessWidget {
             : hasNoResults
             ? 'Nenhum resultado encontrado para sua busca.'
             : hasNoNearbyGyms
-            ? 'Nenhuma academia cadastrada proxima da sua localizacao.'
+            ? 'Nenhuma academia cadastrada próxima da sua localização.'
             : '';
     return Container(
       width: double.infinity,
@@ -432,7 +432,7 @@ class AdBannerCard extends StatelessWidget {
           SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Publicidade: faca upgrade para remover anuncios.',
+              'Publicidade: faça upgrade para remover anúncios.',
               style: TextStyle(
                 color: GymMapColors.adText,
                 fontWeight: FontWeight.w700,
@@ -602,7 +602,7 @@ class MapTutorialOverlay extends StatelessWidget {
                             child: ElevatedButton.icon(
                               onPressed: onFocusNearestGym,
                               icon: const Icon(Icons.near_me_rounded, size: 18),
-                              label: const Text('Ver proxima'),
+                              label: const Text('Ver próxima'),
                             ),
                           ),
                         ],

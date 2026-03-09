@@ -24,7 +24,7 @@ class ReportSubmissionResult {
   final double? appliedWeight;
 }
 
-/// Servico local em memoria para simular backend colaborativo.
+/// Serviço local em memória para simular backend colaborativo.
 class CollaborativeCrowdService {
   CollaborativeCrowdService({Duration? cooldownWindow})
     : _reports = [],
@@ -40,7 +40,7 @@ class CollaborativeCrowdService {
   final Map<String, double> _reporterTrust;
   final Set<String> _reportKeys = <String>{};
 
-  /// Registra um relato com anti-spam e peso por confiabilidade do usuario.
+  /// Registra um relato com anti-spam e peso por confiabilidade do usuário.
   ReportSubmissionResult submitReport({
     required Gym gym,
     required String reporterId,
@@ -106,8 +106,8 @@ class CollaborativeCrowdService {
 
   /// Calcula o snapshot da academia usando dados colaborativos:
   /// 1) Prioriza relatos das últimas 2 horas.
-  /// 2) Se nao houver relatos recentes, usa ate 4 relatos mais novos.
-  /// 3) Se nao houver relatos, usa o valor base da academia.
+  /// 2) Se não houver relatos recentes, usa até 4 relatos mais novos.
+  /// 3) Se não houver relatos, usa o valor base da academia.
   GymCrowdSnapshot snapshotFor(Gym gym) {
     final now = DateTime.now();
     final gymReports =
@@ -237,7 +237,7 @@ class CollaborativeCrowdService {
     });
   }
 
-  /// Alertas personalizados para Elite usando previsao + comparativo.
+  /// Alertas personalizados para Elite usando previsão + comparativo.
   List<String> personalizedAlertsFor({
     required Gym selectedGym,
     required List<Gym> gyms,
@@ -358,9 +358,9 @@ class CollaborativeCrowdService {
     return (previousTrust + adjustment).clamp(0.35, 1.25).toDouble();
   }
 
-  /// Estima lotação para um horario combinando:
+  /// Estima lotação para um horário combinando:
   /// - valor base da academia;
-  /// - perfil de horario/dia;
+  /// - perfil de horário/dia;
   /// - ruido deterministico por academia;
   /// - sinal recente dos relatos colaborativos.
   int _estimateOccupancyAt(

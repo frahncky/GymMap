@@ -18,7 +18,7 @@ class Gym {
   /// Nome exibido na interface.
   final String name;
 
-  /// Endereco/bairro exibido ao usuario.
+  /// Endereço/bairro exibido ao usuário.
   final String address;
 
   /// Coordenada geografica da academia.
@@ -27,14 +27,14 @@ class Gym {
   /// Capacidade total estimada da unidade.
   final int capacity;
 
-  /// Valor de fallback quando ainda nao ha relatos.
+  /// Valor de fallback quando ainda não há relatos.
   final int baseOccupancyPercent;
 
   /// Comodidades disponiveis na academia.
   final List<String> amenities;
 }
 
-/// Relato colaborativo de lotação enviado por usuario.
+/// Relato colaborativo de lotação enviado por usuário.
 class CrowdReport {
   const CrowdReport({
     required this.gymId,

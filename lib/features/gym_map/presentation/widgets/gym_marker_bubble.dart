@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../gym_map_colors.dart';
 import '../gym_map_helpers.dart';
 
-/// Marcador de academia exibindo lotacao e estado de selecao.
+/// Marcador de academia exibindo lotação e estado de seleção.
 class GymMarkerBubble extends StatefulWidget {
   const GymMarkerBubble({
     super.key,
@@ -77,7 +77,7 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
     return Semantics(
       button: true,
       label:
-          '${widget.label}, lotacao de ${widget.percent} por cento${widget.isFavorite ? ', favorita' : ''}',
+          '${widget.label}, lotação de ${widget.percent} por cento${widget.isFavorite ? ', favorita' : ''}',
       hint: 'Toque para abrir os detalhes da academia',
       child: GestureDetector(
         onTap: widget.onTap,
@@ -99,30 +99,49 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
                     scale: widget.revealDetails ? 1 : 0.84,
                     duration: const Duration(milliseconds: 320),
                     curve: Curves.easeOutCubic,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: color,
-                        borderRadius: BorderRadius.circular(999),
-                        boxShadow: [
-                          BoxShadow(
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                            color: withUiOpacity(color, 0.32),
+                    child: TweenAnimationBuilder<Color?>(
+                      tween: ColorTween(end: color),
+                      duration: const Duration(milliseconds: 260),
+                      curve: Curves.easeOutCubic,
+                      builder: (context, animatedColor, _) {
+                        final badgeColor = animatedColor ?? color;
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
                           ),
-                        ],
-                      ),
-                      child: Text(
-                        '${widget.percent}%',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 12,
-                        ),
-                      ),
+                          decoration: BoxDecoration(
+                            color: badgeColor,
+                            borderRadius: BorderRadius.circular(999),
+                            boxShadow: [
+                              BoxShadow(
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                                color: withUiOpacity(badgeColor, 0.32),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.groups_rounded,
+                                size: 11,
+                                color: Colors.white,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${widget.percent}%',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ),

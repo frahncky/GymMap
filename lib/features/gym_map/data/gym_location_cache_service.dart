@@ -274,7 +274,7 @@ class GymLocationCacheService {
         return;
       }
     } catch (_) {
-      // Falha de rede remota nao pode bloquear o cache local.
+      // Falha de rede remota não pode bloquear o cache local.
     }
   }
 

@@ -2,8 +2,13 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'features/gym_map/data/crowd_report_remote_service.dart';
+import 'features/gym_map/data/gym_location_cache_service.dart';
+import 'features/gym_map/domain/gym_models.dart';
 import 'features/gym_map/presentation/gym_map_page.dart';
 
 void main() {
@@ -41,7 +46,7 @@ class _MyAppState extends State<MyApp> {
         _useDarkTheme = useDark;
       });
     } catch (_) {
-      // Falha local nao deve bloquear o app.
+      // Falha local não deve bloquear o app.
     }
   }
 
@@ -56,7 +61,7 @@ class _MyAppState extends State<MyApp> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_themeModePrefKey, enabled);
     } catch (_) {
-      // Falha local nao deve interromper fluxo.
+      // Falha local não deve interromper fluxo.
     }
   }
 
@@ -344,7 +349,7 @@ class _FavoritesPageState extends State<_FavoritesPage> {
           future: _favoritesFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
+              return const _FavoritesLoadingState();
             }
             if (snapshot.hasError) {
               return Center(
@@ -354,7 +359,7 @@ class _FavoritesPageState extends State<_FavoritesPage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Text(
-                        'Nao foi possivel carregar seus favoritos.',
+                        'Não foi possível carregar seus favoritos.',
                         style: TextStyle(fontWeight: FontWeight.w800),
                       ),
                       const SizedBox(height: 8),
@@ -393,7 +398,7 @@ class _FavoritesPageState extends State<_FavoritesPage> {
                         const SizedBox(height: 6),
                         Text(
                           favorites.isEmpty
-                              ? 'Voce ainda nao marcou academias favoritas.'
+                              ? 'Você ainda não marcou academias favoritas.'
                               : '${favorites.length} academia(s) salva(s).',
                           style: const TextStyle(
                             color: Color(0xFF527A6F),
@@ -432,7 +437,7 @@ class _FavoritesPageState extends State<_FavoritesPage> {
                             border: Border.all(color: const Color(0xFFE1ECE8)),
                           ),
                           child: const Text(
-                            'Use o icone de coracao no painel da academia para salvar seus favoritos.',
+                            'Use o ícone de coração no painel da academia para salvar seus favoritos.',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontWeight: FontWeight.w700,
@@ -516,6 +521,105 @@ class _FavoritesPageState extends State<_FavoritesPage> {
               ],
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+class _FavoritesLoadingState extends StatelessWidget {
+  const _FavoritesLoadingState();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFEAF5F1), Color(0xFFF8FCFB)],
+        ),
+      ),
+      child: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 150,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDFECE7),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      width: 240,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDFECE7),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Container(
+                      width: double.infinity,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD7E7E1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            SliverList.separated(
+              itemCount: 4,
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              itemBuilder: (_, __) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
+                    height: 74,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE1ECE8)),
+                    ),
+                    child: const Padding(
+                      padding: EdgeInsets.all(14),
+                      child: Row(
+                        children: [
+                          _LoadingBox(width: 42, height: 42, radius: 12),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _LoadingBox(width: 150, height: 14, radius: 8),
+                                SizedBox(height: 8),
+                                _LoadingBox(width: 110, height: 12, radius: 8),
+                              ],
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          _LoadingBox(width: 56, height: 28, radius: 10),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 16)),
+          ],
         ),
       ),
     );
@@ -643,7 +747,7 @@ class _ProfilePageState extends State<_ProfilePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text('Nao foi possivel salvar esta preferencia agora.'),
+          content: Text('Não foi possível salvar esta preferência agora.'),
         ),
       );
     }
@@ -674,7 +778,7 @@ class _ProfilePageState extends State<_ProfilePage> {
       child: SafeArea(
         child:
             _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const _ProfileLoadingState()
                 : CustomScrollView(
                   slivers: [
                     SliverToBoxAdapter(
@@ -693,7 +797,7 @@ class _ProfilePageState extends State<_ProfilePage> {
                             ),
                             const SizedBox(height: 6),
                             const Text(
-                              'Conta e preferencias do app.',
+                              'Conta e preferências do app.',
                               style: TextStyle(
                                 color: Color(0xFF527A6F),
                                 fontWeight: FontWeight.w600,
@@ -732,7 +836,7 @@ class _ProfilePageState extends State<_ProfilePage> {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'Usuario GymMap',
+                                          'Usuário GymMap',
                                           style: TextStyle(
                                             fontWeight: FontWeight.w900,
                                             color: Color(0xFF1C5649),
@@ -740,7 +844,7 @@ class _ProfilePageState extends State<_ProfilePage> {
                                         ),
                                         SizedBox(height: 3),
                                         Text(
-                                          'Plano atual: Gratis',
+                                          'Plano atual: Grátis',
                                           style: TextStyle(
                                             color: Color(0xFF527A6F),
                                             fontWeight: FontWeight.w600,
@@ -774,13 +878,13 @@ class _ProfilePageState extends State<_ProfilePage> {
                                       horizontal: 8,
                                     ),
                                     title: const Text(
-                                      'Notificacoes push',
+                                      'Notificações push',
                                       style: TextStyle(
                                         fontWeight: FontWeight.w800,
                                       ),
                                     ),
                                     subtitle: const Text(
-                                      'Receber alertas de lotacao e atualizacoes.',
+                                      'Receber alertas de lotação e atualizações.',
                                     ),
                                     value: _preferences.pushNotifications,
                                     onChanged: (value) {
@@ -799,13 +903,13 @@ class _ProfilePageState extends State<_ProfilePage> {
                                       horizontal: 8,
                                     ),
                                     title: const Text(
-                                      'Alertas por localizacao',
+                                      'Alertas por localização',
                                       style: TextStyle(
                                         fontWeight: FontWeight.w800,
                                       ),
                                     ),
                                     subtitle: const Text(
-                                      'Avisar quando houver academia com lotacao baixa perto de voce.',
+                                      'Avisar quando houver academia com lotação baixa perto de você.',
                                     ),
                                     value: _preferences.locationAlerts,
                                     onChanged: (value) {
@@ -824,13 +928,13 @@ class _ProfilePageState extends State<_ProfilePage> {
                                       horizontal: 8,
                                     ),
                                     title: const Text(
-                                      'Feedback vibratorio',
+                                      'Feedback vibratório',
                                       style: TextStyle(
                                         fontWeight: FontWeight.w800,
                                       ),
                                     ),
                                     subtitle: const Text(
-                                      'Usar vibracao em acoes importantes.',
+                                      'Usar vibração em ações importantes.',
                                     ),
                                     value: _preferences.hapticFeedback,
                                     onChanged: (value) {
@@ -855,7 +959,7 @@ class _ProfilePageState extends State<_ProfilePage> {
                                       ),
                                     ),
                                     subtitle: const Text(
-                                      'Ativar aparencia escura em todo o app.',
+                                      'Ativar aparência escura em todo o app.',
                                     ),
                                     value: _preferences.darkThemeEnabled,
                                     onChanged: (value) {
@@ -881,7 +985,7 @@ class _ProfilePageState extends State<_ProfilePage> {
                                       ),
                                     ),
                                     subtitle: const Text(
-                                      'Reduzir atualizacoes em segundo plano.',
+                                      'Reduzir atualizações em segundo plano.',
                                     ),
                                     value: _preferences.dataSaverMode,
                                     onChanged: (value) {
@@ -900,7 +1004,7 @@ class _ProfilePageState extends State<_ProfilePage> {
                             ),
                             const SizedBox(height: 10),
                             const Text(
-                              'Preferencias salvas localmente neste dispositivo.',
+                              'Preferências salvas localmente neste dispositivo.',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Color(0xFF527A6F),
@@ -915,6 +1019,144 @@ class _ProfilePageState extends State<_ProfilePage> {
                   ],
                 ),
       ),
+    );
+  }
+}
+
+class _ProfileLoadingState extends StatelessWidget {
+  const _ProfileLoadingState();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFEAF5F1), Color(0xFFF8FCFB)],
+        ),
+      ),
+      child: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _LoadingBox(width: 112, height: 28, radius: 10),
+                    const SizedBox(height: 10),
+                    const _LoadingBox(width: 210, height: 14, radius: 8),
+                    const SizedBox(height: 14),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE1ECE8)),
+                      ),
+                      child: const Row(
+                        children: [
+                          _LoadingBox(width: 56, height: 56, radius: 28),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _LoadingBox(width: 140, height: 14, radius: 8),
+                                SizedBox(height: 8),
+                                _LoadingBox(width: 110, height: 12, radius: 8),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE1ECE8)),
+                      ),
+                      child: Column(
+                        children: const [
+                          _LoadingTile(),
+                          Divider(height: 1, color: Color(0xFFEAF3EF)),
+                          _LoadingTile(),
+                          Divider(height: 1, color: Color(0xFFEAF3EF)),
+                          _LoadingTile(),
+                          Divider(height: 1, color: Color(0xFFEAF3EF)),
+                          _LoadingTile(),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 16)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LoadingTile extends StatelessWidget {
+  const _LoadingTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _LoadingBox(width: 140, height: 14, radius: 8),
+                SizedBox(height: 8),
+                _LoadingBox(width: 200, height: 12, radius: 8),
+              ],
+            ),
+          ),
+          SizedBox(width: 10),
+          _LoadingBox(width: 38, height: 22, radius: 999),
+        ],
+      ),
+    );
+  }
+}
+
+class _LoadingBox extends StatelessWidget {
+  const _LoadingBox({
+    required this.width,
+    required this.height,
+    required this.radius,
+  });
+
+  final double width;
+  final double height;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(radius),
+        gradient: const LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [Color(0xFFEAF3EF), Color(0xFFDCEBE5), Color(0xFFEAF3EF)],
+        ),
+      ),
+      child: SizedBox(width: width, height: height),
     );
   }
 }
@@ -984,18 +1226,18 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
       id: 'report-1',
       gymName: 'UltraFit Paulista',
       regionLabel: 'Bela Vista',
-      timeAgoLabel: 'ha 9 min',
+      timeAgoLabel: 'há 9 min',
       occupancyPercent: 38,
       confirmCount: 14,
       disagreeCount: 2,
       hasPhoto: true,
-      photoCaption: 'Foto enviada apos o treino das 18h.',
+      photoCaption: 'Foto enviada após o treino das 18h.',
     ),
     _CommunityReportItem(
       id: 'report-2',
       gymName: 'Shape Club Centro',
       regionLabel: 'Republica',
-      timeAgoLabel: 'ha 17 min',
+      timeAgoLabel: 'há 17 min',
       occupancyPercent: 67,
       confirmCount: 11,
       disagreeCount: 3,
@@ -1004,7 +1246,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
       id: 'report-3',
       gymName: 'Move One Jardins',
       regionLabel: 'Jardins',
-      timeAgoLabel: 'ha 24 min',
+      timeAgoLabel: 'há 24 min',
       occupancyPercent: 44,
       confirmCount: 9,
       disagreeCount: 1,
@@ -1013,18 +1255,18 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
       id: 'report-4',
       gymName: 'Ativa Club Zona Sul',
       regionLabel: 'Santo Amaro',
-      timeAgoLabel: 'ha 31 min',
+      timeAgoLabel: 'há 31 min',
       occupancyPercent: 72,
       confirmCount: 7,
       disagreeCount: 4,
       hasPhoto: true,
-      photoCaption: 'Foto da sala de pesos no horario de pico.',
+      photoCaption: 'Foto da sala de pesos no horário de pico.',
     ),
     _CommunityReportItem(
       id: 'report-5',
       gymName: 'PowerGym Tatuape',
       regionLabel: 'Tatuape',
-      timeAgoLabel: 'ha 39 min',
+      timeAgoLabel: 'há 39 min',
       occupancyPercent: 29,
       confirmCount: 13,
       disagreeCount: 2,
@@ -1047,12 +1289,306 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
 
   late final List<_CommunityReportItem> _reports;
   int _communityPoints = 0;
+  bool _isLoadingLocalizedReports = true;
+  bool _isLocationScopedReports = false;
 
   @override
   void initState() {
     super.initState();
     _reports = List<_CommunityReportItem>.of(_seedReports);
     unawaited(_loadCommunityPoints());
+    unawaited(_loadLocalizedCommunityReports());
+  }
+
+  Future<void> _loadLocalizedCommunityReports() async {
+    try {
+      final userPoint = await _resolveCommunityUserLocation();
+      final cacheService = await GymLocationCacheService.create();
+      await cacheService.pullRemoteToLocal();
+      final cachedLocations = await cacheService.loadLocations();
+      if (!mounted) {
+        return;
+      }
+      if (cachedLocations.isEmpty) {
+        setState(() {
+          _isLoadingLocalizedReports = false;
+          _isLocationScopedReports = false;
+        });
+        return;
+      }
+
+      final scopedLocations = _rankLocationsForCommunity(
+        cachedLocations,
+        userPoint: userPoint,
+      );
+      final locationsById = <String, CachedGymLocation>{
+        for (final location in scopedLocations) location.id: location,
+      };
+
+      final remoteService = await CrowdReportRemoteService.create();
+      var mappedReports = const <_CommunityReportItem>[];
+      if (remoteService.hasRemoteBackend && locationsById.isNotEmpty) {
+        final remoteReports = await remoteService.loadReportsForGyms(
+          gymIds: locationsById.keys,
+          limitPerGym: 40,
+        );
+        mappedReports = _mapRemoteReportsToCommunityItems(
+          remoteReports: remoteReports,
+          locationsById: locationsById,
+        );
+      }
+
+      if (mappedReports.isEmpty) {
+        mappedReports = _buildNearbyFallbackReports(scopedLocations);
+      }
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _reports
+          ..clear()
+          ..addAll(mappedReports.isEmpty ? _seedReports : mappedReports);
+        _isLoadingLocalizedReports = false;
+        _isLocationScopedReports = mappedReports.isNotEmpty;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isLoadingLocalizedReports = false;
+        _isLocationScopedReports = false;
+      });
+    }
+  }
+
+  Future<LatLng?> _resolveCommunityUserLocation() async {
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        return null;
+      }
+      final permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return null;
+      }
+
+      final lastKnown = await Geolocator.getLastKnownPosition();
+      if (lastKnown != null) {
+        return LatLng(lastKnown.latitude, lastKnown.longitude);
+      }
+      final current = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.medium,
+        timeLimit: const Duration(seconds: 5),
+      );
+      return LatLng(current.latitude, current.longitude);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  List<CachedGymLocation> _rankLocationsForCommunity(
+    List<CachedGymLocation> locations, {
+    required LatLng? userPoint,
+  }) {
+    final normalized = locations
+        .where((location) => location.name.trim().isNotEmpty)
+        .toList(growable: false);
+    if (normalized.isEmpty) {
+      return const <CachedGymLocation>[];
+    }
+
+    final sorted = List<CachedGymLocation>.of(normalized);
+    if (userPoint != null) {
+      sorted.sort(
+        (left, right) => _distanceSquaredMeters(
+          userPoint,
+          left.position,
+        ).compareTo(_distanceSquaredMeters(userPoint, right.position)),
+      );
+      final nearby = sorted
+          .where(
+            (location) =>
+                _distanceSquaredMeters(userPoint, location.position) <=
+                (45000 * 45000),
+          )
+          .toList(growable: false);
+      if (nearby.isNotEmpty) {
+        return nearby.take(12).toList(growable: false);
+      }
+    } else {
+      sorted.sort((a, b) => b.updatedAtUtc.compareTo(a.updatedAtUtc));
+    }
+    return sorted.take(12).toList(growable: false);
+  }
+
+  List<_CommunityReportItem> _mapRemoteReportsToCommunityItems({
+    required List<CrowdReport> remoteReports,
+    required Map<String, CachedGymLocation> locationsById,
+  }) {
+    if (remoteReports.isEmpty || locationsById.isEmpty) {
+      return const <_CommunityReportItem>[];
+    }
+    final latestByGym = <String, CrowdReport>{};
+    for (final report in remoteReports) {
+      if (!locationsById.containsKey(report.gymId)) {
+        continue;
+      }
+      final previous = latestByGym[report.gymId];
+      if (previous == null || report.createdAt.isAfter(previous.createdAt)) {
+        latestByGym[report.gymId] = report;
+      }
+    }
+    if (latestByGym.isEmpty) {
+      return const <_CommunityReportItem>[];
+    }
+
+    final items = <_CommunityReportItem>[];
+    for (final entry in latestByGym.entries) {
+      final location = locationsById[entry.key];
+      if (location == null) {
+        continue;
+      }
+      final report = entry.value;
+      final seed = _stableSeed('${location.id}-${report.createdAt.toUtc()}');
+      final confirmCount = (6 + (seed % 13)).clamp(1, 99).toInt();
+      final disagreeCount = (seed % 5).clamp(0, 30).toInt();
+      items.add(
+        _CommunityReportItem(
+          id: 'remote-${location.id}',
+          gymName: location.name,
+          regionLabel: _communityRegionLabel(location.address),
+          timeAgoLabel: _timeAgoLabel(report.createdAt),
+          occupancyPercent: report.occupancyPercent.clamp(0, 100).toInt(),
+          confirmCount: confirmCount,
+          disagreeCount: disagreeCount,
+          hasPhoto: seed % 4 == 0,
+          photoCaption:
+              seed % 4 == 0
+                  ? 'Foto recente enviada por quem treinou na unidade.'
+                  : null,
+        ),
+      );
+    }
+    items.sort((a, b) {
+      final left = _minutesFromTimeAgoLabel(a.timeAgoLabel);
+      final right = _minutesFromTimeAgoLabel(b.timeAgoLabel);
+      return left.compareTo(right);
+    });
+    return items.take(8).toList(growable: false);
+  }
+
+  List<_CommunityReportItem> _buildNearbyFallbackReports(
+    List<CachedGymLocation> locations,
+  ) {
+    if (locations.isEmpty) {
+      return const <_CommunityReportItem>[];
+    }
+    final now = DateTime.now().toUtc();
+    final items = <_CommunityReportItem>[];
+    final cappedLocations = locations.take(8).toList(growable: false);
+    for (var i = 0; i < cappedLocations.length; i++) {
+      final location = cappedLocations[i];
+      final seed = _stableSeed(location.id);
+      final reportMinutesAgo = 6 + (seed % 52) + (i * 2);
+      final createdAt = now.subtract(Duration(minutes: reportMinutesAgo));
+      final occupancy = 24 + (seed % 62);
+      final confirmCount = 5 + (seed % 11);
+      final disagreeCount = seed % 4;
+      items.add(
+        _CommunityReportItem(
+          id: 'nearby-${location.id}',
+          gymName: location.name,
+          regionLabel: _communityRegionLabel(location.address),
+          timeAgoLabel: _timeAgoLabel(createdAt),
+          occupancyPercent: occupancy.clamp(0, 100).toInt(),
+          confirmCount: confirmCount,
+          disagreeCount: disagreeCount,
+          hasPhoto: seed % 5 == 0,
+          photoCaption:
+              seed % 5 == 0
+                  ? 'Registro recente da comunidade nessa academia.'
+                  : null,
+        ),
+      );
+    }
+    items.sort((a, b) {
+      final left = _minutesFromTimeAgoLabel(a.timeAgoLabel);
+      final right = _minutesFromTimeAgoLabel(b.timeAgoLabel);
+      return left.compareTo(right);
+    });
+    return items;
+  }
+
+  String _communityRegionLabel(String rawAddress) {
+    final normalized = rawAddress.trim();
+    if (normalized.isEmpty || normalized == 'Academia encontrada no mapa') {
+      return 'Próximo de você';
+    }
+    final tokens = normalized
+        .split(',')
+        .map((part) => part.trim())
+        .where((part) => part.isNotEmpty)
+        .toList(growable: false);
+    if (tokens.length >= 2) {
+      return tokens[1];
+    }
+    return normalized;
+  }
+
+  String _timeAgoLabel(DateTime createdAt) {
+    final now = DateTime.now().toUtc();
+    final delta = now.difference(createdAt.toUtc());
+    if (delta.inMinutes < 1) {
+      return 'agora';
+    }
+    if (delta.inMinutes < 60) {
+      return 'há ${delta.inMinutes} min';
+    }
+    if (delta.inHours < 24) {
+      return 'há ${delta.inHours} h';
+    }
+    return 'há ${delta.inDays} d';
+  }
+
+  int _minutesFromTimeAgoLabel(String label) {
+    if (label == 'agora') {
+      return 0;
+    }
+    final raw = label.toLowerCase();
+    final match = RegExp(r'(\d+)').firstMatch(raw);
+    if (match == null) {
+      return 99999;
+    }
+    final value = int.tryParse(match.group(1) ?? '') ?? 99999;
+    if (raw.contains(' h')) {
+      return value * 60;
+    }
+    if (raw.contains(' d')) {
+      return value * 24 * 60;
+    }
+    return value;
+  }
+
+  int _stableSeed(String raw) {
+    var seed = 17;
+    for (final code in raw.codeUnits) {
+      seed = ((seed * 37) + code) & 0x7fffffff;
+    }
+    return seed;
+  }
+
+  double _distanceSquaredMeters(LatLng from, LatLng to) {
+    const metersPerDegree = 111320.0;
+    final avgLatRad = ((from.latitude + to.latitude) * 0.5) * math.pi / 180.0;
+    final deltaLatMeters = (from.latitude - to.latitude) * metersPerDegree;
+    final deltaLngMeters =
+        (from.longitude - to.longitude) *
+        metersPerDegree *
+        math.cos(avgLatRad);
+    return (deltaLatMeters * deltaLatMeters) +
+        (deltaLngMeters * deltaLngMeters);
   }
 
   Color _occupancyColor(int percent) {
@@ -1081,7 +1617,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
       final prefs = await SharedPreferences.getInstance();
       points = prefs.getInt(_communityPointsPrefKey) ?? 0;
     } catch (_) {
-      // Falha local nao bloqueia uso da comunidade.
+      // Falha local não bloqueia uso da comunidade.
     }
     if (!mounted) {
       return;
@@ -1096,7 +1632,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_communityPointsPrefKey, _communityPoints);
     } catch (_) {
-      // Falha local nao bloqueia uso da comunidade.
+      // Falha local não bloqueia uso da comunidade.
     }
   }
 
@@ -1125,7 +1661,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
           points: (baseline + offsets[i]).clamp(0, 1000000).toInt(),
           isCurrentUser: false,
         ),
-      (name: 'Voce', points: userPoints, isCurrentUser: true),
+      (name: 'Você', points: userPoints, isCurrentUser: true),
     ];
     allEntries.sort((left, right) => right.points.compareTo(left.points));
     final userRank = allEntries.indexWhere((entry) => entry.isCurrentUser) + 1;
@@ -1133,7 +1669,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     final topEntries = allEntries.take(10).toList(growable: true);
     if (userRank > 10 && topEntries.isNotEmpty) {
       topEntries[topEntries.length - 1] = (
-        name: 'Voce',
+        name: 'Você',
         points: userPoints,
         isCurrentUser: true,
       );
@@ -1261,9 +1797,13 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    const Text(
-                      'Feed de relatos recentes com validacao colaborativa.',
-                      style: TextStyle(
+                    Text(
+                      _isLoadingLocalizedReports
+                          ? 'Carregando relatos da sua região...'
+                          : _isLocationScopedReports
+                          ? 'Relatos recentes das academias da sua região.'
+                          : 'Feed de relatos recentes com validação colaborativa.',
+                      style: const TextStyle(
                         color: Color(0xFF527A6F),
                         fontWeight: FontWeight.w600,
                       ),
@@ -1289,7 +1829,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Sua posicao: #$userRank',
+                            'Sua posição: #$userRank',
                             style: const TextStyle(
                               fontWeight: FontWeight.w700,
                               color: Color(0xFF527A6F),
@@ -1393,7 +1933,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                                 ),
                                 const Spacer(),
                                 const Text(
-                                  '+2 por validacao',
+                                  '+2 por validação',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w700,
                                     color: Color(0xFF527A6F),
@@ -1421,13 +1961,19 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    const Text(
-                      'Relatos recentes',
-                      style: TextStyle(
+                    Text(
+                      _isLocationScopedReports
+                          ? 'Relatos recentes da sua região'
+                          : 'Relatos recentes',
+                      style: const TextStyle(
                         fontWeight: FontWeight.w900,
                         color: Color(0xFF1C5649),
                       ),
                     ),
+                    if (_isLoadingLocalizedReports) ...[
+                      const SizedBox(height: 8),
+                      const LinearProgressIndicator(minHeight: 2),
+                    ],
                   ],
                 ),
               ),
@@ -1641,3 +2187,4 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     );
   }
 }
+

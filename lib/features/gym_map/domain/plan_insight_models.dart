@@ -1,4 +1,4 @@
-﻿/// Ponto de lotação para uma hora especifica.
+/// Ponto de lotação para uma hora específica.
 class HourlyOccupancyPoint {
   const HourlyOccupancyPoint({
     required this.time,
@@ -17,7 +17,7 @@ class PeakWindowInsight {
   final int occupancyPercent;
 }
 
-/// Linha comparativa entre academias (lotação e diferenca).
+/// Linha comparativa entre academias (lotação e diferença).
 class GymComparisonInsight {
   const GymComparisonInsight({
     required this.gymName,

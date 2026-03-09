@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../gym_map_colors.dart';
 import '../gym_map_helpers.dart';
 
-/// Botao que corrige apenas a orientacao do mapa para o norte.
+/// Botão que corrige apenas a orientação do mapa para o norte.
 class NorthResetButton extends StatelessWidget {
   const NorthResetButton({super.key, required this.onTap});
 
@@ -14,7 +14,7 @@ class NorthResetButton extends StatelessWidget {
     return Semantics(
       button: true,
       label: 'Reorientar mapa para norte',
-      hint: 'Toque para voltar a orientacao para zero grau',
+      hint: 'Toque para voltar a orientação para zero grau',
       child: Tooltip(
         message: 'Reorientar para norte',
         child: Material(
@@ -58,7 +58,7 @@ class NorthResetButton extends StatelessWidget {
   }
 }
 
-/// Botao para centralizar o mapa na localizacao atual do aparelho.
+/// Botão para centralizar o mapa na localização atual do aparelho.
 class MyLocationButton extends StatelessWidget {
   const MyLocationButton({super.key, required this.onTap});
 
@@ -69,9 +69,9 @@ class MyLocationButton extends StatelessWidget {
     return Semantics(
       button: true,
       label: 'Centralizar no meu local',
-      hint: 'Toque para mover o mapa para a sua posicao atual',
+      hint: 'Toque para mover o mapa para a sua posição atual',
       child: Tooltip(
-        message: 'Minha localizacao',
+        message: 'Minha localização',
         child: Material(
           color: Colors.transparent,
           child: InkWell(
@@ -168,14 +168,14 @@ class MapPoiLoadingBadge extends StatelessWidget {
   }
 }
 
-/// Marcador visual da posicao atual do usuario no mapa.
+/// Marcador visual da posição atual do usuário no mapa.
 class UserLocationMarkerDot extends StatelessWidget {
   const UserLocationMarkerDot({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: 'Sua localizacao no mapa',
+      label: 'Sua localização no mapa',
       readOnly: true,
       child: Stack(
         alignment: Alignment.center,
