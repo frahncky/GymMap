@@ -17,6 +17,7 @@ void main() {
 }
 
 const String _themeModePrefKey = 'gymmap_pref_dark_mode_v1';
+typedef ThemeModeChangedCallback = Future<void> Function(bool enabled);
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key, this.showMap = true});
@@ -180,7 +181,7 @@ class AppShell extends StatefulWidget {
 
   final bool showMap;
   final bool useDarkTheme;
-  final ValueChanged<bool> onThemeModeChanged;
+  final ThemeModeChangedCallback onThemeModeChanged;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -671,7 +672,7 @@ class _ProfilePage extends StatefulWidget {
 
   final VoidCallback onOpenMap;
   final bool useDarkTheme;
-  final ValueChanged<bool> onThemeModeChanged;
+  final ThemeModeChangedCallback onThemeModeChanged;
 
   @override
   State<_ProfilePage> createState() => _ProfilePageState();
@@ -692,6 +693,7 @@ class _ProfilePageState extends State<_ProfilePage> {
     darkThemeEnabled: false,
   );
   bool _isLoading = true;
+  bool _isApplyingDarkTheme = false;
 
   @override
   void initState() {
@@ -766,6 +768,27 @@ class _ProfilePageState extends State<_ProfilePage> {
       _preferences = reducer(_preferences);
     });
     unawaited(_persistProfilePreference(prefKey, value));
+  }
+
+  Future<void> _applyDarkThemePreference(bool value) async {
+    if (_isApplyingDarkTheme || _preferences.darkThemeEnabled == value) {
+      return;
+    }
+
+    setState(() {
+      _isApplyingDarkTheme = true;
+      _preferences = _preferences.copyWith(darkThemeEnabled: value);
+    });
+
+    try {
+      await widget.onThemeModeChanged(value);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isApplyingDarkTheme = false;
+        });
+      }
+    }
   }
 
   @override
@@ -966,17 +989,16 @@ class _ProfilePageState extends State<_ProfilePage> {
                                       'Ativar aparência escura em todo o app.',
                                     ),
                                     value: _preferences.darkThemeEnabled,
-                                    onChanged: (value) {
-                                      _updatePreference(
-                                        value: value,
-                                        prefKey: _darkThemePrefKey,
-                                        reducer:
-                                            (current) => current.copyWith(
-                                              darkThemeEnabled: value,
-                                            ),
-                                      );
-                                      widget.onThemeModeChanged(value);
-                                    },
+                                    onChanged:
+                                        _isApplyingDarkTheme
+                                            ? null
+                                            : (value) {
+                                              unawaited(
+                                                _applyDarkThemePreference(
+                                                  value,
+                                                ),
+                                              );
+                                            },
                                   ),
                                   SwitchListTile.adaptive(
                                     contentPadding: const EdgeInsets.symmetric(

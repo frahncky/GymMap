@@ -306,22 +306,53 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   }
 
   Future<void> _runInitialMapBootstrap() async {
+    final bootstrapUserLocation = await _resolveBootstrapUserLocation();
+    final initialCenter = bootstrapUserLocation ?? _fallbackMapCenter;
+    final initialZoom = bootstrapUserLocation != null ? 14.8 : 13.4;
+
     if (mounted) {
       setState(() {
         _hasCompletedInitialLocationAttempt = true;
+        if (bootstrapUserLocation != null) {
+          _userLocation = bootstrapUserLocation;
+        }
       });
     } else {
       _hasCompletedInitialLocationAttempt = true;
+      if (bootstrapUserLocation != null) {
+        _userLocation = bootstrapUserLocation;
+      }
     }
-    _moveMapTo(_fallbackMapCenter, 13.4);
-    unawaited(_restoreCachedMapPoisNear(_fallbackMapCenter, force: true));
-    unawaited(_loadMapPoisAround(_fallbackMapCenter));
+    _moveMapTo(initialCenter, initialZoom);
+    unawaited(_restoreCachedMapPoisNear(initialCenter, force: true));
+    unawaited(_loadMapPoisAround(initialCenter));
     unawaited(_startBackgroundLocationStream());
 
     await _resolveInitialLocationFlow();
 
     _maybeStartOpeningSearchIntro();
     _maybeShowMapTutorialOverlay();
+  }
+
+  Future<LatLng?> _resolveBootstrapUserLocation() async {
+    final cached = _userLocation;
+    if (cached != null) {
+      return cached;
+    }
+
+    try {
+      final permission = await Geolocator.checkPermission();
+      if (!_hasLocationPermission(permission)) {
+        return null;
+      }
+      final lastKnown = await Geolocator.getLastKnownPosition();
+      if (lastKnown == null) {
+        return null;
+      }
+      return LatLng(lastKnown.latitude, lastKnown.longitude);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> _resolveInitialLocationFlow() async {
@@ -4390,7 +4421,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
           return Marker(
             point: gym.position,
             width: 250 * markerScale,
-            height: 145 * markerScale,
+            height: 170 * markerScale,
             child: Transform.translate(
               offset: Offset(0, _markerBodyAnchorOffset(markerScale)),
               child: Transform.scale(
@@ -4538,7 +4569,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       key: ValueKey<String>('poi-marker-${poi.id}-$_mapVisualReloadTick'),
       point: poi.position,
       width: 250 * markerScale,
-      height: 145 * markerScale,
+      height: 170 * markerScale,
       child: Transform.translate(
         offset: Offset(0, _markerBodyAnchorOffset(markerScale)),
         child: Transform.scale(
