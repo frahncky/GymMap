@@ -28,9 +28,10 @@ import 'widgets/map_controls.dart';
 import 'widgets/selected_gym_panel.dart';
 
 class GymMapPage extends StatefulWidget {
-  const GymMapPage({super.key, required this.showMap});
+  const GymMapPage({super.key, required this.showMap, required this.isActive});
 
   final bool showMap;
+  final bool isActive;
 
   @override
   State<GymMapPage> createState() => _GymMapPageState();
@@ -279,6 +280,14 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _centerMapOnDeviceLocation();
       });
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant GymMapPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.isActive && widget.isActive) {
+      unawaited(_loadCommunityPoints());
     }
   }
 
@@ -2040,6 +2049,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     required String regionLabel,
   }) async {
     final fallback = _buildLocalLeaderboardSheetData(regionLabel: regionLabel);
+    final localUserPoints = _communityPoints.clamp(0, 1000000).toInt();
     final remoteService = _crowdReportRemoteService;
     if (remoteService == null || !remoteService.hasRemoteBackend) {
       return fallback;
@@ -2058,7 +2068,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
           .map(
             (entry) => _CommunityLeaderboardEntry(
               name: entry.displayName,
-              points: entry.points,
+              points: entry.isCurrentUser ? localUserPoints : entry.points,
               isCurrentUser: entry.isCurrentUser,
             ),
           )
@@ -2066,9 +2076,9 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       final userRankFromEntries =
           entries.indexWhere((entry) => entry.isCurrentUser) + 1;
       final userRank =
-          result.userRank > 0
-              ? result.userRank
-              : (userRankFromEntries > 0 ? userRankFromEntries : 0);
+          userRankFromEntries > 0
+              ? userRankFromEntries
+              : (result.userRank > 0 ? result.userRank : 0);
       final normalizedRegionLabel =
           result.regionLabel.trim().isEmpty
               ? regionLabel
@@ -2076,7 +2086,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       return _CommunityLeaderboardSheetData(
         entries: entries,
         userRank: userRank,
-        userPoints: result.userPoints.clamp(0, 1000000),
+        userPoints: localUserPoints,
         regionLabel: normalizedRegionLabel,
         isRegional: true,
       );

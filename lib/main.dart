@@ -202,7 +202,7 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     final pages = <Widget>[
-      GymMapPage(showMap: widget.showMap),
+      GymMapPage(showMap: widget.showMap, isActive: _selectedIndex == 0),
       _FavoritesPage(
         refreshToken: _favoritesRefreshToken,
         onOpenMap: _goToMapTab,
@@ -1292,8 +1292,6 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     'Juliana R.',
     'Diego N.',
     'Patricia L.',
-    'Bruno A.',
-    'Carla F.',
   ];
 
   late final List<_CommunityReportItem> _reports;
@@ -1318,6 +1316,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
   void didUpdateWidget(covariant _CommunityFeedPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!oldWidget.isActive && widget.isActive) {
+      unawaited(_loadCommunityPoints());
       final forceRetryWithoutLocation = !_hasLocationContext || _reports.isEmpty;
       _ensureLocalizedReportsLoaded(
         notify: true,
@@ -1330,12 +1329,22 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     required bool notify,
     bool force = false,
   }) {
+    unawaited(_refreshLocalizedReports(force: force, notify: notify));
+  }
+
+  Future<void> _refreshLocalizedReports({
+    required bool force,
+    required bool notify,
+  }) async {
     final now = DateTime.now();
     final isCacheFresh =
         _lastLocalizedReportsLoadAt != null &&
         now.difference(_lastLocalizedReportsLoadAt!) <=
             _communityReloadInterval;
     if (_hasRequestedLocalizedReports && isCacheFresh && !force) {
+      return;
+    }
+    if (_isLoadingLocalizedReports) {
       return;
     }
     _hasRequestedLocalizedReports = true;
@@ -1346,7 +1355,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     } else {
       _isLoadingLocalizedReports = true;
     }
-    unawaited(_loadLocalizedCommunityReports());
+    await _loadLocalizedCommunityReports();
   }
 
   Future<void> _loadLocalizedCommunityReports() async {
@@ -1765,7 +1774,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
   _buildLeaderboardData() {
     final userPoints = _communityPoints.clamp(0, 1000000).toInt();
     final baseline = math.max(18, (userPoints * 0.74).round());
-    const offsets = <int>[132, 118, 104, 91, 78, 66, 54, 44, 36, 28, 22];
+    const offsets = <int>[132, 118, 104, 91, 78, 66, 54, 44, 36];
 
     final allEntries = <({String name, int points, bool isCurrentUser})>[
       for (var i = 0; i < _leaderboardCompetitors.length; i++)
@@ -1802,6 +1811,67 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
       default:
         return const Color(0xFF527A6F);
     }
+  }
+
+  Widget _buildCommunityLoadingCard() {
+    const skeletonColor = Color(0xFFD8E8E2);
+    const skeletonStrongColor = Color(0xFFCBDDD6);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE1ECE8)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: skeletonStrongColor,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Container(
+                  width: 68,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: skeletonColor,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Container(
+              width: 140,
+              height: 12,
+              decoration: BoxDecoration(
+                color: skeletonColor,
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              height: 34,
+              decoration: BoxDecoration(
+                color: skeletonColor,
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _vote(String reportId, _CommunityVote vote) {
@@ -1893,8 +1963,13 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
         ),
       ),
       child: SafeArea(
-        child: CustomScrollView(
-          slivers: [
+        child: RefreshIndicator(
+          onRefresh: () => _refreshLocalizedReports(force: true, notify: true),
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            slivers: [
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
@@ -2116,6 +2191,12 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                 ),
               ),
             ),
+            if (_isLoadingLocalizedReports && _reports.isEmpty)
+              SliverList.separated(
+                itemBuilder: (_, __) => _buildCommunityLoadingCard(),
+                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                itemCount: 3,
+              ),
             if (!_isLoadingLocalizedReports && _reports.isEmpty)
               SliverToBoxAdapter(
                 child: Padding(
@@ -2140,210 +2221,214 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                   ),
                 ),
               ),
-            SliverList.separated(
-              itemBuilder: (context, index) {
-                final report = _reports[index];
-                final tone = _occupancyColor(report.occupancyPercent);
-                final isConfirm = report.userVote == _CommunityVote.confirm;
-                final isDisagree = report.userVote == _CommunityVote.disagree;
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFE1ECE8)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                report.gymName,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  color: Color(0xFF1C5649),
+            if (_reports.isNotEmpty)
+              SliverList.separated(
+                itemBuilder: (context, index) {
+                  final report = _reports[index];
+                  final tone = _occupancyColor(report.occupancyPercent);
+                  final isConfirm = report.userVote == _CommunityVote.confirm;
+                  final isDisagree = report.userVote == _CommunityVote.disagree;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE1ECE8)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  report.gymName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    color: Color(0xFF1C5649),
+                                  ),
                                 ),
                               ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: tone.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Text(
+                                  '${report.occupancyPercent}% ${_occupancyLabel(report.occupancyPercent)}',
+                                  style: TextStyle(
+                                    color: tone,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            '${report.regionLabel} - ${report.timeAgoLabel}',
+                            style: const TextStyle(
+                              color: Color(0xFF527A6F),
+                              fontWeight: FontWeight.w600,
                             ),
+                          ),
+                          if (report.hasPhoto) ...[
+                            const SizedBox(height: 10),
                             Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: tone.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: Text(
-                                '${report.occupancyPercent}% ${_occupancyLabel(report.occupancyPercent)}',
-                                style: TextStyle(
-                                  color: tone,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w900,
+                                color: const Color(0xFFF2F8F6),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: const Color(0xFFDCEAE5),
                                 ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 56,
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(10),
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: [
+                                          tone.withValues(alpha: 0.28),
+                                          const Color(0xFF2B8C77).withValues(
+                                            alpha: 0.24,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    child: const Icon(
+                                      Icons.photo_camera_rounded,
+                                      size: 18,
+                                      color: Color(0xFF2D6054),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      report.photoCaption ??
+                                          'Foto enviada pela comunidade.',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF315C52),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          '${report.regionLabel} - ${report.timeAgoLabel}',
-                          style: const TextStyle(
-                            color: Color(0xFF527A6F),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        if (report.hasPhoto) ...[
                           const SizedBox(height: 10),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF2F8F6),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFFDCEAE5)),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 56,
-                                  height: 44,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(10),
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                      colors: [
-                                        tone.withValues(alpha: 0.28),
-                                        const Color(0xFF2B8C77).withValues(
-                                          alpha: 0.24,
-                                        ),
-                                      ],
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed:
+                                      () => _vote(
+                                        report.id,
+                                        _CommunityVote.confirm,
+                                      ),
+                                  icon: Icon(
+                                    Icons.thumb_up_alt_rounded,
+                                    size: 16,
+                                    color:
+                                        isConfirm
+                                            ? const Color(0xFF1D9A62)
+                                            : const Color(0xFF527A6F),
+                                  ),
+                                  label: Text(
+                                    'Confirmo (${report.confirmCount})',
+                                    style: TextStyle(
+                                      color:
+                                          isConfirm
+                                              ? const Color(0xFF1D9A62)
+                                              : const Color(0xFF315C52),
+                                      fontWeight: FontWeight.w800,
                                     ),
                                   ),
-                                  child: const Icon(
-                                    Icons.photo_camera_rounded,
-                                    size: 18,
-                                    color: Color(0xFF2D6054),
+                                  style: OutlinedButton.styleFrom(
+                                    side: BorderSide(
+                                      color:
+                                          isConfirm
+                                              ? const Color(0xFF1D9A62)
+                                              : const Color(0xFFD7E6E1),
+                                    ),
+                                    backgroundColor:
+                                        isConfirm
+                                            ? const Color(
+                                              0xFF1D9A62,
+                                            ).withValues(alpha: 0.08)
+                                            : Colors.transparent,
                                   ),
                                 ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    report.photoCaption ??
-                                        'Foto enviada pela comunidade.',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF315C52),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed:
+                                      () => _vote(
+                                        report.id,
+                                        _CommunityVote.disagree,
+                                      ),
+                                  icon: Icon(
+                                    Icons.thumb_down_alt_rounded,
+                                    size: 16,
+                                    color:
+                                        isDisagree
+                                            ? const Color(0xFFCC4A37)
+                                            : const Color(0xFF527A6F),
+                                  ),
+                                  label: Text(
+                                    'Discordo (${report.disagreeCount})',
+                                    style: TextStyle(
+                                      color:
+                                          isDisagree
+                                              ? const Color(0xFFCC4A37)
+                                              : const Color(0xFF315C52),
+                                      fontWeight: FontWeight.w800,
                                     ),
                                   ),
+                                  style: OutlinedButton.styleFrom(
+                                    side: BorderSide(
+                                      color:
+                                          isDisagree
+                                              ? const Color(0xFFCC4A37)
+                                              : const Color(0xFFD7E6E1),
+                                    ),
+                                    backgroundColor:
+                                        isDisagree
+                                            ? const Color(
+                                              0xFFCC4A37,
+                                            ).withValues(alpha: 0.08)
+                                            : Colors.transparent,
+                                  ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ],
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed:
-                                    () => _vote(
-                                      report.id,
-                                      _CommunityVote.confirm,
-                                    ),
-                                icon: Icon(
-                                  Icons.thumb_up_alt_rounded,
-                                  size: 16,
-                                  color:
-                                      isConfirm
-                                          ? const Color(0xFF1D9A62)
-                                          : const Color(0xFF527A6F),
-                                ),
-                                label: Text(
-                                  'Confirmo (${report.confirmCount})',
-                                  style: TextStyle(
-                                    color:
-                                        isConfirm
-                                            ? const Color(0xFF1D9A62)
-                                            : const Color(0xFF315C52),
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  side: BorderSide(
-                                    color:
-                                        isConfirm
-                                            ? const Color(0xFF1D9A62)
-                                            : const Color(0xFFD7E6E1),
-                                  ),
-                                  backgroundColor:
-                                      isConfirm
-                                          ? const Color(
-                                            0xFF1D9A62,
-                                          ).withValues(alpha: 0.08)
-                                          : Colors.transparent,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed:
-                                    () => _vote(
-                                      report.id,
-                                      _CommunityVote.disagree,
-                                    ),
-                                icon: Icon(
-                                  Icons.thumb_down_alt_rounded,
-                                  size: 16,
-                                  color:
-                                      isDisagree
-                                          ? const Color(0xFFCC4A37)
-                                          : const Color(0xFF527A6F),
-                                ),
-                                label: Text(
-                                  'Discordo (${report.disagreeCount})',
-                                  style: TextStyle(
-                                    color:
-                                        isDisagree
-                                            ? const Color(0xFFCC4A37)
-                                            : const Color(0xFF315C52),
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  side: BorderSide(
-                                    color:
-                                        isDisagree
-                                            ? const Color(0xFFCC4A37)
-                                            : const Color(0xFFD7E6E1),
-                                  ),
-                                  backgroundColor:
-                                      isDisagree
-                                          ? const Color(
-                                            0xFFCC4A37,
-                                          ).withValues(alpha: 0.08)
-                                          : Colors.transparent,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                );
-              },
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
-              itemCount: _reports.length,
-            ),
+                  );
+                },
+                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                itemCount: _reports.length,
+              ),
             const SliverToBoxAdapter(child: SizedBox(height: 16)),
-          ],
+            ],
+          ),
         ),
       ),
     );
