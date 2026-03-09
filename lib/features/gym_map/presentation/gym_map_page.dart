@@ -3129,6 +3129,32 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     }
   }
 
+  List<String> _planCardHighlights(AppPlanTier tier) {
+    final currentInsights = kPlanCatalog[tier]!.insights;
+    switch (tier) {
+      case AppPlanTier.free:
+        return currentInsights.take(2).toList(growable: false);
+      case AppPlanTier.smart:
+        final freeInsights = kPlanCatalog[AppPlanTier.free]!.insights.toSet();
+        final unique = currentInsights
+            .where((feature) => !freeInsights.contains(feature))
+            .toList(growable: false);
+        final source = unique.isEmpty ? currentInsights : unique;
+        return source.take(3).toList(growable: false);
+      case AppPlanTier.pro:
+        return currentInsights.take(4).toList(growable: false);
+      case AppPlanTier.elite:
+        final proInsights = kPlanCatalog[AppPlanTier.pro]!.insights.toSet();
+        final eliteOnly = currentInsights
+            .where((feature) => !proInsights.contains(feature))
+            .toList(growable: true);
+        if (eliteOnly.length < 4) {
+          eliteOnly.add('Inclui tudo do Pro');
+        }
+        return eliteOnly.take(4).toList(growable: false);
+    }
+  }
+
   Widget _buildPlanOfferCard({
     required BuildContext sheetContext,
     required AppPlanTier tier,
@@ -3136,6 +3162,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     required bool isRecommended,
   }) {
     final plan = kPlanCatalog[tier]!;
+    final cardHighlights = _planCardHighlights(tier);
     final isCurrent = tier == current;
     final isActionEnabled =
         !_isLoadingPlanSubscription && !_isStartingStoreCheckout && !isCurrent;
@@ -3261,8 +3288,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
             ),
           ),
           const SizedBox(height: 8),
-          ...plan.insights
-              .take(4)
+          ...cardHighlights
               .map(
                 (feature) => Padding(
                   padding: const EdgeInsets.only(bottom: 4),
@@ -3349,6 +3375,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   }
 
   Widget _buildPlanComparisonMatrix() {
+    const unavailableColor = Color(0xFFD64B4B);
     const rows = <({String feature, Set<AppPlanTier> available})>[
       (
         feature: 'Lotação em tempo real',
@@ -3360,18 +3387,18 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         },
       ),
       (
-        feature: 'Historico 24h',
+        feature: 'Histórico 24h',
         available: {AppPlanTier.smart, AppPlanTier.pro, AppPlanTier.elite},
       ),
       (
         feature: 'Pico e comparativo',
         available: {AppPlanTier.pro, AppPlanTier.elite},
       ),
-      (feature: 'Previsao e alertas', available: {AppPlanTier.elite}),
+      (feature: 'Previsão e alertas', available: {AppPlanTier.elite}),
       (feature: 'Cobertura nacional', available: {AppPlanTier.elite}),
     ];
-    const featureColumnWidth = 156.0;
-    const tierColumnWidth = 72.0;
+    const featureColumnWidth = 118.0;
+    const tierColumnWidth = 56.0;
     final matrixMinWidth =
         featureColumnWidth + (tierColumnWidth * AppPlanTier.values.length);
 
@@ -3408,7 +3435,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                       width: tierColumnWidth,
                       child: Container(
                         margin: const EdgeInsets.symmetric(horizontal: 2),
-                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        padding: const EdgeInsets.symmetric(vertical: 3),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(8),
                           color: withUiOpacity(
@@ -3417,15 +3444,19 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                           ),
                         ),
                         child: Center(
-                          child: Text(
-                            kPlanCatalog[tier]!.label,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 11,
-                              color:
-                                  tier == AppPlanTier.pro
-                                      ? Theme.of(context).colorScheme.primary
-                                      : GymMapColors.textStrong,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              kPlanCatalog[tier]!.label,
+                              maxLines: 1,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 10,
+                                color:
+                                    tier == AppPlanTier.pro
+                                        ? Theme.of(context).colorScheme.primary
+                                        : GymMapColors.textStrong,
+                              ),
                             ),
                           ),
                         ),
@@ -3454,15 +3485,21 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                         SizedBox(
                           width: tierColumnWidth,
                           child: Center(
-                            child: Icon(
-                              row.available.contains(tier)
-                                  ? Icons.check_circle
-                                  : Icons.remove_circle_outline,
-                              size: 18,
-                              color:
+                            child: Semantics(
+                              label:
                                   row.available.contains(tier)
-                                      ? GymMapColors.occupancyLow
-                                      : GymMapColors.textSecondary,
+                                      ? 'Disponível no plano ${kPlanCatalog[tier]!.label}'
+                                      : 'Indisponível no plano ${kPlanCatalog[tier]!.label}',
+                              child: Icon(
+                                row.available.contains(tier)
+                                    ? Icons.check_circle_rounded
+                                    : Icons.cancel_rounded,
+                                size: 18,
+                                color:
+                                    row.available.contains(tier)
+                                        ? GymMapColors.occupancyLow
+                                        : unavailableColor,
+                              ),
                             ),
                           ),
                         ),
@@ -3470,6 +3507,40 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                   ),
                 );
               }),
+              const SizedBox(height: 6),
+              Row(
+                children: const [
+                  Icon(
+                    Icons.check_circle_rounded,
+                    size: 14,
+                    color: GymMapColors.occupancyLow,
+                  ),
+                  SizedBox(width: 4),
+                  Text(
+                    'Disponível',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: GymMapColors.textSecondary,
+                    ),
+                  ),
+                  SizedBox(width: 14),
+                  Icon(
+                    Icons.cancel_rounded,
+                    size: 14,
+                    color: unavailableColor,
+                  ),
+                  SizedBox(width: 4),
+                  Text(
+                    'Indisponível',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: GymMapColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -3523,34 +3594,58 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                         0.08,
                       ),
                     ),
-                    child: Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.auto_awesome, size: 16),
-                        const SizedBox(width: 8),
-                        const Expanded(
-                          child: Text(
-                            '+10.000 usuários premium ativos',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w800,
-                              color: GymMapColors.textStrong,
+                        Row(
+                          children: [
+                            const Icon(Icons.auto_awesome, size: 16),
+                            const SizedBox(width: 8),
+                            const Expanded(
+                              child: Text(
+                                '+10.000 usuários premium ativos',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  color: GymMapColors.textStrong,
+                                ),
+                              ),
                             ),
+                            const SizedBox(width: 8),
+                            Icon(
+                              Icons.star_rounded,
+                              size: 14,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            Icon(
+                              Icons.star_rounded,
+                              size: 14,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            Icon(
+                              Icons.star_rounded,
+                              size: 14,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            Icon(
+                              Icons.star_rounded,
+                              size: 14,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            Icon(
+                              Icons.star_half_rounded,
+                              size: 14,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Nota média 4.8/5 em avaliações verificadas.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: GymMapColors.textSecondary,
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Icon(
-                          Icons.star_rounded,
-                          size: 14,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        Icon(
-                          Icons.star_rounded,
-                          size: 14,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        Icon(
-                          Icons.star_rounded,
-                          size: 14,
-                          color: Theme.of(context).colorScheme.primary,
                         ),
                       ],
                     ),
