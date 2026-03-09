@@ -1230,69 +1230,8 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
   static const String _communityPointsPrefKey = 'gymmap_community_points_v1';
   static const int _verificationPoints = 2;
   static const Duration _communityReloadInterval = Duration(minutes: 3);
-  static const List<_CommunityReportItem> _seedReports = <_CommunityReportItem>[
-    _CommunityReportItem(
-      id: 'report-1',
-      gymName: 'UltraFit Paulista',
-      regionLabel: 'Bela Vista',
-      timeAgoLabel: 'há 9 min',
-      occupancyPercent: 38,
-      confirmCount: 14,
-      disagreeCount: 2,
-      hasPhoto: true,
-      photoCaption: 'Foto enviada após o treino das 18h.',
-    ),
-    _CommunityReportItem(
-      id: 'report-2',
-      gymName: 'Shape Club Centro',
-      regionLabel: 'Republica',
-      timeAgoLabel: 'há 17 min',
-      occupancyPercent: 67,
-      confirmCount: 11,
-      disagreeCount: 3,
-    ),
-    _CommunityReportItem(
-      id: 'report-3',
-      gymName: 'Move One Jardins',
-      regionLabel: 'Jardins',
-      timeAgoLabel: 'há 24 min',
-      occupancyPercent: 44,
-      confirmCount: 9,
-      disagreeCount: 1,
-    ),
-    _CommunityReportItem(
-      id: 'report-4',
-      gymName: 'Ativa Club Zona Sul',
-      regionLabel: 'Santo Amaro',
-      timeAgoLabel: 'há 31 min',
-      occupancyPercent: 72,
-      confirmCount: 7,
-      disagreeCount: 4,
-      hasPhoto: true,
-      photoCaption: 'Foto da sala de pesos no horário de pico.',
-    ),
-    _CommunityReportItem(
-      id: 'report-5',
-      gymName: 'PowerGym Tatuape',
-      regionLabel: 'Tatuape',
-      timeAgoLabel: 'há 39 min',
-      occupancyPercent: 29,
-      confirmCount: 13,
-      disagreeCount: 2,
-    ),
-  ];
-
-  static const List<String> _leaderboardCompetitors = <String>[
-    'Ana M.',
-    'Rafael G.',
-    'Bianca S.',
-    'Lucas P.',
-    'Camila T.',
-    'Marcos V.',
-    'Juliana R.',
-    'Diego N.',
-    'Patricia L.',
-  ];
+  static const int _leaderboardWindowDays = 7;
+  static const int _leaderboardLimit = 10;
 
   late final List<_CommunityReportItem> _reports;
   int _communityPoints = 0;
@@ -1301,6 +1240,13 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
   bool _hasLocationContext = false;
   bool _hasRequestedLocalizedReports = false;
   DateTime? _lastLocalizedReportsLoadAt;
+  List<({String name, int points, bool isCurrentUser})> _leaderboardEntries =
+      const <({String name, int points, bool isCurrentUser})>[];
+  int _leaderboardUserRank = 0;
+  bool _isLoadingLeaderboard = false;
+  bool _hasRealLeaderboard = false;
+  String _leaderboardRegionLabel = 'Sua região';
+  DateTime? _lastLeaderboardLoadAt;
 
   @override
   void initState() {
@@ -1355,10 +1301,12 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     } else {
       _isLoadingLocalizedReports = true;
     }
-    await _loadLocalizedCommunityReports();
+    await _loadLocalizedCommunityReports(forceLeaderboardRefresh: force);
   }
 
-  Future<void> _loadLocalizedCommunityReports() async {
+  Future<void> _loadLocalizedCommunityReports({
+    required bool forceLeaderboardRefresh,
+  }) async {
     final loadStartedAt = DateTime.now();
     try {
       final userPoint = await _resolveCommunityUserLocation();
@@ -1370,6 +1318,14 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
       );
       await cacheService.pullRemoteToLocal();
       final cachedLocations = await cacheService.loadLocations();
+      final remoteService = await CrowdReportRemoteService.create();
+      unawaited(
+        _refreshRegionalLeaderboard(
+          remoteService: remoteService,
+          userPoint: userPoint,
+          force: forceLeaderboardRefresh,
+        ),
+      );
       if (!mounted) {
         return;
       }
@@ -1393,8 +1349,6 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
       final locationsById = <String, CachedGymLocation>{
         for (final location in scopedLocations) location.id: location,
       };
-
-      final remoteService = await CrowdReportRemoteService.create();
       var mappedReports = const <_CommunityReportItem>[];
       if (remoteService.hasRemoteBackend && locationsById.isNotEmpty) {
         final remoteReports = await remoteService.loadReportsForGyms(
@@ -1454,15 +1408,22 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
       final now = DateTime.now().toUtc();
       final nearbyLocations = nearbyPois
           .take(80)
-          .map(
-            (poi) => CachedGymLocation(
+          .map((poi) {
+            final distanceKm =
+                math.sqrt(_distanceSquaredMeters(userPoint, poi.position)) /
+                1000;
+            final distanceLabel =
+                distanceKm < 1
+                    ? '${(distanceKm * 1000).round()} m de voce'
+                    : '${distanceKm.toStringAsFixed(1)} km de voce';
+            return CachedGymLocation(
               id: poi.id,
               name: poi.name,
-              address: 'Próximo de você',
+              address: distanceLabel,
               position: poi.position,
               updatedAtUtc: now,
-            ),
-          )
+            );
+          })
           .toList(growable: false);
       await cacheService.mergeAndSave(nearbyLocations, syncRemote: false);
     } catch (_) {
@@ -1497,8 +1458,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
           return null;
         }
         final timestamp = lastKnown.timestamp;
-        if (timestamp != null &&
-            DateTime.now().difference(timestamp) > const Duration(hours: 2)) {
+        if (DateTime.now().difference(timestamp) > const Duration(hours: 2)) {
           return null;
         }
         return LatLng(lastKnown.latitude, lastKnown.longitude);
@@ -1646,7 +1606,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
   String _communityRegionLabel(String rawAddress) {
     final normalized = rawAddress.trim();
     if (normalized.isEmpty || normalized == 'Academia encontrada no mapa') {
-      return 'Próximo de você';
+      return 'Distancia nao informada';
     }
     final tokens = normalized
         .split(',')
@@ -1746,6 +1706,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     }
     setState(() {
       _communityPoints = points.clamp(0, 1000000).toInt();
+      _syncLeaderboardPointsWithLocal();
     });
   }
 
@@ -1767,38 +1728,132 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     );
   }
 
-  ({
-    List<({String name, int points, bool isCurrentUser})> entries,
-    int userRank,
-  })
-  _buildLeaderboardData() {
-    final userPoints = _communityPoints.clamp(0, 1000000).toInt();
-    final baseline = math.max(18, (userPoints * 0.74).round());
-    const offsets = <int>[132, 118, 104, 91, 78, 66, 54, 44, 36];
+  String _leaderboardRegionKeyForPoint(LatLng point) {
+    final latBucket = (point.latitude * 10).round() / 10;
+    final lngBucket = (point.longitude * 10).round() / 10;
+    return '${latBucket.toStringAsFixed(1)},${lngBucket.toStringAsFixed(1)}';
+  }
 
-    final allEntries = <({String name, int points, bool isCurrentUser})>[
-      for (var i = 0; i < _leaderboardCompetitors.length; i++)
-        (
-          name: _leaderboardCompetitors[i],
-          points: (baseline + offsets[i]).clamp(0, 1000000).toInt(),
-          isCurrentUser: false,
-        ),
-      (name: 'Você', points: userPoints, isCurrentUser: true),
+  void _syncLeaderboardPointsWithLocal() {
+    if (_leaderboardEntries.isEmpty) {
+      return;
+    }
+    final localUserPoints = _communityPoints.clamp(0, 1000000).toInt();
+    _leaderboardEntries = <({String name, int points, bool isCurrentUser})>[
+      for (final entry in _leaderboardEntries)
+        entry.isCurrentUser
+            ? (
+              name: entry.name,
+              points: localUserPoints,
+              isCurrentUser: true,
+            )
+            : entry,
     ];
-    allEntries.sort((left, right) => right.points.compareTo(left.points));
-    final userRank = allEntries.indexWhere((entry) => entry.isCurrentUser) + 1;
+  }
 
-    final topEntries = allEntries.take(10).toList(growable: true);
-    if (userRank > 10 && topEntries.isNotEmpty) {
-      topEntries[topEntries.length - 1] = (
-        name: 'Você',
-        points: userPoints,
-        isCurrentUser: true,
-      );
+  void _setLeaderboardEmpty({
+    required String regionLabel,
+    required DateTime timestamp,
+  }) {
+    setState(() {
+      _leaderboardEntries = const <({String name, int points, bool isCurrentUser})>[];
+      _leaderboardUserRank = 0;
+      _hasRealLeaderboard = false;
+      _leaderboardRegionLabel = regionLabel;
+      _isLoadingLeaderboard = false;
+      _lastLeaderboardLoadAt = timestamp;
+    });
+  }
+
+  Future<void> _refreshRegionalLeaderboard({
+    required CrowdReportRemoteService remoteService,
+    required LatLng? userPoint,
+    required bool force,
+  }) async {
+    final startedAt = DateTime.now();
+    final hasRegion = userPoint != null;
+    final regionKey =
+        userPoint == null ? '' : _leaderboardRegionKeyForPoint(userPoint);
+    final regionLabel = hasRegion ? 'Sua região' : 'Região indisponível';
+
+    final isCacheFresh =
+        _lastLeaderboardLoadAt != null &&
+        startedAt.difference(_lastLeaderboardLoadAt!) <=
+            _communityReloadInterval;
+    if (!force && isCacheFresh) {
+      return;
+    }
+    if (_isLoadingLeaderboard) {
+      return;
+    }
+    if (mounted) {
+      setState(() {
+        _isLoadingLeaderboard = true;
+      });
+    } else {
+      _isLoadingLeaderboard = true;
     }
 
-    return (entries: topEntries, userRank: userRank);
+    if (!remoteService.hasRemoteBackend) {
+      if (!mounted) {
+        return;
+      }
+      _setLeaderboardEmpty(regionLabel: regionLabel, timestamp: startedAt);
+      return;
+    }
+
+    try {
+      final result = await remoteService.loadRegionalLeaderboard(
+        regionKey: regionKey,
+        regionLabel: hasRegion ? regionLabel : null,
+        limit: _leaderboardLimit,
+        windowDays: _leaderboardWindowDays,
+      );
+      if (!mounted) {
+        return;
+      }
+      if (result == null || result.entries.isEmpty) {
+        _setLeaderboardEmpty(regionLabel: regionLabel, timestamp: startedAt);
+        return;
+      }
+
+      final localUserPoints = _communityPoints.clamp(0, 1000000).toInt();
+      final entries = result.entries
+          .map(
+            (entry) => (
+              name: entry.displayName,
+              points: entry.isCurrentUser ? localUserPoints : entry.points,
+              isCurrentUser: entry.isCurrentUser,
+            ),
+          )
+          .toList(growable: false);
+      final userRankFromEntries =
+          entries.indexWhere((entry) => entry.isCurrentUser) + 1;
+      final userRank =
+          userRankFromEntries > 0
+              ? userRankFromEntries
+              : (result.userRank > 0 ? result.userRank : 0);
+      final normalizedRegionLabel =
+          result.regionLabel.trim().isEmpty
+              ? regionLabel
+              : result.regionLabel.trim();
+
+      setState(() {
+        _leaderboardEntries = entries;
+        _leaderboardUserRank = userRank;
+        _hasRealLeaderboard = true;
+        _leaderboardRegionLabel = normalizedRegionLabel;
+        _isLoadingLeaderboard = false;
+        _lastLeaderboardLoadAt = startedAt;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      _setLeaderboardEmpty(regionLabel: regionLabel, timestamp: startedAt);
+    }
   }
+
 
   Color _leaderboardMedalColor(int index) {
     switch (index) {
@@ -1901,6 +1956,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
             0,
             1000000,
           ).toInt();
+          _syncLeaderboardPointsWithLocal();
         }
         _reports[index] = current.copyWith(
           confirmCount: confirms,
@@ -1930,6 +1986,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
           0,
           1000000,
         ).toInt();
+        _syncLeaderboardPointsWithLocal();
       }
 
       _reports[index] = current.copyWith(
@@ -1951,9 +2008,12 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
   @override
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
-    final leaderboardData = _buildLeaderboardData();
-    final leaderboardEntries = leaderboardData.entries;
-    final userRank = leaderboardData.userRank;
+    final leaderboardEntries = _leaderboardEntries;
+    final userRank = _leaderboardUserRank;
+    final rankLabel =
+        userRank > 0
+            ? '#$userRank'
+            : (_isLoadingLeaderboard ? '...' : 'Sem ranking');
     return DecoratedBox(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -2019,14 +2079,54 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Sua posição: #$userRank',
+                            'Sua posicao: $rankLabel',
                             style: const TextStyle(
                               fontWeight: FontWeight.w700,
                               color: Color(0xFF527A6F),
                               fontSize: 12,
                             ),
                           ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Regiao: $_leaderboardRegionLabel',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF527A6F),
+                              fontSize: 12,
+                            ),
+                          ),
                           const SizedBox(height: 8),
+                          if (_isLoadingLeaderboard &&
+                              leaderboardEntries.isEmpty) ...[
+                            const LinearProgressIndicator(minHeight: 2),
+                            const SizedBox(height: 8),
+                          ],
+                          if (!_isLoadingLeaderboard &&
+                              leaderboardEntries.isEmpty)
+                            Text(
+                              _hasLocationContext
+                                  ? 'Ainda nao ha ranking regional suficiente.'
+                                  : 'Ative a localizacao para carregar ranking real.',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF527A6F),
+                                fontSize: 12,
+                              ),
+                            ),
+                          if (_hasRealLeaderboard &&
+                              leaderboardEntries.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            const Text(
+                              'Dados reais dos ultimos 7 dias',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF527A6F),
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                          if (leaderboardEntries.isNotEmpty)
+                            const SizedBox(height: 8),
                           ...leaderboardEntries.indexed.map((entry) {
                             final rank = entry.$1 + 1;
                             final person = entry.$2;
@@ -2434,3 +2534,4 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     );
   }
 }
+

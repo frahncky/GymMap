@@ -1860,8 +1860,6 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     HapticFeedback.lightImpact();
     _triggerContributionCelebration();
     final totalPoints = _communityPoints;
-    final entries = _buildCommunityLeaderboardEntries();
-    final userRank = entries.indexWhere((entry) => entry.isCurrentUser) + 1;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
@@ -1893,7 +1891,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
-                '$totalPoints pts - #$userRank',
+                '$totalPoints pts',
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w800,
@@ -1927,39 +1925,6 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         });
       },
     );
-  }
-
-  List<_CommunityLeaderboardEntry> _buildCommunityLeaderboardEntries() {
-    const competitorNames = <String>[
-      'Ana M.',
-      'Rafael G.',
-      'Bianca S.',
-      'Lucas P.',
-      'Camila T.',
-      'Marcos V.',
-      'Juliana R.',
-      'Diego N.',
-      'Patricia L.',
-    ];
-    final userPoints = _communityPoints.clamp(0, 1000000).toInt();
-    final baseline = math.max(18, (userPoints * 0.74).round());
-    const offsets = <int>[132, 118, 104, 91, 78, 66, 54, 44, 36];
-
-    final entries = <_CommunityLeaderboardEntry>[
-      for (var i = 0; i < competitorNames.length; i++)
-        _CommunityLeaderboardEntry(
-          name: competitorNames[i],
-          points: (baseline + offsets[i]).clamp(0, 1000000).toInt(),
-          isCurrentUser: false,
-        ),
-      _CommunityLeaderboardEntry(
-        name: 'Você',
-        points: userPoints,
-        isCurrentUser: true,
-      ),
-    ];
-    entries.sort((left, right) => right.points.compareTo(left.points));
-    return entries.take(10).toList(growable: false);
   }
 
   Color _leaderboardMedalColor(int index) {
@@ -1999,6 +1964,10 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
 
   String _leaderboardRegionKey({Gym? preferredGym}) {
     final point = _leaderboardRegionPoint(preferredGym: preferredGym);
+    return _leaderboardRegionKeyFromPoint(point);
+  }
+
+  String _leaderboardRegionKeyFromPoint(LatLng point) {
     final latBucket = (point.latitude * 10).round() / 10;
     final lngBucket = (point.longitude * 10).round() / 10;
     return '${latBucket.toStringAsFixed(1)},${lngBucket.toStringAsFixed(1)}';
@@ -2033,11 +2002,9 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   _CommunityLeaderboardSheetData _buildLocalLeaderboardSheetData({
     required String regionLabel,
   }) {
-    final entries = _buildCommunityLeaderboardEntries();
-    final userRank = entries.indexWhere((entry) => entry.isCurrentUser) + 1;
     return _CommunityLeaderboardSheetData(
-      entries: entries,
-      userRank: userRank,
+      entries: const <_CommunityLeaderboardEntry>[],
+      userRank: 0,
       userPoints: _communityPoints.clamp(0, 1000000).toInt(),
       regionLabel: regionLabel,
       isRegional: false,
@@ -2100,8 +2067,11 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       return;
     }
     HapticFeedback.selectionClick();
-    final regionKey = _leaderboardRegionKey();
-    final regionLabel = _leaderboardRegionLabel();
+    final userPoint = _userLocation;
+    final regionKey =
+        userPoint == null ? '' : _leaderboardRegionKeyFromPoint(userPoint);
+    final regionLabel =
+        userPoint == null ? 'Regiao indisponivel' : 'Sua regiao';
     final fallbackData = _buildLocalLeaderboardSheetData(
       regionLabel: regionLabel,
     );
@@ -4364,3 +4334,4 @@ class _CelebrationParticle extends StatelessWidget {
     );
   }
 }
+
