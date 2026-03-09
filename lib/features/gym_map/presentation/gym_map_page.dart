@@ -3635,10 +3635,6 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       (feature: 'Previsão e alertas', available: {AppPlanTier.elite}),
       (feature: 'Cobertura nacional', available: {AppPlanTier.elite}),
     ];
-    const featureColumnWidth = 118.0;
-    const tierColumnWidth = 56.0;
-    final matrixMinWidth =
-        featureColumnWidth + (tierColumnWidth * AppPlanTier.values.length);
 
     return Container(
       width: double.infinity,
@@ -3650,11 +3646,23 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
           color: withUiOpacity(GymMapColors.northControl, 0.10),
         ),
       ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minWidth: matrixMinWidth),
-          child: Column(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final totalWidth =
+              constraints.maxWidth.isFinite ? constraints.maxWidth : 340.0;
+          final tierCount = AppPlanTier.values.length;
+          const minTierWidth = 44.0;
+          const maxTierWidth = 58.0;
+          const minFeatureWidth = 108.0;
+          const maxFeatureWidth = 136.0;
+
+          var tierWidth = ((totalWidth - minFeatureWidth) / tierCount)
+              .clamp(minTierWidth, maxTierWidth)
+              .toDouble();
+          var featureWidth = totalWidth - (tierWidth * tierCount);
+          featureWidth = featureWidth.clamp(minFeatureWidth, maxFeatureWidth);
+
+          return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
@@ -3667,12 +3675,12 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const SizedBox(width: featureColumnWidth),
+                  SizedBox(width: featureWidth),
                   for (final tier in AppPlanTier.values)
                     SizedBox(
-                      width: tierColumnWidth,
+                      width: tierWidth,
                       child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 2),
+                        margin: const EdgeInsets.symmetric(horizontal: 1),
                         padding: const EdgeInsets.symmetric(vertical: 3),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(8),
@@ -3709,11 +3717,13 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                   child: Row(
                     children: [
                       SizedBox(
-                        width: featureColumnWidth,
+                        width: featureWidth,
                         child: Text(
                           row.feature,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontSize: 12,
+                            fontSize: 11,
                             color: GymMapColors.textStrong,
                             fontWeight: FontWeight.w600,
                           ),
@@ -3721,7 +3731,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                       ),
                       for (final tier in AppPlanTier.values)
                         SizedBox(
-                          width: tierColumnWidth,
+                          width: tierWidth,
                           child: Center(
                             child: Semantics(
                               label:
@@ -3732,7 +3742,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                                 row.available.contains(tier)
                                     ? Icons.check_circle_rounded
                                     : Icons.cancel_rounded,
-                                size: 18,
+                                size: 17,
                                 color:
                                     row.available.contains(tier)
                                         ? GymMapColors.occupancyLow
@@ -3746,42 +3756,53 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                 );
               }),
               const SizedBox(height: 6),
-              Row(
-                children: const [
-                  Icon(
-                    Icons.check_circle_rounded,
-                    size: 14,
-                    color: GymMapColors.occupancyLow,
+              const Wrap(
+                spacing: 12,
+                runSpacing: 6,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.check_circle_rounded,
+                        size: 14,
+                        color: GymMapColors.occupancyLow,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        'Disponível',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: GymMapColors.textSecondary,
+                        ),
+                      ),
+                    ],
                   ),
-                  SizedBox(width: 4),
-                  Text(
-                    'Disponível',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: GymMapColors.textSecondary,
-                    ),
-                  ),
-                  SizedBox(width: 14),
-                  Icon(
-                    Icons.cancel_rounded,
-                    size: 14,
-                    color: unavailableColor,
-                  ),
-                  SizedBox(width: 4),
-                  Text(
-                    'Indisponível',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: GymMapColors.textSecondary,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.cancel_rounded,
+                        size: 14,
+                        color: unavailableColor,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        'Indisponível',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: GymMapColors.textSecondary,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ],
-          ),
-        ),
+          );
+        },
       ),
     );
   }
