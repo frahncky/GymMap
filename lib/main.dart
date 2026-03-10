@@ -18,12 +18,44 @@ part 'main_favorites_page.dart';
 part 'main_profile_page.dart';
 part 'main_community_page.dart';
 
-void main() {
-  runApp(const MyApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final initialPlanThemeTier = await _readCachedPlanTier();
+  runApp(MyApp(initialPlanThemeTier: initialPlanThemeTier));
 }
 
 const String _subscriptionActivePlanPrefKey = 'subscription.active_plan';
 const String _subscriptionExpiresAtUtcPrefKey = 'subscription.expires_at_utc';
+
+Future<AppPlanTier> _readCachedPlanTier() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final rawPlanKey =
+        (prefs.getString(_subscriptionActivePlanPrefKey) ?? '').trim();
+    final rawExpiresAt = prefs.getString(_subscriptionExpiresAtUtcPrefKey);
+    final expiresAtUtc = DateTime.tryParse(rawExpiresAt ?? '')?.toUtc();
+    final nowUtc = DateTime.now().toUtc();
+    if (rawPlanKey.isNotEmpty &&
+        rawPlanKey != AppPlanTier.free.name &&
+        expiresAtUtc != null &&
+        nowUtc.isAfter(expiresAtUtc)) {
+      return AppPlanTier.free;
+    }
+    return _planTierFromStorage(rawPlanKey);
+  } catch (_) {
+    return AppPlanTier.free;
+  }
+}
+
+AppPlanTier _planTierFromStorage(String rawPlanKey) {
+  final normalized = rawPlanKey.trim().toLowerCase();
+  for (final tier in AppPlanTier.values) {
+    if (tier.name == normalized) {
+      return tier;
+    }
+  }
+  return AppPlanTier.free;
+}
 
 LinearGradient _buildPlanSurfaceGradient(BuildContext context) {
   final primary = Theme.of(context).colorScheme.primary;
@@ -39,9 +71,14 @@ LinearGradient _buildPlanSurfaceGradient(BuildContext context) {
 
 
 class MyApp extends StatefulWidget {
-  const MyApp({super.key, this.showMap = true});
+  const MyApp({
+    super.key,
+    this.showMap = true,
+    this.initialPlanThemeTier = AppPlanTier.free,
+  });
 
   final bool showMap;
+  final AppPlanTier initialPlanThemeTier;
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -50,7 +87,9 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
-    final basePlanPrimary = PlanThemePalette.colorFor(AppPlanTier.free);
+    final basePlanPrimary = PlanThemePalette.colorFor(
+      widget.initialPlanThemeTier,
+    );
     final lightColorScheme = ColorScheme.fromSeed(
       seedColor: basePlanPrimary,
     ).copyWith(
@@ -137,141 +176,9 @@ class _MyAppState extends State<MyApp> {
           ),
         ),
       ),
-      home: _AppBootstrap(
+      home: AppShell(
         showMap: widget.showMap,
-      ),
-    );
-  }
-}
-
-class _AppBootstrap extends StatefulWidget {
-  const _AppBootstrap({required this.showMap});
-
-  final bool showMap;
-
-  @override
-  State<_AppBootstrap> createState() => _AppBootstrapState();
-}
-
-class _AppBootstrapState extends State<_AppBootstrap> {
-  static const Duration _minSplashDuration = Duration(milliseconds: 550);
-  AppPlanTier _initialPlanTier = AppPlanTier.free;
-  bool _isReady = false;
-
-  @override
-  void initState() {
-    super.initState();
-    unawaited(_loadStartupPlanTheme());
-  }
-
-  Future<void> _loadStartupPlanTheme() async {
-    final startedAt = DateTime.now();
-    final tier = await _readCachedPlanTier();
-    if (mounted) {
-      setState(() {
-        _initialPlanTier = tier;
-      });
-    }
-    final elapsed = DateTime.now().difference(startedAt);
-    final remaining = _minSplashDuration - elapsed;
-    if (remaining > Duration.zero) {
-      await Future<void>.delayed(remaining);
-    }
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _isReady = true;
-    });
-  }
-
-  Future<AppPlanTier> _readCachedPlanTier() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final rawPlanKey =
-          (prefs.getString(_subscriptionActivePlanPrefKey) ?? '').trim();
-      final rawExpiresAt = prefs.getString(_subscriptionExpiresAtUtcPrefKey);
-      final expiresAtUtc = DateTime.tryParse(rawExpiresAt ?? '')?.toUtc();
-      final nowUtc = DateTime.now().toUtc();
-      if (rawPlanKey.isNotEmpty &&
-          rawPlanKey != AppPlanTier.free.name &&
-          expiresAtUtc != null &&
-          nowUtc.isAfter(expiresAtUtc)) {
-        return AppPlanTier.free;
-      }
-      return _planTierFromStorage(rawPlanKey);
-    } catch (_) {
-      return AppPlanTier.free;
-    }
-  }
-
-  AppPlanTier _planTierFromStorage(String rawPlanKey) {
-    final normalized = rawPlanKey.trim().toLowerCase();
-    for (final tier in AppPlanTier.values) {
-      if (tier.name == normalized) {
-        return tier;
-      }
-    }
-    return AppPlanTier.free;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!_isReady) {
-      return _PlanLaunchSplash(tier: _initialPlanTier);
-    }
-    return AppShell(
-      showMap: widget.showMap,
-      initialPlanThemeTier: _initialPlanTier,
-    );
-  }
-}
-
-class _PlanLaunchSplash extends StatelessWidget {
-  const _PlanLaunchSplash({required this.tier});
-
-  final AppPlanTier tier;
-
-  @override
-  Widget build(BuildContext context) {
-    final primary = PlanThemePalette.colorFor(tier);
-    final onPrimary = PlanThemePalette.onColorFor(tier);
-    final planLabel = kPlanCatalog[tier]?.label ?? 'Grátis';
-    return Scaffold(
-      body: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: <Color>[
-              Color.alphaBlend(Colors.black.withValues(alpha: 0.10), primary),
-              primary,
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset(
-                  'assets/logo/logoGymMap_splash.png',
-                  width: 178,
-                  fit: BoxFit.contain,
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  'Plano $planLabel',
-                  style: TextStyle(
-                    color: onPrimary.withValues(alpha: 0.92),
-                    fontWeight: FontWeight.w800,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+        initialPlanThemeTier: widget.initialPlanThemeTier,
       ),
     );
   }
