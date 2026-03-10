@@ -98,7 +98,7 @@ const Map<AppPlanTier, PlanInfo> kPlanCatalog = {
     insights: ['Lotação atual'],
   ),
   AppPlanTier.smart: PlanInfo(
-    label: 'Smart',
+    label: 'Essencial',
     monthlyPrice: 'R\$ 4,90/mês',
     insights: ['Lotação atual', 'Histórico das últimas 24h'],
   ),
@@ -2252,7 +2252,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       context: context,
       barrierDismissible: true,
       builder: (dialogContext) {
-        final primary = Theme.of(dialogContext).colorScheme.primary;
+        final primary = _planAccentColor(tier);
+        final onPrimary = _planOnAccentColor(tier);
         return Dialog(
           insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           child: TweenAnimationBuilder<double>(
@@ -2334,6 +2335,10 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primary,
+                        foregroundColor: onPrimary,
+                      ),
                       onPressed: () => Navigator.of(dialogContext).pop(),
                       icon: const Icon(Icons.rocket_launch_rounded),
                       label: const Text('Continuar'),
@@ -3780,6 +3785,26 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     return 'Trocar plano';
   }
 
+  Color _planAccentColor(AppPlanTier tier) {
+    switch (tier) {
+      case AppPlanTier.free:
+        return const Color(0xFF8E949C);
+      case AppPlanTier.smart:
+        return const Color(0xFF0D8B6E);
+      case AppPlanTier.pro:
+        return const Color(0xFF153A73);
+      case AppPlanTier.elite:
+        return const Color(0xFFC79A22);
+    }
+  }
+
+  Color _planOnAccentColor(AppPlanTier tier) {
+    final brightness = ThemeData.estimateBrightnessForColor(
+      _planAccentColor(tier),
+    );
+    return brightness == Brightness.dark ? Colors.white : Colors.black87;
+  }
+
   IconData _planIcon(AppPlanTier tier) {
     switch (tier) {
       case AppPlanTier.free:
@@ -3839,6 +3864,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   }) {
     final plan = kPlanCatalog[tier]!;
     final cardHighlights = _planCardHighlights(tier);
+    final accentColor = _planAccentColor(tier);
+    final onAccentColor = _planOnAccentColor(tier);
     final isCurrent = tier == current;
     final isActionEnabled =
         !_isLoadingPlanSubscription && !_isStartingStoreCheckout && !isCurrent;
@@ -3866,13 +3893,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color:
-              isRecommended
-                  ? withUiOpacity(
-                    Theme.of(sheetContext).colorScheme.primary,
-                    0.4,
-                  )
-                  : withUiOpacity(GymMapColors.northControl, 0.10),
+          color: withUiOpacity(accentColor, isRecommended ? 0.48 : 0.26),
           width: isRecommended ? 1.6 : 1,
         ),
       ),
@@ -3885,22 +3906,13 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  color:
-                      isRecommended
-                          ? withUiOpacity(
-                            Theme.of(sheetContext).colorScheme.primary,
-                            0.12,
-                          )
-                          : withUiOpacity(GymMapColors.northControl, 0.07),
+                  color: withUiOpacity(accentColor, 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   _planIcon(tier),
                   size: 16,
-                  color:
-                      isRecommended
-                          ? Theme.of(sheetContext).colorScheme.primary
-                          : GymMapColors.textStrong,
+                  color: accentColor,
                 ),
               ),
               const SizedBox(width: 8),
@@ -3910,10 +3922,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                   style: TextStyle(
                     fontWeight: FontWeight.w800,
                     fontSize: 18,
-                    color:
-                        isRecommended
-                            ? Theme.of(sheetContext).colorScheme.primary
-                            : GymMapColors.textPrimary,
+                    color: accentColor,
                   ),
                 ),
               ),
@@ -3924,10 +3933,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: withUiOpacity(
-                      Theme.of(sheetContext).colorScheme.primary,
-                      0.12,
-                    ),
+                    color: withUiOpacity(accentColor, 0.12),
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
@@ -3935,7 +3941,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w900,
-                      color: Theme.of(sheetContext).colorScheme.primary,
+                      color: accentColor,
                     ),
                   ),
                 ),
@@ -3974,10 +3980,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                       Icon(
                         Icons.check_circle,
                         size: 14,
-                        color:
-                            isRecommended
-                                ? Theme.of(sheetContext).colorScheme.primary
-                                : GymMapColors.occupancyLow,
+                        color: accentColor,
                       ),
                       const SizedBox(width: 6),
                       Expanded(
@@ -4002,6 +4005,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                     ? OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size.fromHeight(48),
+                        foregroundColor: accentColor,
+                        side: BorderSide(color: withUiOpacity(accentColor, 0.42)),
                       ),
                       onPressed: null,
                       icon: const Icon(Icons.check_circle_outline),
@@ -4010,6 +4015,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                     : ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         minimumSize: const Size.fromHeight(48),
+                        backgroundColor: accentColor,
+                        foregroundColor: onAccentColor,
                       ),
                       onPressed:
                           isActionEnabled
@@ -4117,33 +4124,32 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                   for (final tier in AppPlanTier.values)
                     SizedBox(
                       width: tierWidth,
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 1),
-                        padding: const EdgeInsets.symmetric(vertical: 3),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          color: withUiOpacity(
-                            GymMapColors.northControl,
-                            tier == AppPlanTier.pro ? 0.10 : 0.06,
-                          ),
-                        ),
-                        child: Center(
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              kPlanCatalog[tier]!.label,
-                              maxLines: 1,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 10,
-                                color:
-                                    tier == AppPlanTier.pro
-                                        ? Theme.of(context).colorScheme.primary
-                                        : GymMapColors.textStrong,
+                      child: Builder(
+                        builder: (_) {
+                          final accentColor = _planAccentColor(tier);
+                          return Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 1),
+                            padding: const EdgeInsets.symmetric(vertical: 3),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              color: withUiOpacity(accentColor, 0.10),
+                            ),
+                            child: Center(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  kPlanCatalog[tier]!.label,
+                                  maxLines: 1,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 10,
+                                    color: accentColor,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
                     ),
                 ],
@@ -4585,6 +4591,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                 children: [
                   GymPageHeader(
                     planLabel: activePlan.label,
+                    planBadgeColor: _planAccentColor(_activePlan),
+                    planBadgeTextColor: _planOnAccentColor(_activePlan),
                     communityPoints: _communityPoints,
                     onOpenPlanSettings: _openPlanSettings,
                     onOpenCommunityRanking: _openCommunityLeaderboard,

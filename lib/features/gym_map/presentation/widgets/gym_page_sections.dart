@@ -21,12 +21,16 @@ class GymPageHeader extends StatelessWidget {
   const GymPageHeader({
     super.key,
     required this.planLabel,
+    required this.planBadgeColor,
+    required this.planBadgeTextColor,
     required this.communityPoints,
     required this.onOpenPlanSettings,
     required this.onOpenCommunityRanking,
   });
 
   final String planLabel;
+  final Color planBadgeColor;
+  final Color planBadgeTextColor;
   final int communityPoints;
   final VoidCallback onOpenPlanSettings;
   final VoidCallback onOpenCommunityRanking;
@@ -67,13 +71,13 @@ class GymPageHeader extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: withUiOpacity(Colors.white, 0.16),
+              color: withUiOpacity(planBadgeColor, 0.90),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
               planLabel,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: planBadgeTextColor,
                 fontWeight: FontWeight.w800,
                 fontSize: 12,
               ),
