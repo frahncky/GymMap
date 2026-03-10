@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'core/analytics/app_metrics_service.dart';
 import 'features/gym_map/data/crowd_report_remote_service.dart';
 import 'features/gym_map/data/gym_location_cache_service.dart';
 import 'features/gym_map/domain/gym_models.dart';
@@ -125,9 +126,63 @@ class AppShell extends StatefulWidget {
   State<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
+class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   int _selectedIndex = 0;
   int _favoritesRefreshToken = 0;
+  final AppMetricsService _metrics = AppMetricsService.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    unawaited(_metrics.startSession(source: 'app_start'));
+    unawaited(_trackTabSelection(index: _selectedIndex, origin: 'app_start'));
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_metrics.startSession(source: 'resume'));
+      return;
+    }
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      unawaited(_metrics.endSession(reason: state.name));
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    unawaited(_metrics.endSession(reason: 'dispose'));
+    super.dispose();
+  }
+
+  String _tabNameForIndex(int index) {
+    return switch (index) {
+      0 => 'mapa',
+      1 => 'favoritos',
+      2 => 'comunidade',
+      3 => 'perfil',
+      _ => 'desconhecida',
+    };
+  }
+
+  Future<void> _trackTabSelection({
+    required int index,
+    required String origin,
+  }) async {
+    final tabName = _tabNameForIndex(index);
+    await _metrics.trackEvent(
+      'tab_selected',
+      params: <String, Object?>{
+        'index': index,
+        'tab': tabName,
+        'origin': origin,
+      },
+    );
+    await _metrics.trackScreen(tabName);
+  }
 
   void _goToMapTab() {
     if (_selectedIndex == 0) {
@@ -166,6 +221,7 @@ class _AppShellState extends State<AppShell> {
               _favoritesRefreshToken++;
             }
           });
+          unawaited(_trackTabSelection(index: index, origin: 'navigation_bar'));
         },
         destinations: const [
           NavigationDestination(

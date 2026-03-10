@@ -98,8 +98,7 @@ class ContextualPushNotificationService {
     if (lastAlertAt != null && nowUtc.difference(lastAlertAt) < _globalCooldown) {
       return;
     }
-    final lastAlertGymId = '${prefs.getString(_lastAlertGymIdPrefKey) ?? ''}'
-        .trim();
+    final lastAlertGymId = (prefs.getString(_lastAlertGymIdPrefKey) ?? '').trim();
     final lastAlertGymAt = _tryParseDate(
       prefs.getString(_lastAlertGymAtPrefKey),
     );
@@ -156,7 +155,7 @@ class ContextualPushNotificationService {
   }
 
   DateTime? _tryParseDate(String? raw) {
-    final normalized = '${raw ?? ''}'.trim();
+    final normalized = (raw ?? '').trim();
     if (normalized.isEmpty) {
       return null;
     }

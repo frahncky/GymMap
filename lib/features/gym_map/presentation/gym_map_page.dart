@@ -12,6 +12,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../core/analytics/app_metrics_service.dart';
 import '../data/collaborative_crowd_service.dart';
 import '../data/contextual_push_notification_service.dart';
 import '../data/crowd_report_remote_service.dart';
@@ -274,6 +275,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   bool _isPlanAuthBusy = false;
   String? _lastPlanExpiryWarningKey;
   int _mapVisualReloadTick = 0;
+  bool _hasTrackedMapReadyMetric = false;
+  final AppMetricsService _metrics = AppMetricsService.instance;
 
   String get _searchTerm => _mapSearchState.searchTerm;
   set _searchTerm(String value) => _mapSearchState.searchTerm = value;
@@ -959,12 +962,15 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   }
 
   void _toggleQuickFilter(MapQuickFilter filter) {
+    var isSelected = false;
     _hasInteractedWithQuickFilters = true;
     setState(() {
       if (_activeQuickFilters.contains(filter)) {
         _activeQuickFilters.remove(filter);
+        isSelected = false;
       } else {
         _activeQuickFilters.add(filter);
+        isSelected = true;
       }
 
       final selectedGym = _selectedGym;
@@ -976,6 +982,15 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         _selectedGym = null;
       }
     });
+    unawaited(
+      _metrics.trackEvent(
+        'filter_toggle',
+        params: <String, Object?>{
+          'filterId': _quickFilterId(filter),
+          'selected': isSelected,
+        },
+      ),
+    );
     unawaited(_persistQuickFiltersState());
   }
 
@@ -987,6 +1002,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     setState(() {
       _activeQuickFilters.clear();
     });
+    unawaited(_metrics.trackEvent('filter_clear_all'));
     unawaited(_persistQuickFiltersState());
   }
 
@@ -1480,6 +1496,16 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
 
   void _onMapReady() {
     _isMapReady = true;
+    if (!_hasTrackedMapReadyMetric) {
+      _hasTrackedMapReadyMetric = true;
+      unawaited(
+        _metrics.trackEvent(
+          'map_open',
+          params: <String, Object?>{'origin': 'map_ready'},
+        ),
+      );
+      unawaited(_metrics.trackScreen('mapa'));
+    }
     final userPoint = _userLocation;
     if (userPoint != null) {
       _moveMapTo(userPoint, 14.8);
@@ -1590,6 +1616,12 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       added
           ? '${gym.name} adicionada aos favoritos.'
           : '${gym.name} removida dos favoritos.',
+    );
+    unawaited(
+      _metrics.trackEvent(
+        'favorite_toggle',
+        params: <String, Object?>{'gymId': id, 'selected': added},
+      ),
     );
     unawaited(_persistFavoriteGymIds());
   }
@@ -1776,6 +1808,18 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                 remoteResult.retryAfter ?? const Duration(minutes: 1);
             final waitMinutes =
                 retryAfter.inMinutes >= 1 ? retryAfter.inMinutes : 1;
+            unawaited(
+              _metrics.trackEvent(
+                'crowd_report_submit',
+                params: <String, Object?>{
+                  'gymId': selectedGym.id,
+                  'occupancyPercent': report,
+                  'source': 'remote',
+                  'result': 'blocked',
+                  'waitMinutes': waitMinutes,
+                },
+              ),
+            );
             _showMapSnack(
               'Envio bloqueado temporariamente. Aguarde $waitMinutes min para novo relato.',
             );
@@ -1817,6 +1861,17 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
             trust: trust,
           );
           unawaited(
+            _metrics.trackEvent(
+              'crowd_report_submit',
+              params: <String, Object?>{
+                'gymId': selectedGym.id,
+                'occupancyPercent': report,
+                'source': 'remote',
+                'result': 'accepted',
+              },
+            ),
+          );
+          unawaited(
             _syncCrowdReportsForGyms(
               _crowdSyncGymIds(extraGymIds: [selectedGym.id]),
             ),
@@ -1836,6 +1891,18 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         final retryAfter = localResult.retryAfter ?? const Duration(minutes: 1);
         final waitMinutes =
             retryAfter.inMinutes >= 1 ? retryAfter.inMinutes : 1;
+        unawaited(
+          _metrics.trackEvent(
+            'crowd_report_submit',
+            params: <String, Object?>{
+              'gymId': selectedGym.id,
+              'occupancyPercent': report,
+              'source': 'local',
+              'result': 'blocked',
+              'waitMinutes': waitMinutes,
+            },
+          ),
+        );
         _showMapSnack(
           'Envio bloqueado temporariamente. Aguarde $waitMinutes min para novo relato.',
         );
@@ -1856,6 +1923,17 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         gymName: selectedGym.name,
         report: report,
         trust: trust,
+      );
+      unawaited(
+        _metrics.trackEvent(
+          'crowd_report_submit',
+          params: <String, Object?>{
+            'gymId': selectedGym.id,
+            'occupancyPercent': report,
+            'source': 'local',
+            'result': 'accepted',
+          },
+        ),
       );
     } finally {
       if (mounted) {
@@ -2903,6 +2981,15 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     }
   }
 
+  String _metricErrorCode(Object error) {
+    final raw = '$error'.trim();
+    final normalized =
+        raw.startsWith('Bad state: ')
+            ? raw.substring('Bad state: '.length).trim()
+            : raw;
+    return normalized.isEmpty ? 'unknown' : normalized;
+  }
+
   int? _retryAfterSecondsFromRateLimitError(String normalized) {
     final separator = normalized.indexOf(':');
     if (separator < 0 || separator + 1 >= normalized.length) {
@@ -3277,6 +3364,16 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   }
 
   void _onPlanPicked(AppPlanTier selectedTier, BuildContext sheetContext) {
+    unawaited(
+      _metrics.trackEvent(
+        'plan_select',
+        params: <String, Object?>{
+          'source': 'paywall',
+          'currentPlan': _tierToPlanKey(_activePlan),
+          'selectedPlan': _tierToPlanKey(selectedTier),
+        },
+      ),
+    );
     Navigator.of(sheetContext).pop();
     if (selectedTier == AppPlanTier.free) {
       unawaited(_activateFreePlan());
@@ -3286,15 +3383,46 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   }
 
   Future<void> _startStoreCheckout(AppPlanTier tier) async {
+    final planKey = _tierToPlanKey(tier);
     final service = _planSubscriptionService;
     if (service == null) {
+      unawaited(
+        _metrics.trackEvent(
+          'checkout_start',
+          params: <String, Object?>{
+            'plan': planKey,
+            'result': 'failed',
+            'reason': 'service_unavailable',
+          },
+        ),
+      );
       _showMapSnack('Assinatura ainda esta inicializando. Tente novamente.');
       return;
     }
     if (_isStartingStoreCheckout) {
+      unawaited(
+        _metrics.trackEvent(
+          'checkout_start',
+          params: <String, Object?>{
+            'plan': planKey,
+            'result': 'failed',
+            'reason': 'checkout_in_progress',
+          },
+        ),
+      );
       return;
     }
     if (!_isPlayStoreAvailable) {
+      unawaited(
+        _metrics.trackEvent(
+          'checkout_start',
+          params: <String, Object?>{
+            'plan': planKey,
+            'result': 'failed',
+            'reason': 'play_store_unavailable',
+          },
+        ),
+      );
       _showMapSnack(
         _formatBillingFailure(StateError('play_store_unavailable')),
       );
@@ -3302,6 +3430,16 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     }
     final productId = _planProductIds[tier];
     if (productId == null || productId.trim().isEmpty) {
+      unawaited(
+        _metrics.trackEvent(
+          'checkout_start',
+          params: <String, Object?>{
+            'plan': planKey,
+            'result': 'failed',
+            'reason': 'play_product_id_missing',
+          },
+        ),
+      );
       _showMapSnack(
         _formatBillingFailure(StateError('play_product_id_missing')),
       );
@@ -3325,6 +3463,16 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       }
     }
     if (product == null) {
+      unawaited(
+        _metrics.trackEvent(
+          'checkout_start',
+          params: <String, Object?>{
+            'plan': planKey,
+            'result': 'failed',
+            'reason': 'play_product_not_found',
+          },
+        ),
+      );
       _showMapSnack(
         _formatBillingFailure(StateError('play_product_not_found')),
       );
@@ -3348,11 +3496,32 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       if (!started) {
         throw StateError('play_checkout_not_started');
       }
+      unawaited(
+        _metrics.trackEvent(
+          'checkout_start',
+          params: <String, Object?>{
+            'plan': planKey,
+            'productId': product.id,
+            'result': 'started',
+          },
+        ),
+      );
       if (!mounted) {
         return;
       }
       _showMapSnack('Finalize o pagamento no Google Play para ativar o plano.');
     } catch (error) {
+      unawaited(
+        _metrics.trackEvent(
+          'checkout_start',
+          params: <String, Object?>{
+            'plan': planKey,
+            'productId': product.id,
+            'result': 'failed',
+            'reason': _metricErrorCode(error),
+          },
+        ),
+      );
       _showMapSnack(_formatBillingFailure(error));
     } finally {
       if (mounted) {
@@ -3379,6 +3548,16 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
           continue;
         case PurchaseStatus.error:
           final errorMessage = purchase.error?.message.trim();
+          unawaited(
+            _metrics.trackEvent(
+              'purchase_fail',
+              params: <String, Object?>{
+                'status': 'error',
+                'productId': purchase.productID.trim(),
+                'reason': _metricErrorCode(errorMessage ?? 'purchase_error'),
+              },
+            ),
+          );
           if (errorMessage != null && errorMessage.isNotEmpty) {
             _showMapSnack(errorMessage);
           } else {
@@ -3386,6 +3565,14 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
           }
           continue;
         case PurchaseStatus.canceled:
+          unawaited(
+            _metrics.trackEvent(
+              'purchase_cancel',
+              params: <String, Object?>{
+                'productId': purchase.productID.trim(),
+              },
+            ),
+          );
           _showMapSnack('Pagamento cancelado no Google Play.');
           continue;
       }
@@ -3395,13 +3582,44 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   Future<void> _processPlayPurchase(PurchaseDetails purchase) async {
     final service = _planSubscriptionService;
     if (service == null) {
+      unawaited(
+        _metrics.trackEvent(
+          'purchase_fail',
+          params: <String, Object?>{
+            'productId': purchase.productID.trim(),
+            'reason': 'service_unavailable',
+          },
+        ),
+      );
       _showMapSnack('Assinatura ainda esta inicializando. Tente novamente.');
       return;
     }
     final token = purchase.verificationData.serverVerificationData.trim();
     final productId = purchase.productID.trim();
+    if (token.isEmpty) {
+      unawaited(
+        _metrics.trackEvent(
+          'purchase_fail',
+          params: <String, Object?>{
+            'productId': productId,
+            'reason': 'play_purchase_token_missing',
+          },
+        ),
+      );
+      _showMapSnack(_formatBillingFailure(StateError('play_purchase_token_missing')));
+      return;
+    }
     final tier = _tierFromProductId(productId);
     if (tier == null) {
+      unawaited(
+        _metrics.trackEvent(
+          'purchase_fail',
+          params: <String, Object?>{
+            'productId': productId,
+            'reason': 'play_product_not_found',
+          },
+        ),
+      );
       _showMapSnack('Produto desconhecido no Google Play: $productId');
       return;
     }
@@ -3422,6 +3640,16 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         return;
       }
       await _completePlayPurchaseIfNeeded(purchase);
+      unawaited(
+        _metrics.trackEvent(
+          'purchase_success',
+          params: <String, Object?>{
+            'plan': _tierToPlanKey(tier),
+            'productId': productId,
+            'status': purchase.status.name,
+          },
+        ),
+      );
       final notificationKey = '$productId|$token';
       if (_markPurchaseSuccessNotified(notificationKey)) {
         unawaited(_showPlanActivationSuccessDialog(tier));
@@ -3434,6 +3662,16 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       if (!mounted) {
         return;
       }
+      unawaited(
+        _metrics.trackEvent(
+          'purchase_fail',
+          params: <String, Object?>{
+            'plan': _tierToPlanKey(tier),
+            'productId': productId,
+            'reason': _metricErrorCode(error),
+          },
+        ),
+      );
       _showMapSnack(_formatBillingFailure(error));
     } finally {
       _processingPlayPurchases.remove(processingKey);
@@ -4009,6 +4247,15 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
 
   void _openPlanSettings() {
     unawaited(_syncPlanFromStorage(showExpiryNotice: true));
+    unawaited(
+      _metrics.trackEvent(
+        'paywall_open',
+        params: <String, Object?>{
+          'source': 'map_header',
+          'currentPlan': _tierToPlanKey(_activePlan),
+        },
+      ),
+    );
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
