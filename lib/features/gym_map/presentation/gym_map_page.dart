@@ -13,6 +13,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/collaborative_crowd_service.dart';
+import '../data/contextual_push_notification_service.dart';
 import '../data/crowd_report_remote_service.dart';
 import '../data/plan_subscription_service.dart';
 import '../domain/gym_models.dart';
@@ -255,6 +256,9 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   StreamSubscription<List<PurchaseDetails>>? _purchaseStreamSubscription;
   StreamSubscription<Position>? _positionStreamSubscription;
   bool _isStartingBackgroundLocationStream = false;
+  AppLifecycleState _appLifecycleState = AppLifecycleState.resumed;
+  final ContextualPushNotificationService _contextualPushService =
+      ContextualPushNotificationService();
 
   // Plano atual do usuário para liberar informações e propaganda.
   AppPlanTier _activePlan = AppPlanTier.free;
@@ -293,6 +297,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     unawaited(_initializeCrowdRemoteService());
     unawaited(_initializePlanSubscription());
     unawaited(_initializePlayStoreBilling());
+    unawaited(_contextualPushService.initialize());
     if (widget.showMap) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || _hasTriggeredInitialMapBootstrap) {
@@ -419,6 +424,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    _appLifecycleState = state;
     if (state == AppLifecycleState.resumed) {
       unawaited(_loadDataSaverPreference());
       unawaited(_syncPlanFromStorage(showExpiryNotice: false));
@@ -1075,6 +1081,10 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     setState(() {
       _mapPois = List<MapGymPoi>.unmodifiable(nextPois);
     });
+    final userPoint = _userLocation;
+    if (userPoint != null) {
+      unawaited(_maybeNotifyNearbyLowCrowd(userPoint));
+    }
   }
 
   /// Atualiza apenas o texto da busca, sem recenter automatico do mapa.
@@ -1280,6 +1290,60 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         amenities: const ['Musculação', 'Cardio', 'Aulas coletivas'],
       );
     });
+  }
+
+  Gym? _nearestLowCrowdCandidate(LatLng userPoint) {
+    Gym? bestGym;
+    double? bestDistanceSquared;
+    final seenGymIds = <String>{};
+
+    void consider(Gym gym) {
+      final gymId = gym.id.trim();
+      if (gymId.isEmpty || !seenGymIds.add(gymId)) {
+        return;
+      }
+      final snapshot = _crowdService.snapshotFor(gym);
+      if (snapshot.occupancyPercent > 35 || !_isGymOpenNow(gym)) {
+        return;
+      }
+      final distanceSquared = _distanceSquaredMeters(userPoint, gym.position);
+      const maxDistanceMeters = 1800.0;
+      if (distanceSquared > (maxDistanceMeters * maxDistanceMeters)) {
+        return;
+      }
+      if (bestGym == null || distanceSquared < bestDistanceSquared!) {
+        bestGym = gym;
+        bestDistanceSquared = distanceSquared;
+      }
+    }
+
+    for (final gym in _gyms) {
+      consider(gym);
+    }
+    for (final poi in _mapPois) {
+      consider(_gymFromPoi(poi));
+    }
+    return bestGym;
+  }
+
+  Future<void> _maybeNotifyNearbyLowCrowd(LatLng userPoint) async {
+    if (_appLifecycleState == AppLifecycleState.resumed) {
+      return;
+    }
+    final candidate = _nearestLowCrowdCandidate(userPoint);
+    if (candidate == null) {
+      return;
+    }
+    final snapshot = _crowdService.snapshotFor(candidate);
+    final distanceMeters = math.sqrt(
+      _distanceSquaredMeters(userPoint, candidate.position),
+    );
+    await _contextualPushService.maybeNotifyLowCrowdNearby(
+      gymId: candidate.id,
+      gymName: candidate.name,
+      occupancyPercent: snapshot.occupancyPercent,
+      distanceMeters: distanceMeters,
+    );
   }
 
   List<Gym> _comparisonGymsFor(Gym selectedGym) {
@@ -1896,6 +1960,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
 
     unawaited(_restoreCachedMapPoisNear(userPoint));
     _scheduleMapPoiReload(userPoint);
+    unawaited(_maybeNotifyNearbyLowCrowd(userPoint));
   }
 
   Future<void> _startBackgroundLocationStream() async {
@@ -4861,4 +4926,3 @@ class _CelebrationParticle extends StatelessWidget {
     );
   }
 }
-
