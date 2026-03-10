@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -293,6 +294,8 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   int _selectedIndex = 0;
   int _favoritesRefreshToken = 0;
+  int _mapFocusRequestToken = 0;
+  String? _mapFocusGymId;
   AppPlanTier _activePlanThemeTier = AppPlanTier.free;
   final AppMetricsService _metrics = AppMetricsService.instance;
 
@@ -356,6 +359,19 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     }
     setState(() {
       _selectedIndex = 0;
+    });
+  }
+
+  void _openMapForGymId(String gymId) {
+    final normalizedGymId = gymId.trim();
+    if (normalizedGymId.isEmpty) {
+      _goToMapTab();
+      return;
+    }
+    setState(() {
+      _selectedIndex = 0;
+      _mapFocusGymId = normalizedGymId;
+      _mapFocusRequestToken++;
     });
   }
 
@@ -452,10 +468,13 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         showMap: widget.showMap,
         isActive: _selectedIndex == 0,
         onActivePlanChanged: _handleActivePlanThemeChanged,
+        focusGymId: _mapFocusGymId,
+        focusRequestToken: _mapFocusRequestToken,
       ),
       _FavoritesPage(
         refreshToken: _favoritesRefreshToken,
         onOpenMap: _goToMapTab,
+        onOpenGymOnMap: _openMapForGymId,
       ),
       _CommunityFeedPage(
         onContributeTap: _goToMapTab,

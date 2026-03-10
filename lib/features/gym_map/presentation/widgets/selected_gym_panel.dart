@@ -260,66 +260,35 @@ class SelectedGymPanel extends StatelessWidget {
                   child: SizedBox(
                     width: 48,
                     height: 48,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 220),
-                      curve: Curves.easeOutCubic,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: withUiOpacity(
-                          GymMapColors.occupancyCritical,
-                          isFavorite ? 0.14 : 0.03,
-                        ),
-                        border: Border.all(
-                          color: withUiOpacity(
-                            isFavorite
-                                ? GymMapColors.occupancyCritical
-                                : GymMapColors.textSecondary,
-                            isFavorite ? 0.24 : 0.10,
-                          ),
-                        ),
-                      ),
-                      child: IconButton(
-                        tooltip:
-                            isFavorite
-                                ? 'Remover dos favoritos'
-                                : 'Adicionar aos favoritos',
-                        onPressed: onToggleFavorite,
-                        splashRadius: 22,
-                        icon: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 260),
-                          switchInCurve: Curves.easeOutBack,
-                          switchOutCurve: Curves.easeInCubic,
-                          transitionBuilder: (child, animation) {
-                            final curved = CurvedAnimation(
-                              parent: animation,
-                              curve: Curves.easeOutBack,
-                              reverseCurve: Curves.easeInCubic,
-                            );
-                            return RotationTransition(
-                              turns: Tween<double>(
-                                begin: 0.90,
-                                end: 1,
-                              ).animate(curved),
-                              child: ScaleTransition(
-                                scale: Tween<double>(
-                                  begin: 0.72,
-                                  end: 1,
-                                ).animate(curved),
-                                child: FadeTransition(
-                                  opacity: curved,
-                                  child: child,
-                                ),
-                              ),
-                            );
-                          },
-                          child: Icon(
-                            isFavorite ? Icons.favorite : Icons.favorite_border,
-                            key: ValueKey<bool>(isFavorite),
-                            color:
-                                isFavorite
-                                    ? GymMapColors.occupancyCritical
-                                    : GymMapColors.textSecondary,
-                          ),
+                    child: IconButton(
+                      tooltip:
+                          isFavorite
+                              ? 'Remover dos favoritos'
+                              : 'Adicionar aos favoritos',
+                      onPressed: onToggleFavorite,
+                      icon: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 220),
+                        switchInCurve: Curves.easeOutBack,
+                        switchOutCurve: Curves.easeInCubic,
+                        transitionBuilder: (child, animation) {
+                          return ScaleTransition(
+                            scale: Tween<double>(
+                              begin: 0.72,
+                              end: 1,
+                            ).animate(animation),
+                            child: FadeTransition(
+                              opacity: animation,
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: Icon(
+                          isFavorite ? Icons.favorite : Icons.favorite_border,
+                          key: ValueKey<bool>(isFavorite),
+                          color:
+                              isFavorite
+                                  ? GymMapColors.occupancyCritical
+                                  : GymMapColors.textSecondary,
                         ),
                       ),
                     ),

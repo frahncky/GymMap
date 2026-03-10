@@ -13,8 +13,8 @@ void main() {
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const MyApp(showMap: false));
-    await tester.pump(const Duration(milliseconds: 600));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump();
 
     expect(find.text('GymMap'), findsOneWidget);
     expect(find.text('Mapa desativado no modo de teste'), findsOneWidget);

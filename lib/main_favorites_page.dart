@@ -8,10 +8,15 @@ class _FavoriteGymEntry {
 }
 
 class _FavoritesPage extends StatefulWidget {
-  const _FavoritesPage({required this.refreshToken, required this.onOpenMap});
+  const _FavoritesPage({
+    required this.refreshToken,
+    required this.onOpenMap,
+    required this.onOpenGymOnMap,
+  });
 
   final int refreshToken;
   final VoidCallback onOpenMap;
+  final ValueChanged<String> onOpenGymOnMap;
 
   @override
   State<_FavoritesPage> createState() => _FavoritesPageState();
@@ -19,6 +24,7 @@ class _FavoritesPage extends StatefulWidget {
 
 class _FavoritesPageState extends State<_FavoritesPage> {
   static const String _favoriteGymIdsPrefKey = 'gymmap_favorite_gym_ids_v1';
+  static const String _favoriteGymNamesPrefKey = 'gymmap_favorite_gym_names_v1';
 
   late Future<List<_FavoriteGymEntry>> _favoritesFuture;
 
@@ -40,6 +46,25 @@ class _FavoritesPageState extends State<_FavoritesPage> {
     final prefs = await SharedPreferences.getInstance();
     final stored =
         prefs.getStringList(_favoriteGymIdsPrefKey) ?? const <String>[];
+    final namesById = <String, String>{};
+    final rawNamesJson = prefs.getString(_favoriteGymNamesPrefKey);
+    if (rawNamesJson != null && rawNamesJson.trim().isNotEmpty) {
+      try {
+        final decoded = jsonDecode(rawNamesJson);
+        if (decoded is Map) {
+          for (final entry in decoded.entries) {
+            final id = '${entry.key}'.trim();
+            final name = '${entry.value}'.trim();
+            if (id.isEmpty || name.isEmpty) {
+              continue;
+            }
+            namesById[id] = name;
+          }
+        }
+      } catch (_) {
+        // Falha local de leitura nao deve interromper a tela.
+      }
+    }
     final seen = <String>{};
     final ids = <String>[];
     for (final idRaw in stored) {
@@ -52,8 +77,10 @@ class _FavoritesPageState extends State<_FavoritesPage> {
     }
     return ids
         .map(
-          (id) =>
-              _FavoriteGymEntry(id: id, displayName: _favoriteNameFromId(id)),
+          (id) => _FavoriteGymEntry(
+            id: id,
+            displayName: namesById[id] ?? _favoriteNameFromId(id),
+          ),
         )
         .toList(growable: false);
   }
@@ -241,22 +268,11 @@ class _FavoritesPageState extends State<_FavoritesPage> {
                                         color: onSurface,
                                       ),
                                     ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      'ID: ${item.id}',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: onSurface.withValues(alpha: 0.72),
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
                                   ],
                                 ),
                               ),
                               TextButton(
-                                onPressed: widget.onOpenMap,
+                                onPressed: () => widget.onOpenGymOnMap(item.id),
                                 child: const Text('Ver mapa'),
                               ),
                             ],

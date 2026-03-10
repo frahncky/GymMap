@@ -38,11 +38,15 @@ class GymMapPage extends StatefulWidget {
     required this.showMap,
     required this.isActive,
     this.onActivePlanChanged,
+    this.focusGymId,
+    this.focusRequestToken = 0,
   });
 
   final bool showMap;
   final bool isActive;
   final ValueChanged<AppPlanTier>? onActivePlanChanged;
+  final String? focusGymId;
+  final int focusRequestToken;
 
   @override
   State<GymMapPage> createState() => _GymMapPageState();
@@ -56,9 +60,11 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   static const String _initialLocationPromptDonePrefKey =
       'gymmap_initial_location_prompt_done_v1';
   static const String _favoriteGymIdsPrefKey = 'gymmap_favorite_gym_ids_v1';
+  static const String _favoriteGymNamesPrefKey = 'gymmap_favorite_gym_names_v1';
   static const String _communityPointsPrefKey = 'gymmap_community_points_v1';
   static const String _dataSaverPrefKey = 'gymmap_pref_data_saver_v1';
   static const String _quickFiltersPrefKey = 'gymmap_quick_filters_v1';
+  static const bool _autoShowMapTutorialOnStartup = false;
   static const double _defaultCoverageRadiusMeters = 50000;
   static const double _eliteCoverageRadiusMeters = 6000000;
   static const double _mapPoiReloadMinDistanceMeters = 1800;
@@ -125,6 +131,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   bool _isSubmittingCrowdReport = false;
   int _communityPoints = 0;
   final Set<String> _favoriteGymIds = <String>{};
+  final Map<String, String> _favoriteGymNamesById = <String, String>{};
   final Set<String> _pendingCrowdSyncGymIds = <String>{};
   final GymMapSearchStateController _mapSearchState =
       GymMapSearchStateController();
@@ -198,6 +205,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   String? _lastPlanExpiryWarningKey;
   int _mapVisualReloadTick = 0;
   bool _hasTrackedMapReadyMetric = false;
+  String? _pendingFocusGymId;
   final AppMetricsService _metrics = AppMetricsService.instance;
 
   String get _searchTerm => _mapSearchState.searchTerm;
@@ -223,6 +231,14 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     unawaited(_initializePlanSubscription());
     unawaited(_initializePlayStoreBilling());
     unawaited(_contextualPushService.initialize());
+    if ((widget.focusGymId?.trim().isNotEmpty ?? false)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        _tryFocusGymById(widget.focusGymId);
+      });
+    }
     if (widget.showMap) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || _hasTriggeredInitialMapBootstrap) {
@@ -344,6 +360,10 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     if (!oldWidget.isActive && widget.isActive) {
       unawaited(_loadCommunityPoints());
       unawaited(_startBackgroundLocationStream());
+      _tryResolvePendingFocusGymId();
+    }
+    if (oldWidget.focusRequestToken != widget.focusRequestToken) {
+      _tryFocusGymById(widget.focusGymId);
     }
   }
 
@@ -1016,13 +1036,53 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     if (!mounted || _samePoiList(_mapPois, nextPois)) {
       return;
     }
+    var hasHydratedFavoriteNames = false;
     setState(() {
       _mapPois = List<MapGymPoi>.unmodifiable(nextPois);
+      hasHydratedFavoriteNames = _hydrateFavoriteGymNamesFromPois(nextPois);
     });
+    _tryResolvePendingFocusGymId();
+    if (hasHydratedFavoriteNames) {
+      unawaited(_persistFavoriteGymIds());
+    }
     final userPoint = _userLocation;
     if (userPoint != null) {
       unawaited(_maybeNotifyNearbyLowCrowd(userPoint));
     }
+  }
+
+  bool _hydrateFavoriteGymNamesFromGyms(Iterable<Gym> gyms) {
+    var changed = false;
+    for (final gym in gyms) {
+      final id = gym.id.trim();
+      final name = gym.name.trim();
+      if (id.isEmpty ||
+          name.isEmpty ||
+          !_favoriteGymIds.contains(id) ||
+          _favoriteGymNamesById.containsKey(id)) {
+        continue;
+      }
+      _favoriteGymNamesById[id] = name;
+      changed = true;
+    }
+    return changed;
+  }
+
+  bool _hydrateFavoriteGymNamesFromPois(Iterable<MapGymPoi> pois) {
+    var changed = false;
+    for (final poi in pois) {
+      final id = poi.id.trim();
+      final name = poi.name.trim();
+      if (id.isEmpty ||
+          name.isEmpty ||
+          !_favoriteGymIds.contains(id) ||
+          _favoriteGymNamesById.containsKey(id)) {
+        continue;
+      }
+      _favoriteGymNamesById[id] = name;
+      changed = true;
+    }
+    return changed;
   }
 
   /// Atualiza apenas o texto da busca, sem recenter automatico do mapa.
@@ -1203,6 +1263,55 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     unawaited(
       _syncCrowdReportsForGyms(_crowdSyncGymIds(extraGymIds: [gym.id])),
     );
+  }
+
+  Gym? _findGymById(String gymId) {
+    final normalizedGymId = gymId.trim();
+    if (normalizedGymId.isEmpty) {
+      return null;
+    }
+    for (final gym in _gyms) {
+      if (gym.id.trim() == normalizedGymId) {
+        return gym;
+      }
+    }
+    final selectedGym = _selectedGym;
+    if (selectedGym != null && selectedGym.id.trim() == normalizedGymId) {
+      return selectedGym;
+    }
+    for (final poi in _mapPois) {
+      if (poi.id.trim() == normalizedGymId) {
+        return _gymFromPoi(poi);
+      }
+    }
+    return null;
+  }
+
+  void _tryFocusGymById(String? gymId) {
+    final normalizedGymId = gymId?.trim() ?? '';
+    if (normalizedGymId.isEmpty) {
+      return;
+    }
+    final gym = _findGymById(normalizedGymId);
+    if (gym == null) {
+      _pendingFocusGymId = normalizedGymId;
+      return;
+    }
+    _pendingFocusGymId = null;
+    _selectGym(gym);
+  }
+
+  void _tryResolvePendingFocusGymId() {
+    final pendingGymId = _pendingFocusGymId;
+    if (pendingGymId == null || pendingGymId.isEmpty) {
+      return;
+    }
+    final gym = _findGymById(pendingGymId);
+    if (gym == null) {
+      return;
+    }
+    _pendingFocusGymId = null;
+    _selectGym(gym);
   }
 
   void _handleMarkerTap(VoidCallback onTap) {
@@ -1458,20 +1567,45 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
 
   Future<void> _loadFavoriteGymIds() async {
     List<String> ids = const <String>[];
+    final namesById = <String, String>{};
     try {
       final prefs = await SharedPreferences.getInstance();
       ids = prefs.getStringList(_favoriteGymIdsPrefKey) ?? const <String>[];
+      final rawNamesJson = prefs.getString(_favoriteGymNamesPrefKey);
+      if (rawNamesJson != null && rawNamesJson.trim().isNotEmpty) {
+        final decoded = jsonDecode(rawNamesJson);
+        if (decoded is Map) {
+          for (final entry in decoded.entries) {
+            final id = '${entry.key}'.trim();
+            final name = '${entry.value}'.trim();
+            if (id.isEmpty || name.isEmpty) {
+              continue;
+            }
+            namesById[id] = name;
+          }
+        }
+      }
     } catch (_) {
       // Falha local não impede uso dos favoritos na sessão atual.
     }
     if (!mounted) {
       return;
     }
+    var hasHydratedFavoriteNames = false;
     setState(() {
       _favoriteGymIds
         ..clear()
         ..addAll(ids.map((id) => id.trim()).where((id) => id.isNotEmpty));
+      _favoriteGymNamesById
+        ..clear()
+        ..addAll(namesById);
+      hasHydratedFavoriteNames =
+          _hydrateFavoriteGymNamesFromGyms(_gyms) ||
+          _hydrateFavoriteGymNamesFromPois(_mapPois);
     });
+    if (hasHydratedFavoriteNames) {
+      unawaited(_persistFavoriteGymIds());
+    }
   }
 
   Future<void> _persistFavoriteGymIds() async {
@@ -1479,6 +1613,19 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       final prefs = await SharedPreferences.getInstance();
       final ids = _favoriteGymIds.toList(growable: false)..sort();
       await prefs.setStringList(_favoriteGymIdsPrefKey, ids);
+      final namesById = <String, String>{};
+      for (final id in ids) {
+        final name = _favoriteGymNamesById[id]?.trim();
+        if (name == null || name.isEmpty) {
+          continue;
+        }
+        namesById[id] = name;
+      }
+      if (namesById.isEmpty) {
+        await prefs.remove(_favoriteGymNamesPrefKey);
+      } else {
+        await prefs.setString(_favoriteGymNamesPrefKey, jsonEncode(namesById));
+      }
     } catch (_) {
       // Falha local de persistência não deve interromper fluxo.
     }
@@ -1520,9 +1667,14 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     setState(() {
       if (_favoriteGymIds.contains(id)) {
         _favoriteGymIds.remove(id);
+        _favoriteGymNamesById.remove(id);
         added = false;
       } else {
         _favoriteGymIds.add(id);
+        final name = gym.name.trim();
+        if (name.isNotEmpty) {
+          _favoriteGymNamesById[id] = name;
+        }
         added = true;
       }
       final selectedGym = _selectedGym;
@@ -1549,6 +1701,9 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   }
 
   void _maybeShowMapTutorialOverlay() {
+    if (!_autoShowMapTutorialOnStartup) {
+      return;
+    }
     if (!_hasLoadedMapTutorialState ||
         _hasSeenMapTutorial ||
         _showMapTutorialOverlay ||
@@ -4490,13 +4645,6 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       activePlanColor.withValues(alpha: 0.10),
       Colors.white,
     );
-    final mapFlexWhenPanelOpen =
-        (_layoutTotalFlex - _panelFlex)
-            .clamp(
-              _layoutTotalFlex - _panelMaxFlex,
-              _layoutTotalFlex - _panelMinFlex,
-            )
-            .toInt();
 
     return Scaffold(
       body: Stack(
@@ -4524,88 +4672,121 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                     child: Container(
                       decoration: BoxDecoration(
                         color: pageBackgroundColor,
-                        borderRadius: BorderRadius.vertical(
+                        borderRadius: const BorderRadius.vertical(
                           top: Radius.circular(28),
                         ),
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            GymSearchField(
-                              controller: _searchController,
-                              searchTerm: _searchTerm,
-                              isResolvingSearchLocation:
-                                  _isResolvingSearchLocation,
-                              onChanged: _updateSearchTerm,
-                              onSubmitted: _submitSearch,
-                              onClear: _clearSearch,
-                              onSearchTap:
-                                  () => _submitSearch(_searchController.text),
-                            ),
-                            const SizedBox(height: 10),
-                            AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 220),
-                              switchInCurve: Curves.easeOutCubic,
-                              switchOutCurve: Curves.easeInCubic,
-                              child: MapQuickFiltersBar(
-                                key: ValueKey<int>(_activeQuickFilters.length),
-                                filters: quickFilterChips,
-                                onToggle: _toggleQuickFilterById,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
+                      clipBehavior: Clip.antiAlias,
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final availableHeight = constraints.maxHeight;
+                          final minPanelHeight =
+                              (availableHeight * 0.38).clamp(150.0, 220.0)
+                                  .toDouble();
+                          final maxPanelHeight =
+                              (availableHeight - 132).clamp(
+                                    minPanelHeight,
+                                    availableHeight,
+                                  )
+                                  .toDouble();
+                          final panelHeight =
+                              (availableHeight * (_panelFlex / _layoutTotalFlex))
+                                  .clamp(minPanelHeight, maxPanelHeight)
+                                  .toDouble();
 
-                            if (_isFreePlan) ...[
-                              const SizedBox(height: 8),
-                              const AdBannerCard(),
-                            ],
-                            Expanded(
-                              flex:
-                                  selectedGym == null
-                                      ? 9
-                                      : mapFlexWhenPanelOpen,
-                              child: _buildMap(
-                                markerGyms,
-                                snapshotsByGymId,
-                                filteredMapPois,
-                              ),
-                            ),
-                            if (selectedGym == null) ...[
-                              const SizedBox(height: 10),
-                              SelectionHintCard(
-                                hasNoResults: hasNoSearchResults,
-                                hasNoNearbyGyms: hasNoNearbyGyms,
-                                hasActiveFilters:
-                                    _activeQuickFilters.isNotEmpty,
-                                onClearFilters: _clearAllQuickFilters,
-                              ),
-                            ] else ...[
-                              const SizedBox(height: 10),
-                              Expanded(
-                                flex: _panelFlex,
-                                child: AnimatedContainer(
-                                  duration:
-                                      _isPanelDragging
-                                          ? Duration.zero
-                                          : const Duration(milliseconds: 220),
-                                  curve: Curves.easeOutCubic,
-                                  transform: Matrix4.translationValues(
-                                    0,
-                                    _panelDragOffset,
-                                    0,
-                                  ),
-                                  transformAlignment: Alignment.topCenter,
-                                  child: _buildSelectedGymPanel(
-                                    selectedGym,
-                                    snapshot!,
-                                  ),
+                          return Stack(
+                            children: [
+                              Positioned.fill(
+                                child: _buildMap(
+                                  markerGyms,
+                                  snapshotsByGymId,
+                                  filteredMapPois,
                                 ),
                               ),
+                              Positioned(
+                                left: 14,
+                                top: 12,
+                                right: 14,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    GymSearchField(
+                                      controller: _searchController,
+                                      searchTerm: _searchTerm,
+                                      isResolvingSearchLocation:
+                                          _isResolvingSearchLocation,
+                                      onChanged: _updateSearchTerm,
+                                      onSubmitted: _submitSearch,
+                                      onClear: _clearSearch,
+                                      onSearchTap:
+                                          () => _submitSearch(
+                                            _searchController.text,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    AnimatedSwitcher(
+                                      duration: const Duration(
+                                        milliseconds: 220,
+                                      ),
+                                      switchInCurve: Curves.easeOutCubic,
+                                      switchOutCurve: Curves.easeInCubic,
+                                      child: MapQuickFiltersBar(
+                                        key: ValueKey<int>(
+                                          _activeQuickFilters.length,
+                                        ),
+                                        filters: quickFilterChips,
+                                        onToggle: _toggleQuickFilterById,
+                                      ),
+                                    ),
+                                    if (_isFreePlan) ...[
+                                      const SizedBox(height: 8),
+                                      const AdBannerCard(),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              if (selectedGym == null)
+                                Positioned(
+                                  left: 14,
+                                  right: 14,
+                                  bottom: 10,
+                                  child: SelectionHintCard(
+                                    hasNoResults: hasNoSearchResults,
+                                    hasNoNearbyGyms: hasNoNearbyGyms,
+                                    hasActiveFilters:
+                                        _activeQuickFilters.isNotEmpty,
+                                    onClearFilters: _clearAllQuickFilters,
+                                  ),
+                                )
+                              else
+                                Positioned(
+                                  left: 14,
+                                  right: 14,
+                                  bottom: 10,
+                                  child: AnimatedContainer(
+                                    height: panelHeight,
+                                    duration:
+                                        _isPanelDragging
+                                            ? Duration.zero
+                                            : const Duration(milliseconds: 220),
+                                    curve: Curves.easeOutCubic,
+                                    transform: Matrix4.translationValues(
+                                      0,
+                                      _panelDragOffset,
+                                      0,
+                                    ),
+                                    transformAlignment: Alignment.topCenter,
+                                    child: _buildSelectedGymPanel(
+                                      selectedGym,
+                                      snapshot!,
+                                    ),
+                                  ),
+                                ),
                             ],
-                          ],
-                        ),
+                          );
+                        },
                       ),
                     ),
                   ),
@@ -4639,7 +4820,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     List<MapGymPoi> mapPois,
   ) {
     const controlsRight = 14.0;
-    const controlsTop = 16.0;
+    final controlsTop = _isFreePlan ? 192.0 : 136.0;
     const controlsGap = 58.0;
 
     if (!widget.showMap) {
@@ -4694,83 +4875,81 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       );
     }
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(22),
-      child: Stack(
-        children: [
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter:
-                  _selectedGym?.position ?? _userLocation ?? _fallbackMapCenter,
-              initialZoom: 13.4,
-              minZoom: 3,
-              maxZoom: 18,
-              initialRotation: 0,
-              onMapReady: _onMapReady,
-              onPositionChanged: _onMapPositionChanged,
-              onTap: (_, __) {
-                if (_skipNextMapTapClear) {
-                  _skipNextMapTapClear = false;
-                  return;
-                }
-                _clearSelectedGym();
-              },
-              interactionOptions: const InteractionOptions(
-                flags: InteractiveFlag.all,
-              ),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        FlutterMap(
+          mapController: _mapController,
+          options: MapOptions(
+            initialCenter:
+                _selectedGym?.position ?? _userLocation ?? _fallbackMapCenter,
+            initialZoom: 13.4,
+            minZoom: 3,
+            maxZoom: 18,
+            initialRotation: 0,
+            onMapReady: _onMapReady,
+            onPositionChanged: _onMapPositionChanged,
+            onTap: (_, __) {
+              if (_skipNextMapTapClear) {
+                _skipNextMapTapClear = false;
+                return;
+              }
+              _clearSelectedGym();
+            },
+            interactionOptions: const InteractionOptions(
+              flags: InteractiveFlag.all,
             ),
-            children: [
-              TileLayer(
-                key: ValueKey<String>('tile-layer-$_mapVisualReloadTick'),
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.example.gymmap',
-              ),
-              MarkerLayer(
-                key: ValueKey<String>('marker-layer-$_mapVisualReloadTick'),
-                markers: markers,
-              ),
-            ],
           ),
+          children: [
+            TileLayer(
+              key: ValueKey<String>('tile-layer-$_mapVisualReloadTick'),
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.example.gymmap',
+            ),
+            MarkerLayer(
+              key: ValueKey<String>('marker-layer-$_mapVisualReloadTick'),
+              markers: markers,
+            ),
+          ],
+        ),
 
-          Positioned(
-            right: controlsRight,
-            top: controlsTop,
-            child: NorthResetButton(onTap: _resetNorthOrientation),
+        Positioned(
+          right: controlsRight,
+          top: controlsTop,
+          child: NorthResetButton(onTap: _resetNorthOrientation),
+        ),
+        Positioned(
+          right: controlsRight,
+          top: controlsTop + controlsGap,
+          child: MyLocationButton(onTap: _centerMapOnDeviceLocation),
+        ),
+        Positioned(
+          left: 12,
+          top: controlsTop,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 180),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            child:
+                _isLoadingMapPois
+                    ? const MapPoiLoadingBadge(
+                      key: ValueKey<String>('map-poi-loading'),
+                    )
+                    : const SizedBox.shrink(
+                      key: ValueKey<String>('map-poi-idle'),
+                    ),
           ),
-          Positioned(
-            right: controlsRight,
-            top: controlsTop + controlsGap,
-            child: MyLocationButton(onTap: _centerMapOnDeviceLocation),
-          ),
-          Positioned(
-            left: 12,
-            top: 12,
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 180),
-              switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeInCubic,
-              child:
-                  _isLoadingMapPois
-                      ? const MapPoiLoadingBadge(
-                        key: ValueKey<String>('map-poi-loading'),
-                      )
-                      : const SizedBox.shrink(
-                        key: ValueKey<String>('map-poi-idle'),
-                      ),
+        ),
+        if (_showMapTutorialOverlay)
+          Positioned.fill(
+            child: MapTutorialOverlay(
+              onDismiss: () {
+                unawaited(_dismissMapTutorialOverlay());
+              },
+              onFocusNearestGym: _highlightNearestGymFromTutorial,
             ),
           ),
-          if (_showMapTutorialOverlay)
-            Positioned.fill(
-              child: MapTutorialOverlay(
-                onDismiss: () {
-                  unawaited(_dismissMapTutorialOverlay());
-                },
-                onFocusNearestGym: _highlightNearestGymFromTutorial,
-              ),
-            ),
-        ],
-      ),
+      ],
     );
   }
 
