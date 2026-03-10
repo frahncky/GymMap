@@ -21,6 +21,18 @@ void main() {
   runApp(const MyApp());
 }
 
+LinearGradient _buildPlanSurfaceGradient(BuildContext context) {
+  final primary = Theme.of(context).colorScheme.primary;
+  return LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: <Color>[
+      Color.alphaBlend(primary.withValues(alpha: 0.14), Colors.white),
+      Color.alphaBlend(primary.withValues(alpha: 0.03), Colors.white),
+    ],
+  );
+}
+
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key, this.showMap = true});
@@ -36,12 +48,12 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     final basePlanPrimary = PlanThemePalette.colorFor(AppPlanTier.free);
     final lightColorScheme = ColorScheme.fromSeed(
-      seedColor: const Color(0xFF0B7A60),
+      seedColor: basePlanPrimary,
     ).copyWith(
       primary: basePlanPrimary,
-      secondary: const Color(0xFF2B8C77),
-      surface: const Color(0xFFF4FBF8),
-      onSurface: const Color(0xFF143F36),
+      secondary: basePlanPrimary,
+      surface: Color.alphaBlend(basePlanPrimary.withValues(alpha: 0.05), Colors.white),
+      onSurface: const Color(0xFF1F2730),
     );
 
     return MaterialApp(
@@ -50,7 +62,10 @@ class _MyAppState extends State<MyApp> {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: lightColorScheme,
-        scaffoldBackgroundColor: const Color(0xFFEAF5F1),
+        scaffoldBackgroundColor: Color.alphaBlend(
+          basePlanPrimary.withValues(alpha: 0.08),
+          Colors.white,
+        ),
         fontFamily: 'Trebuchet MS',
         textTheme: const TextTheme(
           titleLarge: TextStyle(
@@ -70,14 +85,20 @@ class _MyAppState extends State<MyApp> {
             horizontal: 14,
             vertical: 14,
           ),
-          hintStyle: const TextStyle(color: Color(0xFF6A887F)),
+          hintStyle: TextStyle(
+            color: lightColorScheme.onSurface.withValues(alpha: 0.56),
+          ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Color(0xFFE0ECE8)),
+            borderSide: BorderSide(
+              color: lightColorScheme.primary.withValues(alpha: 0.18),
+            ),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Color(0xFFE0ECE8)),
+            borderSide: BorderSide(
+              color: lightColorScheme.primary.withValues(alpha: 0.18),
+            ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
@@ -102,9 +123,9 @@ class _MyAppState extends State<MyApp> {
         sliderTheme: SliderThemeData(
           trackHeight: 4.5,
           activeTrackColor: lightColorScheme.primary,
-          inactiveTrackColor: const Color(0xFFDDECE6),
+          inactiveTrackColor: lightColorScheme.primary.withValues(alpha: 0.20),
           thumbColor: lightColorScheme.primary,
-          overlayColor: const Color(0x2E0D8B6E),
+          overlayColor: lightColorScheme.primary.withValues(alpha: 0.18),
           valueIndicatorColor: lightColorScheme.primary,
           valueIndicatorTextStyle: const TextStyle(
             color: Colors.white,
@@ -225,9 +246,20 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       borderRadius: BorderRadius.circular(16),
       borderSide: BorderSide(color: primary, width: 1.4),
     );
+    final enabledBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide(color: primary.withValues(alpha: 0.18)),
+    );
     return baseTheme.copyWith(
       colorScheme: scheme,
+      scaffoldBackgroundColor: Color.alphaBlend(
+        primary.withValues(alpha: 0.08),
+        Colors.white,
+      ),
       inputDecorationTheme: baseTheme.inputDecorationTheme.copyWith(
+        hintStyle: TextStyle(color: scheme.onSurface.withValues(alpha: 0.56)),
+        border: enabledBorder,
+        enabledBorder: enabledBorder,
         focusedBorder: focusedBorder,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -247,7 +279,9 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       ),
       sliderTheme: baseTheme.sliderTheme.copyWith(
         activeTrackColor: primary,
+        inactiveTrackColor: primary.withValues(alpha: 0.20),
         thumbColor: primary,
+        overlayColor: primary.withValues(alpha: 0.18),
         valueIndicatorColor: primary,
       ),
       navigationBarTheme: baseTheme.navigationBarTheme.copyWith(

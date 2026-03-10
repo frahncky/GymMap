@@ -508,9 +508,9 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
         (deltaLngMeters * deltaLngMeters);
   }
 
-  Color _occupancyColor(int percent) {
+  Color _occupancyColor(int percent, Color primary) {
     if (percent <= 45) {
-      return const Color(0xFF1D9A62);
+      return primary;
     }
     if (percent <= 70) {
       return const Color(0xFFE09F3E);
@@ -699,13 +699,14 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
       case 2:
         return const Color(0xFFB97745);
       default:
-        return const Color(0xFF527A6F);
+        return const Color(0xFF8E9AA8);
     }
   }
 
   Widget _buildCommunityLoadingCard() {
-    const skeletonColor = Color(0xFFD8E8E2);
-    const skeletonStrongColor = Color(0xFFCBDDD6);
+    final primary = Theme.of(context).colorScheme.primary;
+    final skeletonColor = primary.withValues(alpha: 0.14);
+    final skeletonStrongColor = primary.withValues(alpha: 0.22);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Container(
@@ -713,7 +714,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE1ECE8)),
+          border: Border.all(color: primary.withValues(alpha: 0.20)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -850,12 +851,8 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
             ? '#$userRank'
             : (_isLoadingLeaderboard ? '...' : 'Sem ranking');
     return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFEAF5F1), Color(0xFFF8FCFB)],
-        ),
+      decoration: BoxDecoration(
+        gradient: _buildPlanSurfaceGradient(context),
       ),
       child: SafeArea(
         child: RefreshIndicator(
@@ -876,7 +873,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                       style: TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.w900,
-                        color: Color(0xFF123D34),
+                        color: Colors.black87,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -889,7 +886,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                           ? 'Relatos recentes das academias da sua região.'
                           : 'Feed de relatos recentes com validação colaborativa.',
                       style: const TextStyle(
-                        color: Color(0xFF527A6F),
+                        color: Colors.black54,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -900,7 +897,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFE1ECE8)),
+                        border: Border.all(color: primary.withValues(alpha: 0.20)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -909,7 +906,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                             'Top contribuidores da semana',
                             style: TextStyle(
                               fontWeight: FontWeight.w900,
-                              color: Color(0xFF1C5649),
+                              color: Colors.black87,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -917,7 +914,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                             'Sua posição: $rankLabel',
                             style: const TextStyle(
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF527A6F),
+                              color: Colors.black54,
                               fontSize: 12,
                             ),
                           ),
@@ -926,7 +923,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                             'Região: $_leaderboardRegionLabel',
                             style: const TextStyle(
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF527A6F),
+                              color: Colors.black54,
                               fontSize: 12,
                             ),
                           ),
@@ -944,7 +941,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                                   : 'Ative a localização para carregar ranking real.',
                               style: const TextStyle(
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFF527A6F),
+                                color: Colors.black54,
                                 fontSize: 12,
                               ),
                             ),
@@ -955,7 +952,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                               'Dados reais dos últimos 7 dias',
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFF527A6F),
+                                color: Colors.black54,
                                 fontSize: 11,
                               ),
                             ),
@@ -975,7 +972,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                                 decoration: BoxDecoration(
                                   color:
                                       person.isCurrentUser
-                                          ? const Color(0xFFE9F6F1)
+                                          ? primary.withValues(alpha: 0.12)
                                           : Colors.transparent,
                                   borderRadius: BorderRadius.circular(10),
                                 ),
@@ -996,7 +993,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                                                 '$rank.',
                                                 style: const TextStyle(
                                                   fontWeight: FontWeight.w900,
-                                                  color: Color(0xFF527A6F),
+                                                  color: Colors.black54,
                                                 ),
                                               ),
                                     ),
@@ -1008,7 +1005,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                                               person.isCurrentUser
                                                   ? FontWeight.w900
                                                   : FontWeight.w700,
-                                          color: const Color(0xFF315C52),
+                                          color: Colors.black87,
                                         ),
                                       ),
                                     ),
@@ -1018,8 +1015,8 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                                         fontWeight: FontWeight.w800,
                                         color:
                                             person.isCurrentUser
-                                                ? const Color(0xFF1D9A62)
-                                                : const Color(0xFF1C5649),
+                                                ? primary
+                                                : Colors.black87,
                                       ),
                                     ),
                                   ],
@@ -1035,25 +1032,25 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                               vertical: 8,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE9F6F1),
+                              color: primary.withValues(alpha: 0.10),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: const Color(0xFFCEE7DD),
+                                color: primary.withValues(alpha: 0.24),
                               ),
                             ),
                             child: Row(
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.workspace_premium_rounded,
                                   size: 16,
-                                  color: Color(0xFF1D9A62),
+                                  color: primary,
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
                                   'Seus pontos: $_communityPoints',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w900,
-                                    color: Color(0xFF1C5649),
+                                    color: Colors.black87,
                                   ),
                                 ),
                                 const Spacer(),
@@ -1061,7 +1058,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                                   '+2 por validação',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w700,
-                                    color: Color(0xFF527A6F),
+                                    color: Colors.black54,
                                     fontSize: 12,
                                   ),
                                 ),
@@ -1095,7 +1092,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                                 : 'Relatos recentes',
                             style: const TextStyle(
                               fontWeight: FontWeight.w900,
-                              color: Color(0xFF1C5649),
+                              color: Colors.black87,
                             ),
                           ),
                         ),
@@ -1113,7 +1110,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                           icon: const Icon(
                             Icons.refresh_rounded,
                             size: 20,
-                            color: Color(0xFF1C5649),
+                            color: Colors.black87,
                           ),
                         ),
                       ],
@@ -1142,14 +1139,14 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFE1ECE8)),
+                      border: Border.all(color: primary.withValues(alpha: 0.20)),
                     ),
                     child: Text(
                       _hasLocationContext
                           ? 'Sem relatos recentes na sua região agora. Abra o mapa e contribua para aparecer aqui.'
                           : 'Ative sua localização para ver relatos recentes da sua região.',
                       style: const TextStyle(
-                        color: Color(0xFF527A6F),
+                        color: Colors.black54,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -1160,7 +1157,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
               SliverList.separated(
                 itemBuilder: (context, index) {
                   final report = _reports[index];
-                  final tone = _occupancyColor(report.occupancyPercent);
+                  final tone = _occupancyColor(report.occupancyPercent, primary);
                   final isConfirm = report.userVote == _CommunityVote.confirm;
                   final isDisagree = report.userVote == _CommunityVote.disagree;
                   return Padding(
@@ -1170,7 +1167,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFE1ECE8)),
+                        border: Border.all(color: primary.withValues(alpha: 0.20)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1182,7 +1179,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                                   report.gymName,
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w900,
-                                    color: Color(0xFF1C5649),
+                                    color: Colors.black87,
                                   ),
                                 ),
                               ),
@@ -1210,7 +1207,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                           Text(
                             '${report.regionLabel} - ${report.timeAgoLabel}',
                             style: const TextStyle(
-                              color: Color(0xFF527A6F),
+                              color: Colors.black54,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -1220,10 +1217,10 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                               width: double.infinity,
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF2F8F6),
+                                color: primary.withValues(alpha: 0.06),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: const Color(0xFFDCEAE5),
+                                  color: primary.withValues(alpha: 0.18),
                                 ),
                               ),
                               child: Row(
@@ -1238,16 +1235,14 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                                         end: Alignment.bottomRight,
                                         colors: [
                                           tone.withValues(alpha: 0.28),
-                                          const Color(0xFF2B8C77).withValues(
-                                            alpha: 0.24,
-                                          ),
+                                          primary.withValues(alpha: 0.24),
                                         ],
                                       ),
                                     ),
-                                    child: const Icon(
+                                    child: Icon(
                                       Icons.photo_camera_rounded,
                                       size: 18,
-                                      color: Color(0xFF2D6054),
+                                      color: primary.withValues(alpha: 0.82),
                                     ),
                                   ),
                                   const SizedBox(width: 10),
@@ -1257,7 +1252,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                                           'Foto enviada pela comunidade.',
                                       style: const TextStyle(
                                         fontWeight: FontWeight.w700,
-                                        color: Color(0xFF315C52),
+                                        color: Colors.black87,
                                       ),
                                     ),
                                   ),
@@ -1280,16 +1275,16 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                                     size: 16,
                                     color:
                                         isConfirm
-                                            ? const Color(0xFF1D9A62)
-                                            : const Color(0xFF527A6F),
+                                            ? primary
+                                            : Colors.black54,
                                   ),
                                   label: Text(
                                     'Confirmo (${report.confirmCount})',
                                     style: TextStyle(
                                       color:
                                           isConfirm
-                                              ? const Color(0xFF1D9A62)
-                                              : const Color(0xFF315C52),
+                                              ? primary
+                                              : Colors.black87,
                                       fontWeight: FontWeight.w800,
                                     ),
                                   ),
@@ -1297,14 +1292,12 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                                     side: BorderSide(
                                       color:
                                           isConfirm
-                                              ? const Color(0xFF1D9A62)
-                                              : const Color(0xFFD7E6E1),
+                                              ? primary
+                                              : primary.withValues(alpha: 0.20),
                                     ),
                                     backgroundColor:
                                         isConfirm
-                                            ? const Color(
-                                              0xFF1D9A62,
-                                            ).withValues(alpha: 0.08)
+                                            ? primary.withValues(alpha: 0.08)
                                             : Colors.transparent,
                                   ),
                                 ),
@@ -1323,7 +1316,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                                     color:
                                         isDisagree
                                             ? const Color(0xFFCC4A37)
-                                            : const Color(0xFF527A6F),
+                                            : Colors.black54,
                                   ),
                                   label: Text(
                                     'Discordo (${report.disagreeCount})',
@@ -1331,7 +1324,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                                       color:
                                           isDisagree
                                               ? const Color(0xFFCC4A37)
-                                              : const Color(0xFF315C52),
+                                              : Colors.black87,
                                       fontWeight: FontWeight.w800,
                                     ),
                                   ),
@@ -1340,7 +1333,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                                       color:
                                           isDisagree
                                               ? const Color(0xFFCC4A37)
-                                              : const Color(0xFFD7E6E1),
+                                              : primary.withValues(alpha: 0.20),
                                     ),
                                     backgroundColor:
                                         isDisagree

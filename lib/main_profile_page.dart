@@ -116,13 +116,10 @@ class _ProfilePageState extends State<_ProfilePage> {
   @override
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
     return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFEAF5F1), Color(0xFFF8FCFB)],
-        ),
+      decoration: BoxDecoration(
+        gradient: _buildPlanSurfaceGradient(context),
       ),
       child: SafeArea(
         child:
@@ -136,19 +133,19 @@ class _ProfilePageState extends State<_ProfilePage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Perfil',
                               style: TextStyle(
                                 fontSize: 26,
                                 fontWeight: FontWeight.w900,
-                                color: Color(0xFF123D34),
+                                color: onSurface,
                               ),
                             ),
                             const SizedBox(height: 6),
-                            const Text(
+                            Text(
                               'Conta e preferências do app.',
                               style: TextStyle(
-                                color: Color(0xFF527A6F),
+                                color: onSurface.withValues(alpha: 0.72),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -160,7 +157,7 @@ class _ProfilePageState extends State<_ProfilePage> {
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
-                                  color: const Color(0xFFE1ECE8),
+                                  color: primary.withValues(alpha: 0.20),
                                 ),
                               ),
                               child: Row(
@@ -179,7 +176,7 @@ class _ProfilePageState extends State<_ProfilePage> {
                                     ),
                                   ),
                                   const SizedBox(width: 12),
-                                  const Expanded(
+                                  Expanded(
                                     child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
@@ -188,14 +185,14 @@ class _ProfilePageState extends State<_ProfilePage> {
                                           'Usuário GymMap',
                                           style: TextStyle(
                                             fontWeight: FontWeight.w900,
-                                            color: Color(0xFF1C5649),
+                                            color: onSurface,
                                           ),
                                         ),
                                         SizedBox(height: 3),
                                         Text(
                                           'Plano atual: Grátis',
                                           style: TextStyle(
-                                            color: Color(0xFF527A6F),
+                                            color: onSurface.withValues(alpha: 0.72),
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
@@ -217,7 +214,7 @@ class _ProfilePageState extends State<_ProfilePage> {
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
-                                  color: const Color(0xFFE1ECE8),
+                                  color: primary.withValues(alpha: 0.20),
                                 ),
                               ),
                               child: Column(
@@ -326,11 +323,11 @@ class _ProfilePageState extends State<_ProfilePage> {
                               ),
                             ),
                             const SizedBox(height: 10),
-                            const Text(
+                            Text(
                               'Preferências salvas localmente neste dispositivo.',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Color(0xFF527A6F),
+                                color: onSurface.withValues(alpha: 0.72),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -351,13 +348,10 @@ class _ProfileLoadingState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
     return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFEAF5F1), Color(0xFFF8FCFB)],
-        ),
+      decoration: BoxDecoration(
+        gradient: _buildPlanSurfaceGradient(context),
       ),
       child: SafeArea(
         child: CustomScrollView(
@@ -378,7 +372,9 @@ class _ProfileLoadingState extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFE1ECE8)),
+                        border: Border.all(
+                          color: primary.withValues(alpha: 0.20),
+                        ),
                       ),
                       child: const Row(
                         children: [
@@ -404,16 +400,27 @@ class _ProfileLoadingState extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFE1ECE8)),
+                        border: Border.all(
+                          color: primary.withValues(alpha: 0.20),
+                        ),
                       ),
                       child: Column(
-                        children: const [
+                        children: [
                           _LoadingTile(),
-                          Divider(height: 1, color: Color(0xFFEAF3EF)),
+                          Divider(
+                            height: 1,
+                            color: primary.withValues(alpha: 0.14),
+                          ),
                           _LoadingTile(),
-                          Divider(height: 1, color: Color(0xFFEAF3EF)),
+                          Divider(
+                            height: 1,
+                            color: primary.withValues(alpha: 0.14),
+                          ),
                           _LoadingTile(),
-                          Divider(height: 1, color: Color(0xFFEAF3EF)),
+                          Divider(
+                            height: 1,
+                            color: primary.withValues(alpha: 0.14),
+                          ),
                           _LoadingTile(),
                         ],
                       ),
@@ -470,13 +477,18 @@ class _LoadingBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(radius),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
-          colors: [Color(0xFFEAF3EF), Color(0xFFDCEBE5), Color(0xFFEAF3EF)],
+          colors: <Color>[
+            primary.withValues(alpha: 0.14),
+            primary.withValues(alpha: 0.24),
+            primary.withValues(alpha: 0.14),
+          ],
         ),
       ),
       child: SizedBox(width: width, height: height),

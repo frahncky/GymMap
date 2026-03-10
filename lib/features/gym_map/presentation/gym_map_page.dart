@@ -2624,7 +2624,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                                   entries[i].isCurrentUser
                                       ? withUiOpacity(primary, 0.34)
                                       : withUiOpacity(
-                                        GymMapColors.northControl,
+                                        primary,
                                         0.10,
                                       ),
                             ),
@@ -4005,7 +4005,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: withUiOpacity(GymMapColors.northControl, 0.10),
+          color: withUiOpacity(_planAccentColor(_activePlan), 0.12),
         ),
       ),
       child: LayoutBuilder(
@@ -4480,6 +4480,16 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
             : snapshotsByGymId[selectedGym.id] ??
                 _crowdService.snapshotFor(selectedGym);
     final activePlan = _activePlanInfo;
+    final activePlanColor = _planAccentColor(_activePlan);
+    final headerGradientColors = <Color>[
+      Color.alphaBlend(Colors.black.withValues(alpha: 0.78), activePlanColor),
+      Color.alphaBlend(Colors.black.withValues(alpha: 0.46), activePlanColor),
+      Color.alphaBlend(Colors.white.withValues(alpha: 0.10), activePlanColor),
+    ];
+    final pageBackgroundColor = Color.alphaBlend(
+      activePlanColor.withValues(alpha: 0.10),
+      Colors.white,
+    );
     final mapFlexWhenPanelOpen =
         (_layoutTotalFlex - _panelFlex)
             .clamp(
@@ -4492,15 +4502,11 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       body: Stack(
         children: [
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  GymMapColors.headerGradientStart,
-                  GymMapColors.headerGradientMid,
-                  GymMapColors.headerGradientEnd,
-                ],
+                colors: headerGradientColors,
               ),
             ),
             child: SafeArea(
@@ -4516,8 +4522,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                   ),
                   Expanded(
                     child: Container(
-                      decoration: const BoxDecoration(
-                        color: GymMapColors.pageBackground,
+                      decoration: BoxDecoration(
+                        color: pageBackgroundColor,
                         borderRadius: BorderRadius.vertical(
                           top: Radius.circular(28),
                         ),
@@ -4943,13 +4949,13 @@ class _ContributionCelebrationOverlay extends StatelessWidget {
         _CelebrationParticleData(
           end: Offset(-44, -112),
           icon: Icons.circle,
-          color: Color(0xFF7ED6A2),
+          color: Color(0xFF93B4D9),
           size: 8,
         ),
         _CelebrationParticleData(
           end: Offset(-16, -126),
           icon: Icons.bolt_rounded,
-          color: Color(0xFF4CAF50),
+          color: Color(0xFF4A7DBA),
           size: 16,
         ),
         _CelebrationParticleData(
@@ -4961,7 +4967,7 @@ class _ContributionCelebrationOverlay extends StatelessWidget {
         _CelebrationParticleData(
           end: Offset(40, -116),
           icon: Icons.circle,
-          color: Color(0xFF2A9D8F),
+          color: Color(0xFF6A9ACF),
           size: 9,
         ),
         _CelebrationParticleData(

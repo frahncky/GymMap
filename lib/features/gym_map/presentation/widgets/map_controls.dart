@@ -11,6 +11,7 @@ class NorthResetButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
     return Semantics(
       button: true,
       label: 'Reorientar mapa para norte',
@@ -29,7 +30,7 @@ class NorthResetButton extends StatelessWidget {
                 color: withUiOpacity(Colors.white, 0.96),
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: GymMapColors.northControl,
+                  color: primary,
                   width: 1.6,
                 ),
                 boxShadow: const [
@@ -40,13 +41,13 @@ class NorthResetButton extends StatelessWidget {
                   ),
                 ],
               ),
-              child: const Center(
+              child: Center(
                 child: Text(
                   'N',
                   style: TextStyle(
                     fontSize: 19,
                     fontWeight: FontWeight.w900,
-                    color: GymMapColors.northControl,
+                    color: primary,
                   ),
                 ),
               ),
@@ -116,6 +117,7 @@ class MapPoiLoadingBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
     return IgnorePointer(
       child: Semantics(
         container: true,
@@ -127,7 +129,7 @@ class MapPoiLoadingBadge extends StatelessWidget {
             color: withUiOpacity(Colors.white, 0.95),
             borderRadius: BorderRadius.circular(999),
             border: Border.all(
-              color: withUiOpacity(GymMapColors.northControl, 0.18),
+              color: withUiOpacity(primary, 0.18),
             ),
             boxShadow: const [
               BoxShadow(
@@ -137,8 +139,8 @@ class MapPoiLoadingBadge extends StatelessWidget {
               ),
             ],
           ),
-          child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -147,7 +149,7 @@ class MapPoiLoadingBadge extends StatelessWidget {
                   height: 14,
                   child: CircularProgressIndicator(
                     strokeWidth: 2.2,
-                    color: GymMapColors.northControl,
+                    color: primary,
                   ),
                 ),
                 SizedBox(width: 8),

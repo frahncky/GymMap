@@ -107,13 +107,13 @@ flutter_launcher_icons:
   android: true
   ios: true
   image_path: assets/logo/logoGymMap_app_tight_white2.png
-  adaptive_icon_background: "#0B7A60"
+  adaptive_icon_background: "#8E949C"
   adaptive_icon_foreground: assets/logo/logoGymMap_adaptive_foreground.png
   min_sdk_android: 21
   remove_alpha_ios: true
 
 flutter_native_splash:
-  color: "#0B7A60"
+  color: "#8E949C"
   image: assets/logo/logoGymMap_splash.png
   android_gravity: center
   ios_content_mode: center
@@ -121,5 +121,5 @@ flutter_native_splash:
   ios: true
   web: false
   android_12:
-    color: "#0B7A60"
+    color: "#8E949C"
     image: assets/logo/logoGymMap_android12_with_name.png

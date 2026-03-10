@@ -65,6 +65,7 @@ class SelectedGymPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
     final targetOccupancy = snapshot.occupancyPercent.clamp(0, 100).toDouble();
     return Container(
       width: double.infinity,
@@ -77,7 +78,7 @@ class SelectedGymPanel extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: withUiOpacity(GymMapColors.northControl, 0.08),
+          color: withUiOpacity(primary, 0.10),
         ),
         boxShadow: const [
           BoxShadow(
@@ -108,7 +109,7 @@ class SelectedGymPanel extends StatelessWidget {
                         width: 42,
                         height: 5,
                         decoration: BoxDecoration(
-                          color: withUiOpacity(GymMapColors.northControl, 0.25),
+                          color: withUiOpacity(primary, 0.25),
                           borderRadius: BorderRadius.circular(999),
                         ),
                       ),
@@ -523,7 +524,7 @@ class _HistoryInsightsCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
-      decoration: _insightCardDecoration(),
+      decoration: _insightCardDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -581,7 +582,7 @@ class _ChartStatChip extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: withUiOpacity(GymMapColors.northControl, 0.12),
+          color: withUiOpacity(Theme.of(context).colorScheme.primary, 0.14),
         ),
       ),
       child: Column(
@@ -675,7 +676,7 @@ class _HistoryLineChart extends StatelessWidget {
               painter: _HistoryLineChartPainter(
                 values: values,
                 lineColor: Theme.of(context).colorScheme.primary,
-                gridColor: withUiOpacity(GymMapColors.northControl, 0.10),
+                gridColor: withUiOpacity(Theme.of(context).colorScheme.primary, 0.10),
               ),
               child: const SizedBox.expand(),
             ),
@@ -859,7 +860,7 @@ class _ProInsightsCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
-      decoration: _insightCardDecoration(),
+      decoration: _insightCardDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -946,7 +947,7 @@ class _EliteInsightsCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
-      decoration: _insightCardDecoration(),
+      decoration: _insightCardDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1027,7 +1028,8 @@ class _EliteInsightsCard extends StatelessWidget {
   }
 }
 
-BoxDecoration _insightCardDecoration() {
+BoxDecoration _insightCardDecoration(BuildContext context) {
+  final primary = Theme.of(context).colorScheme.primary;
   return BoxDecoration(
     gradient: const LinearGradient(
       begin: Alignment.topLeft,
@@ -1035,7 +1037,7 @@ BoxDecoration _insightCardDecoration() {
       colors: [Color(0xFFFAFCFB), GymMapColors.insightPanelBackground],
     ),
     borderRadius: BorderRadius.circular(14),
-    border: Border.all(color: withUiOpacity(GymMapColors.northControl, 0.08)),
+    border: Border.all(color: withUiOpacity(primary, 0.10)),
   );
 }
 

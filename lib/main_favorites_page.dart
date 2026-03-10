@@ -83,13 +83,10 @@ class _FavoritesPageState extends State<_FavoritesPage> {
   @override
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
     return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFEAF5F1), Color(0xFFF8FCFB)],
-        ),
+      decoration: BoxDecoration(
+        gradient: _buildPlanSurfaceGradient(context),
       ),
       child: SafeArea(
         child: FutureBuilder<List<_FavoriteGymEntry>>(
@@ -134,12 +131,12 @@ class _FavoritesPageState extends State<_FavoritesPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Favoritos',
                           style: TextStyle(
                             fontSize: 26,
                             fontWeight: FontWeight.w900,
-                            color: Color(0xFF123D34),
+                            color: onSurface,
                           ),
                         ),
                         const SizedBox(height: 6),
@@ -147,8 +144,8 @@ class _FavoritesPageState extends State<_FavoritesPage> {
                           favorites.isEmpty
                               ? 'Você ainda não marcou academias favoritas.'
                               : '${favorites.length} academia(s) salva(s).',
-                          style: const TextStyle(
-                            color: Color(0xFF527A6F),
+                          style: TextStyle(
+                            color: onSurface.withValues(alpha: 0.72),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -181,14 +178,16 @@ class _FavoritesPageState extends State<_FavoritesPage> {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFFE1ECE8)),
+                            border: Border.all(
+                              color: primary.withValues(alpha: 0.20),
+                            ),
                           ),
-                          child: const Text(
+                          child: Text(
                             'Use o ícone de coração no painel da academia para salvar seus favoritos.',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF315C52),
+                              color: onSurface.withValues(alpha: 0.84),
                             ),
                           ),
                         ),
@@ -208,7 +207,9 @@ class _FavoritesPageState extends State<_FavoritesPage> {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFFE1ECE8)),
+                            border: Border.all(
+                              color: primary.withValues(alpha: 0.20),
+                            ),
                           ),
                           child: Row(
                             children: [
@@ -235,9 +236,9 @@ class _FavoritesPageState extends State<_FavoritesPage> {
                                       item.displayName,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontWeight: FontWeight.w900,
-                                        color: Color(0xFF1C5649),
+                                        color: onSurface,
                                       ),
                                     ),
                                     const SizedBox(height: 2),
@@ -245,9 +246,9 @@ class _FavoritesPageState extends State<_FavoritesPage> {
                                       'ID: ${item.id}',
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 12,
-                                        color: Color(0xFF527A6F),
+                                        color: onSurface.withValues(alpha: 0.72),
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
@@ -279,13 +280,10 @@ class _FavoritesLoadingState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
     return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFEAF5F1), Color(0xFFF8FCFB)],
-        ),
+      decoration: BoxDecoration(
+        gradient: _buildPlanSurfaceGradient(context),
       ),
       child: SafeArea(
         child: CustomScrollView(
@@ -300,7 +298,7 @@ class _FavoritesLoadingState extends StatelessWidget {
                       width: 150,
                       height: 28,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFDFECE7),
+                        color: primary.withValues(alpha: 0.16),
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
@@ -309,7 +307,7 @@ class _FavoritesLoadingState extends StatelessWidget {
                       width: 240,
                       height: 14,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFDFECE7),
+                        color: primary.withValues(alpha: 0.16),
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
@@ -318,7 +316,7 @@ class _FavoritesLoadingState extends StatelessWidget {
                       width: double.infinity,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFD7E7E1),
+                        color: primary.withValues(alpha: 0.22),
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
@@ -337,7 +335,9 @@ class _FavoritesLoadingState extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFE1ECE8)),
+                      border: Border.all(
+                        color: primary.withValues(alpha: 0.20),
+                      ),
                     ),
                     child: const Padding(
                       padding: EdgeInsets.all(14),

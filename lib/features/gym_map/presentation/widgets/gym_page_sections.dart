@@ -229,6 +229,7 @@ class MapQuickFiltersBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 220),
       curve: Curves.easeOutCubic,
@@ -237,7 +238,7 @@ class MapQuickFiltersBar extends StatelessWidget {
         color: withUiOpacity(Colors.white, 0.92),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: withUiOpacity(GymMapColors.northControl, 0.08),
+          color: withUiOpacity(primary, 0.12),
         ),
       ),
       child: LayoutBuilder(
@@ -512,7 +513,7 @@ class MapStatusCard extends StatelessWidget {
                             height: 12,
                             decoration: BoxDecoration(
                               color: withUiOpacity(
-                                GymMapColors.northControl,
+                                Theme.of(context).colorScheme.primary,
                                 0.10 + (0.12 * opacity),
                               ),
                               borderRadius: BorderRadius.circular(999),
@@ -565,7 +566,10 @@ class MapTutorialOverlay extends StatelessWidget {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: withUiOpacity(GymMapColors.northControl, 0.10),
+                      color: withUiOpacity(
+                        Theme.of(context).colorScheme.primary,
+                        0.12,
+                      ),
                     ),
                     boxShadow: const [
                       BoxShadow(
