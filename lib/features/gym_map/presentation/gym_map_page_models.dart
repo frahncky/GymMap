@@ -86,3 +86,23 @@ const Map<AppPlanTier, PlanInfo> kPlanCatalog = {
     ],
   ),
 };
+
+class PlanThemePalette {
+  const PlanThemePalette._();
+
+  static const Map<AppPlanTier, Color> tierColors = <AppPlanTier, Color>{
+    AppPlanTier.free: Color(0xFF8E949C),
+    AppPlanTier.smart: Color(0xFF0D8B6E),
+    AppPlanTier.pro: Color(0xFF153A73),
+    AppPlanTier.elite: Color(0xFFC79A22),
+  };
+
+  static Color colorFor(AppPlanTier tier) {
+    return tierColors[tier] ?? tierColors[AppPlanTier.free]!;
+  }
+
+  static Color onColorFor(AppPlanTier tier) {
+    final brightness = ThemeData.estimateBrightnessForColor(colorFor(tier));
+    return brightness == Brightness.dark ? Colors.white : Colors.black87;
+  }
+}

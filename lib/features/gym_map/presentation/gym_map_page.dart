@@ -3715,23 +3715,11 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   }
 
   Color _planAccentColor(AppPlanTier tier) {
-    switch (tier) {
-      case AppPlanTier.free:
-        return const Color(0xFF8E949C);
-      case AppPlanTier.smart:
-        return const Color(0xFF0D8B6E);
-      case AppPlanTier.pro:
-        return const Color(0xFF153A73);
-      case AppPlanTier.elite:
-        return const Color(0xFFC79A22);
-    }
+    return PlanThemePalette.colorFor(tier);
   }
 
   Color _planOnAccentColor(AppPlanTier tier) {
-    final brightness = ThemeData.estimateBrightnessForColor(
-      _planAccentColor(tier),
-    );
-    return brightness == Brightness.dark ? Colors.white : Colors.black87;
+    return PlanThemePalette.onColorFor(tier);
   }
 
   IconData _planIcon(AppPlanTier tier) {

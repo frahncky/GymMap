@@ -34,10 +34,11 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
+    final basePlanPrimary = PlanThemePalette.colorFor(AppPlanTier.free);
     final lightColorScheme = ColorScheme.fromSeed(
       seedColor: const Color(0xFF0B7A60),
     ).copyWith(
-      primary: const Color(0xFF0D8B6E),
+      primary: basePlanPrimary,
       secondary: const Color(0xFF2B8C77),
       surface: const Color(0xFFF4FBF8),
       onSurface: const Color(0xFF143F36),
@@ -199,12 +200,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   }
 
   Color _planThemeColor(AppPlanTier tier) {
-    return switch (tier) {
-      AppPlanTier.free => const Color(0xFF8E949C),
-      AppPlanTier.smart => const Color(0xFF0D8B6E),
-      AppPlanTier.pro => const Color(0xFF153A73),
-      AppPlanTier.elite => const Color(0xFFC79A22),
-    };
+    return PlanThemePalette.colorFor(tier);
   }
 
   void _handleActivePlanThemeChanged(AppPlanTier tier) {
@@ -219,10 +215,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   ThemeData _themeForActivePlan(BuildContext context) {
     final baseTheme = Theme.of(context);
     final primary = _planThemeColor(_activePlanThemeTier);
-    final onPrimary =
-        ThemeData.estimateBrightnessForColor(primary) == Brightness.dark
-            ? Colors.white
-            : Colors.black87;
+    final onPrimary = PlanThemePalette.onColorFor(_activePlanThemeTier);
     final scheme = baseTheme.colorScheme.copyWith(
       primary: primary,
       secondary: primary,
