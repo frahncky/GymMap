@@ -67,6 +67,7 @@ class MyLocationButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
     return Semantics(
       button: true,
       label: 'Centralizar no meu local',
@@ -85,7 +86,7 @@ class MyLocationButton extends StatelessWidget {
                 color: withUiOpacity(Colors.white, 0.96),
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: GymMapColors.myLocationAccent,
+                  color: primary,
                   width: 1.6,
                 ),
                 boxShadow: const [
@@ -96,11 +97,11 @@ class MyLocationButton extends StatelessWidget {
                   ),
                 ],
               ),
-              child: const Center(
+              child: Center(
                 child: Icon(
                   Icons.my_location,
                   size: 20,
-                  color: GymMapColors.myLocationAccent,
+                  color: primary,
                 ),
               ),
             ),
@@ -176,6 +177,7 @@ class UserLocationMarkerDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
     return Semantics(
       label: 'Sua localização no mapa',
       readOnly: true,
@@ -187,28 +189,28 @@ class UserLocationMarkerDot extends StatelessWidget {
             height: 34,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: withUiOpacity(GymMapColors.myLocationAccent, 0.20),
+              color: withUiOpacity(primary, 0.20),
             ),
           ),
           Container(
             width: 24,
             height: 24,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.white,
-              boxShadow: [
+              boxShadow: <BoxShadow>[
                 BoxShadow(
-                  color: GymMapColors.myLocationGlow,
+                  color: primary.withValues(alpha: 0.42),
                   blurRadius: 10,
                   spreadRadius: 2,
                 ),
               ],
             ),
-            child: const Center(
+            child: Center(
               child: Icon(
                 Icons.location_on_rounded,
                 size: 16,
-                color: GymMapColors.myLocationAccent,
+                color: primary,
               ),
             ),
           ),
