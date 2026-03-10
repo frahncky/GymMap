@@ -13,6 +13,7 @@ void main() {
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const MyApp(showMap: false));
+    await tester.pump(const Duration(milliseconds: 600));
     await tester.pumpAndSettle();
 
     expect(find.text('GymMap'), findsOneWidget);
