@@ -52,3 +52,6 @@ app.*.map.json
 # Generated backups
 /backend/backups/*
 !/backend/backups/.gitkeep
+
+# Temporary extracted docs
+.tmp_docx/
