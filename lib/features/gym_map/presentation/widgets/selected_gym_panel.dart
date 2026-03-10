@@ -334,7 +334,9 @@ class SelectedGymPanel extends StatelessWidget {
                       0,
                       100,
                     );
-                    final occupancyAccent = occupancyColor(occupancyPercent);
+                    final occupancyAccent = occupancyColorForValue(
+                      animatedOccupancy,
+                    );
                     return Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
@@ -377,7 +379,9 @@ class SelectedGymPanel extends StatelessWidget {
                   0,
                   100,
                 );
-                final occupancyAccent = occupancyColor(occupancyPercent);
+                final occupancyAccent = occupancyColorForValue(
+                  animatedOccupancy,
+                );
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

@@ -22,6 +22,39 @@ Color occupancyColor(int percent) {
   return GymMapColors.occupancyCritical;
 }
 
+/// Variante contínua para transição suave de cores conforme o percentual muda.
+Color occupancyColorForValue(double percent) {
+  final value = percent.clamp(0, 100).toDouble();
+  if (value <= 35) {
+    return GymMapColors.occupancyLow;
+  }
+  if (value <= 65) {
+    final t = (value - 35) / 30;
+    return Color.lerp(
+          GymMapColors.occupancyLow,
+          GymMapColors.occupancyMedium,
+          t,
+        ) ??
+        GymMapColors.occupancyMedium;
+  }
+  if (value <= 85) {
+    final t = (value - 65) / 20;
+    return Color.lerp(
+          GymMapColors.occupancyMedium,
+          GymMapColors.occupancyHigh,
+          t,
+        ) ??
+        GymMapColors.occupancyHigh;
+  }
+  final t = (value - 85) / 15;
+  return Color.lerp(
+        GymMapColors.occupancyHigh,
+        GymMapColors.occupancyCritical,
+        t,
+      ) ??
+      GymMapColors.occupancyCritical;
+}
+
 /// Converte percentual em descricao de status.
 String occupancyLabel(int percent) {
   if (percent <= 35) {
@@ -61,4 +94,3 @@ String formatRelativeTime(DateTime? timestamp) {
   final minute = timestamp.minute.toString().padLeft(2, '0');
   return '$day/$month $hour:$minute';
 }
-
