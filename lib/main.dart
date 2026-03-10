@@ -129,6 +129,7 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   int _selectedIndex = 0;
   int _favoritesRefreshToken = 0;
+  AppPlanTier _activePlanThemeTier = AppPlanTier.free;
   final AppMetricsService _metrics = AppMetricsService.instance;
 
   @override
@@ -193,10 +194,95 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     });
   }
 
+  Color _planThemeColor(AppPlanTier tier) {
+    return switch (tier) {
+      AppPlanTier.free => const Color(0xFF8E949C),
+      AppPlanTier.smart => const Color(0xFF0D8B6E),
+      AppPlanTier.pro => const Color(0xFF153A73),
+      AppPlanTier.elite => const Color(0xFFC79A22),
+    };
+  }
+
+  void _handleActivePlanThemeChanged(AppPlanTier tier) {
+    if (_activePlanThemeTier == tier) {
+      return;
+    }
+    setState(() {
+      _activePlanThemeTier = tier;
+    });
+  }
+
+  ThemeData _themeForActivePlan(BuildContext context) {
+    final baseTheme = Theme.of(context);
+    final primary = _planThemeColor(_activePlanThemeTier);
+    final onPrimary =
+        ThemeData.estimateBrightnessForColor(primary) == Brightness.dark
+            ? Colors.white
+            : Colors.black87;
+    final scheme = baseTheme.colorScheme.copyWith(
+      primary: primary,
+      secondary: primary,
+      onPrimary: onPrimary,
+    );
+    final focusedBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide(color: primary, width: 1.4),
+    );
+    return baseTheme.copyWith(
+      colorScheme: scheme,
+      inputDecorationTheme: baseTheme.inputDecorationTheme.copyWith(
+        focusedBorder: focusedBorder,
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          elevation: 0,
+          foregroundColor: onPrimary,
+          backgroundColor: primary,
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          textStyle: const TextStyle(
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.1,
+          ),
+        ),
+      ),
+      sliderTheme: baseTheme.sliderTheme.copyWith(
+        activeTrackColor: primary,
+        thumbColor: primary,
+        valueIndicatorColor: primary,
+      ),
+      navigationBarTheme: baseTheme.navigationBarTheme.copyWith(
+        indicatorColor: primary.withValues(alpha: 0.16),
+        iconTheme: WidgetStateProperty.resolveWith<IconThemeData?>((states) {
+          if (states.contains(WidgetState.selected)) {
+            return IconThemeData(color: primary);
+          }
+          return null;
+        }),
+        labelTextStyle: WidgetStateProperty.resolveWith<TextStyle?>((states) {
+          if (states.contains(WidgetState.selected)) {
+            return TextStyle(
+              color: primary,
+              fontWeight: FontWeight.w700,
+            );
+          }
+          return null;
+        }),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final themedData = _themeForActivePlan(context);
     final pages = <Widget>[
-      GymMapPage(showMap: widget.showMap, isActive: _selectedIndex == 0),
+      GymMapPage(
+        showMap: widget.showMap,
+        isActive: _selectedIndex == 0,
+        onActivePlanChanged: _handleActivePlanThemeChanged,
+      ),
       _FavoritesPage(
         refreshToken: _favoritesRefreshToken,
         onOpenMap: _goToMapTab,
@@ -210,41 +296,44 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       ),
     ];
 
-    return Scaffold(
-      body: IndexedStack(index: _selectedIndex, children: pages),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _selectedIndex = index;
-            if (index == 1) {
-              _favoritesRefreshToken++;
-            }
-          });
-          unawaited(_trackTabSelection(index: index, origin: 'navigation_bar'));
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.map_outlined),
-            selectedIcon: Icon(Icons.map_rounded),
-            label: 'Mapa',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.favorite_border_rounded),
-            selectedIcon: Icon(Icons.favorite_rounded),
-            label: 'Favoritos',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.groups_2_outlined),
-            selectedIcon: Icon(Icons.groups_2_rounded),
-            label: 'Comunidade',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline_rounded),
-            selectedIcon: Icon(Icons.person_rounded),
-            label: 'Perfil',
-          ),
-        ],
+    return Theme(
+      data: themedData,
+      child: Scaffold(
+        body: IndexedStack(index: _selectedIndex, children: pages),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: _selectedIndex,
+          onDestinationSelected: (index) {
+            setState(() {
+              _selectedIndex = index;
+              if (index == 1) {
+                _favoritesRefreshToken++;
+              }
+            });
+            unawaited(_trackTabSelection(index: index, origin: 'navigation_bar'));
+          },
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.map_outlined),
+              selectedIcon: Icon(Icons.map_rounded),
+              label: 'Mapa',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.favorite_border_rounded),
+              selectedIcon: Icon(Icons.favorite_rounded),
+              label: 'Favoritos',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.groups_2_outlined),
+              selectedIcon: Icon(Icons.groups_2_rounded),
+              label: 'Comunidade',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline_rounded),
+              selectedIcon: Icon(Icons.person_rounded),
+              label: 'Perfil',
+            ),
+          ],
+        ),
       ),
     );
   }

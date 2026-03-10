@@ -31,10 +31,16 @@ import 'widgets/map_controls.dart';
 import 'widgets/selected_gym_panel.dart';
 
 class GymMapPage extends StatefulWidget {
-  const GymMapPage({super.key, required this.showMap, required this.isActive});
+  const GymMapPage({
+    super.key,
+    required this.showMap,
+    required this.isActive,
+    this.onActivePlanChanged,
+  });
 
   final bool showMap;
   final bool isActive;
+  final ValueChanged<AppPlanTier>? onActivePlanChanged;
 
   @override
   State<GymMapPage> createState() => _GymMapPageState();
@@ -3085,15 +3091,17 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     try {
       final service = await PlanSubscriptionService.create();
       final snapshot = await service.loadActiveSubscription();
+      final nextPlan = _tierFromPlanKey(snapshot.activePlanKey);
       if (!mounted) {
         return;
       }
       setState(() {
         _planSubscriptionService = service;
-        _activePlan = _tierFromPlanKey(snapshot.activePlanKey);
+        _activePlan = nextPlan;
         _activePlanExpiresAtUtc = snapshot.expiresAt;
         _isLoadingPlanSubscription = false;
       });
+      widget.onActivePlanChanged?.call(nextPlan);
       _maybeWarnPlanNearExpiry(_activePlan, _activePlanExpiresAtUtc);
       _startPlanSyncTimer();
     } catch (_) {
@@ -3139,6 +3147,9 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       _activePlan = nextPlan;
       _activePlanExpiresAtUtc = nextExpiresAt;
     });
+    if (hasPlanChanged) {
+      widget.onActivePlanChanged?.call(nextPlan);
+    }
     _maybeWarnPlanNearExpiry(nextPlan, nextExpiresAt);
 
     if (showExpiryNotice &&
@@ -3712,10 +3723,12 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     if (!mounted) {
       return;
     }
+    final nextPlan = _tierFromPlanKey(snapshot.activePlanKey);
     setState(() {
-      _activePlan = _tierFromPlanKey(snapshot.activePlanKey);
+      _activePlan = nextPlan;
       _activePlanExpiresAtUtc = snapshot.expiresAt;
     });
+    widget.onActivePlanChanged?.call(nextPlan);
   }
 
   PlanInfo get _activePlanInfo => kPlanCatalog[_activePlan]!;
