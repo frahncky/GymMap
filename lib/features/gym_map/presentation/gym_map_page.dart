@@ -379,7 +379,6 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       unawaited(_loadDataSaverPreference());
       unawaited(_syncPlanFromStorage(showExpiryNotice: false));
-      unawaited(_reloadMapImages());
       unawaited(_refreshGymLocationCacheFromRemote());
       unawaited(_syncCrowdReportsForCurrentContext());
       unawaited(_startBackgroundLocationStream());
@@ -1609,7 +1608,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     if (!mounted) {
       return;
     }
-    setState(() {
+    _setStateIfMapVisible(() {
       _mapVisualReloadTick++;
     });
   }
@@ -5005,7 +5004,6 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
           ),
           children: [
             TileLayer(
-              key: ValueKey<String>('tile-layer-$_mapVisualReloadTick'),
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               userAgentPackageName: 'com.example.gymmap',
             ),
