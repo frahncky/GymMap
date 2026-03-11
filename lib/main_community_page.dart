@@ -63,6 +63,8 @@ class _CommunityFeedPage extends StatefulWidget {
 
 class _CommunityFeedPageState extends State<_CommunityFeedPage> {
   static const String _communityPointsPrefKey = 'gymmap_community_points_v1';
+  static const String _profileDisplayNamePrefKey = 'gymmap_profile_name_v1';
+  static const String _profileVisiblePrefKey = 'gymmap_profile_visible_v1';
   static const String _localCrowdReporterId = 'local-device-user';
   static const int _verificationPoints = 2;
   static const Duration _communityReloadInterval = Duration(minutes: 3);
@@ -660,6 +662,36 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     });
   }
 
+  Future<({String displayName, bool isVisible})> _loadProfilePreview() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final displayName = (prefs.getString(_profileDisplayNamePrefKey) ?? '')
+          .trim();
+      final isVisible = prefs.getBool(_profileVisiblePrefKey) ?? true;
+      return (displayName: displayName, isVisible: isVisible);
+    } catch (_) {
+      return (displayName: '', isVisible: true);
+    }
+  }
+
+  String _resolveCurrentUserLeaderboardName({
+    required String fallbackName,
+    required ({String displayName, bool isVisible}) profile,
+  }) {
+    if (!profile.isVisible) {
+      return 'Usuario anonimo';
+    }
+    final profileName = profile.displayName.trim();
+    if (profileName.isNotEmpty) {
+      return profileName;
+    }
+    final normalizedFallback = fallbackName.trim();
+    if (normalizedFallback.isNotEmpty) {
+      return normalizedFallback;
+    }
+    return 'Voce';
+  }
+
   Future<void> _refreshRegionalLeaderboard({
     required CrowdReportRemoteService remoteService,
     required LatLng? userPoint,
@@ -712,11 +744,21 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
         return;
       }
 
+      final profilePreview = await _loadProfilePreview();
+      if (!mounted) {
+        return;
+      }
       final localUserPoints = _communityPoints.clamp(0, 1000000).toInt();
       final entries = result.entries
           .map(
             (entry) => (
-              name: entry.displayName,
+              name:
+                  entry.isCurrentUser
+                      ? _resolveCurrentUserLeaderboardName(
+                        fallbackName: entry.displayName,
+                        profile: profilePreview,
+                      )
+                      : entry.displayName,
               points: entry.isCurrentUser ? localUserPoints : entry.points,
               isCurrentUser: entry.isCurrentUser,
             ),

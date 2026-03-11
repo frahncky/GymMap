@@ -51,6 +51,8 @@
 		<string>Usamos sua localizacao em segundo plano para manter o mapa atualizado.</string>
 		<key>NSLocationAlwaysUsageDescription</key>
 		<string>Usamos sua localizacao em segundo plano para manter o mapa atualizado.</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>Usamos sua galeria para definir a foto do perfil.</string>
 		<key>UIBackgroundModes</key>
 		<array>
 			<string>location</string>
