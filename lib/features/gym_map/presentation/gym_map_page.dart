@@ -4820,7 +4820,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     List<MapGymPoi> mapPois,
   ) {
     const controlsRight = 14.0;
-    final controlsTop = _isFreePlan ? 192.0 : 136.0;
+    // Mantem os botoes flutuantes sempre abaixo da faixa de busca/filtros.
+    final controlsTop = _isFreePlan ? 198.0 : 154.0;
     const controlsGap = 58.0;
 
     if (!widget.showMap) {
