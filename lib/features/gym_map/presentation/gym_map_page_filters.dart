@@ -566,7 +566,7 @@ extension _GymMapPageFilters on _GymMapPageState {
       return 'Aberta até ${_hourTag24(closeHour)}';
     }
     if (now.hour < openHour) {
-      return 'Abre as ${_hourTag24(openHour)}';
+      return 'Abre às ${_hourTag24(openHour)}';
     }
     final nextWeekday =
         now.weekday == DateTime.sunday ? DateTime.monday : now.weekday + 1;
