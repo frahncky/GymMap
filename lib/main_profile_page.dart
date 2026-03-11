@@ -72,7 +72,7 @@ class _ProfilePageState extends State<_ProfilePage> {
   static const String _locationAlertsPrefKey = 'gymmap_pref_location_alerts_v1';
   static const String _hapticsPrefKey = 'gymmap_pref_haptics_v1';
   static const String _dataSaverPrefKey = 'gymmap_pref_data_saver_v1';
-  static const String _defaultProfileName = 'Usuario GymMap';
+  static const String _defaultProfileName = 'Usuário GymMap';
 
   final ImagePicker _imagePicker = ImagePicker();
 
@@ -108,7 +108,7 @@ class _ProfilePageState extends State<_ProfilePage> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         behavior: SnackBarBehavior.floating,
-        content: Text('Nao foi possivel salvar esta preferencia agora.'),
+        content: Text('Não foi possível salvar esta preferência agora.'),
       ),
     );
   }
@@ -279,7 +279,7 @@ class _ProfilePageState extends State<_ProfilePage> {
                 final bytes = await picked.readAsBytes();
                 if (bytes.isEmpty) {
                   setDialogState(() {
-                    errorMessage = 'Nao foi possivel carregar a foto.';
+                    errorMessage = 'Não foi possível carregar a foto.';
                   });
                   return;
                 }
@@ -288,7 +288,7 @@ class _ProfilePageState extends State<_ProfilePage> {
                 });
               } catch (_) {
                 setDialogState(() {
-                  errorMessage = 'Nao foi possivel selecionar a foto.';
+                  errorMessage = 'Não foi possível selecionar a foto.';
                 });
               } finally {
                 if (dialogContext.mounted) {
@@ -328,7 +328,7 @@ class _ProfilePageState extends State<_ProfilePage> {
               }
               setDialogState(() {
                 isSaving = false;
-                errorMessage = 'Nao foi possivel salvar o perfil.';
+                errorMessage = 'Não foi possível salvar o perfil.';
               });
             }
 
@@ -407,7 +407,7 @@ class _ProfilePageState extends State<_ProfilePage> {
                       },
                       decoration: const InputDecoration(
                         labelText: 'Nome',
-                        hintText: 'Como voce quer aparecer',
+                        hintText: 'Como você quer aparecer',
                       ),
                     ),
                     if (errorMessage != null) ...[
@@ -537,7 +537,7 @@ class _ProfilePageState extends State<_ProfilePage> {
                                             ),
                                             const SizedBox(height: 3),
                                             Text(
-                                              'Plano atual: Gratis',
+                                              'Plano atual: Grátis',
                                               style: TextStyle(
                                                 color: onSurface.withValues(
                                                   alpha: 0.72,
@@ -644,13 +644,13 @@ class _ProfilePageState extends State<_ProfilePage> {
                                       horizontal: 8,
                                     ),
                                     title: const Text(
-                                      'Permitir visualizacao publica',
+                                      'Permitir visualização pública',
                                       style: TextStyle(
                                         fontWeight: FontWeight.w800,
                                       ),
                                     ),
                                     subtitle: const Text(
-                                      'Permite que seu nome e foto aparecam na comunidade.',
+                                      'Permite que seu nome e foto apareçam na comunidade.',
                                     ),
                                     value: _preferences.isProfileVisible,
                                     onChanged: _setProfileVisibility,
@@ -660,13 +660,13 @@ class _ProfilePageState extends State<_ProfilePage> {
                                       horizontal: 8,
                                     ),
                                     title: const Text(
-                                      'Notificacoes push',
+                                      'Notificações push',
                                       style: TextStyle(
                                         fontWeight: FontWeight.w800,
                                       ),
                                     ),
                                     subtitle: const Text(
-                                      'Receber alertas de lotacao e atualizacoes.',
+                                      'Receber alertas de lotação e atualizações.',
                                     ),
                                     value: _preferences.pushNotifications,
                                     onChanged: (value) {
@@ -685,13 +685,13 @@ class _ProfilePageState extends State<_ProfilePage> {
                                       horizontal: 8,
                                     ),
                                     title: const Text(
-                                      'Alertas por localizacao',
+                                      'Alertas por localização',
                                       style: TextStyle(
                                         fontWeight: FontWeight.w800,
                                       ),
                                     ),
                                     subtitle: const Text(
-                                      'Avisar quando houver academia com lotacao baixa perto de voce.',
+                                      'Avisar quando houver academia com lotação baixa perto de você.',
                                     ),
                                     value: _preferences.locationAlerts,
                                     onChanged: (value) {
@@ -710,13 +710,13 @@ class _ProfilePageState extends State<_ProfilePage> {
                                       horizontal: 8,
                                     ),
                                     title: const Text(
-                                      'Feedback vibratorio',
+                                      'Feedback vibratório',
                                       style: TextStyle(
                                         fontWeight: FontWeight.w800,
                                       ),
                                     ),
                                     subtitle: const Text(
-                                      'Usar vibracao em acoes importantes.',
+                                      'Usar vibração em ações importantes.',
                                     ),
                                     value: _preferences.hapticFeedback,
                                     onChanged: (value) {
@@ -741,7 +741,7 @@ class _ProfilePageState extends State<_ProfilePage> {
                                       ),
                                     ),
                                     subtitle: const Text(
-                                      'Reduzir atualizacoes em segundo plano.',
+                                      'Reduzir atualizações em segundo plano.',
                                     ),
                                     value: _preferences.dataSaverMode,
                                     onChanged: (value) {

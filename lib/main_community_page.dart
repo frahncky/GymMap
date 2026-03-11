@@ -679,7 +679,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     required ({String displayName, bool isVisible}) profile,
   }) {
     if (!profile.isVisible) {
-      return 'Usuario anonimo';
+      return 'Usuário anônimo';
     }
     final profileName = profile.displayName.trim();
     if (profileName.isNotEmpty) {
