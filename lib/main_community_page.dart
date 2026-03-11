@@ -937,7 +937,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                               leaderboardEntries.isEmpty)
                             Text(
                               _hasLocationContext
-                                  ? 'Ainda não há ranking regional suficiente.'
+                                  ? 'Ainda não há ranking suficiente.'
                                   : 'Ative a localização para carregar ranking real.',
                               style: const TextStyle(
                                 fontWeight: FontWeight.w700,
