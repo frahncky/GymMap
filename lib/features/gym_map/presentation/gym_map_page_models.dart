@@ -51,6 +51,18 @@ class _CommunityLeaderboardSheetData {
   final bool isRegional;
 }
 
+class _MapDerivedData {
+  const _MapDerivedData({
+    required this.snapshotsByGymId,
+    required this.filteredGyms,
+    required this.filteredMapPois,
+  });
+
+  final Map<String, GymCrowdSnapshot> snapshotsByGymId;
+  final List<Gym> filteredGyms;
+  final List<MapGymPoi> filteredMapPois;
+}
+
 const Map<AppPlanTier, PlanInfo> kPlanCatalog = {
   AppPlanTier.free: PlanInfo(
     label: 'Grátis',

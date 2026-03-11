@@ -205,6 +205,10 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   bool _isPlanAuthBusy = false;
   String? _lastPlanExpiryWarningKey;
   int _mapVisualReloadTick = 0;
+  int _mapPoisRevision = 0;
+  int _crowdDataRevision = 0;
+  String? _mapDerivedDataCacheKey;
+  _MapDerivedData? _mapDerivedDataCache;
   bool _hasTrackedMapReadyMetric = false;
   String? _pendingFocusGymId;
   final AppMetricsService _metrics = AppMetricsService.instance;
@@ -420,6 +424,65 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     });
   }
 
+  String _locationCacheKey(LatLng? point) {
+    if (point == null) {
+      return 'none';
+    }
+    return '${point.latitude.toStringAsFixed(5)},'
+        '${point.longitude.toStringAsFixed(5)}';
+  }
+
+  void _markCrowdDataChanged() {
+    _crowdDataRevision++;
+  }
+
+  String _mapDerivedDataKeyForCurrentContext() {
+    final camera = _isMapReady ? _mapController.camera : null;
+    final mapCenter = camera?.center;
+    final mapZoom = camera?.zoom ?? 13.4;
+    final normalizedSearchTerm = _normalizeSearchTerm(_searchTerm);
+    final normalizedSearchLocationQuery =
+        _normalizeSearchTerm(_searchLocationQuery ?? '');
+    final quickFilterHash = Object.hashAllUnordered(_activeQuickFilters);
+    final favoritesHash = Object.hashAllUnordered(_favoriteGymIds);
+    return [
+      normalizedSearchTerm,
+      normalizedSearchLocationQuery,
+      _locationCacheKey(_searchLocationCenter),
+      _locationCacheKey(_manualBrowseCenter),
+      _locationCacheKey(_userLocation),
+      _locationCacheKey(mapCenter),
+      mapZoom.toStringAsFixed(2),
+      _coverageRadiusMeters.toStringAsFixed(0),
+      quickFilterHash.toString(),
+      favoritesHash.toString(),
+      _mapPoisRevision.toString(),
+      _crowdDataRevision.toString(),
+      _isMapReady ? '1' : '0',
+    ].join('|');
+  }
+
+  _MapDerivedData _resolveMapDerivedData() {
+    final nextKey = _mapDerivedDataKeyForCurrentContext();
+    final cached = _mapDerivedDataCache;
+    if (cached != null && _mapDerivedDataCacheKey == nextKey) {
+      return cached;
+    }
+    final snapshotsByGymId = <String, GymCrowdSnapshot>{
+      for (final gym in _gyms) gym.id: _crowdService.snapshotFor(gym),
+    };
+    final filteredGyms = _applyQuickFiltersToGyms(_filteredGyms, snapshotsByGymId);
+    final filteredMapPois = _applyQuickFiltersToPois(_filteredMapPois());
+    final resolved = _MapDerivedData(
+      snapshotsByGymId: snapshotsByGymId,
+      filteredGyms: filteredGyms,
+      filteredMapPois: filteredMapPois,
+    );
+    _mapDerivedDataCacheKey = nextKey;
+    _mapDerivedDataCache = resolved;
+    return resolved;
+  }
+
   /// Algoritmo de busca local:
   /// - normaliza para minusculas;
   /// - se vazio, retorna todas as academias;
@@ -577,6 +640,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         }
         final merged = _crowdService.mergeReports(reports);
         if (merged > 0) {
+          _markCrowdDataChanged();
           _queueUiRefreshIfMapVisible();
         }
       }
@@ -1062,6 +1126,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     var hasHydratedFavoriteNames = false;
     _setStateIfMapVisible(() {
       _mapPois = List<MapGymPoi>.unmodifiable(nextPois);
+      _mapPoisRevision++;
       hasHydratedFavoriteNames = _hydrateFavoriteGymNamesFromPois(nextPois);
     });
     _tryResolvePendingFocusGymId();
@@ -1928,9 +1993,12 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
 
           final remoteReport = remoteResult.report;
           if (remoteReport != null) {
-            _crowdService.mergeReports(<CrowdReport>[remoteReport]);
+            final merged = _crowdService.mergeReports(<CrowdReport>[remoteReport]);
+            if (merged > 0) {
+              _markCrowdDataChanged();
+            }
           } else {
-            _crowdService.mergeReports(<CrowdReport>[
+            final merged = _crowdService.mergeReports(<CrowdReport>[
               CrowdReport(
                 gymId: selectedGym.id,
                 occupancyPercent: report,
@@ -1939,6 +2007,9 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                 reliabilityWeight: 1,
               ),
             ]);
+            if (merged > 0) {
+              _markCrowdDataChanged();
+            }
           }
 
           final snapshot = _crowdService.snapshotFor(selectedGym);
@@ -2008,6 +2079,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         );
         return;
       }
+      _markCrowdDataChanged();
 
       final snapshot = _crowdService.snapshotFor(selectedGym);
       if (mounted) {
@@ -4632,16 +4704,10 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    final snapshotsByGymId = <String, GymCrowdSnapshot>{
-      for (final gym in _gyms) gym.id: _crowdService.snapshotFor(gym),
-    };
-    final rawFilteredGyms = _filteredGyms;
-    final rawFilteredMapPois = _filteredMapPois();
-    final filteredGyms = _applyQuickFiltersToGyms(
-      rawFilteredGyms,
-      snapshotsByGymId,
-    );
-    final filteredMapPois = _applyQuickFiltersToPois(rawFilteredMapPois);
+    final derivedMapData = _resolveMapDerivedData();
+    final snapshotsByGymId = derivedMapData.snapshotsByGymId;
+    final filteredGyms = derivedMapData.filteredGyms;
+    final filteredMapPois = derivedMapData.filteredMapPois;
     final markerGyms = filteredGyms;
     final quickFilterChips = _buildQuickFilterChips();
     final hasVisiblePins =
