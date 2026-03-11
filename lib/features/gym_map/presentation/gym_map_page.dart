@@ -2061,9 +2061,9 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         distanceFilter: _backgroundLocationDistanceFilterMeters.round(),
         intervalDuration: _backgroundLocationInterval,
         foregroundNotificationConfig: const ForegroundNotificationConfig(
-          notificationTitle: 'GymMap localizacao ativa',
+          notificationTitle: 'GymMap localização ativa',
           notificationText:
-              'GymMap esta atualizando sua localizacao em segundo plano.',
+              'GymMap está atualizando sua localização em segundo plano.',
           enableWakeLock: true,
         ),
       );
@@ -2921,14 +2921,14 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
             ? '$hours hora${hours == 1 ? '' : 's'}'
             : 'menos de 1 hora';
     _showMapSnack(
-      'Seu plano $planLabel expira em $windowLabel. Renovacao somente manual, quando você decidir.',
+      'Seu plano $planLabel expira em $windowLabel. Renovação somente manual, quando você decidir.',
     );
   }
 
   String _planAuthStatusLabel() {
     final service = _planSubscriptionService;
     if (service == null) {
-      return 'Autenticacao ainda inicializando';
+      return 'Autenticação ainda inicializando';
     }
     if (service.isProductionMode && !service.hasRemoteBackend) {
       return 'Modo produção ativo sem backend remoto configurado';
@@ -3842,13 +3842,13 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
 
   String _planPriceLabel(AppPlanTier tier) {
     if (tier == AppPlanTier.free) {
-      return 'R\$ 0/mes';
+      return 'R\$ 0/mês';
     }
     final playProduct = _playProductForTier(tier);
     if (playProduct != null) {
       final price = playProduct.price.trim();
       if (price.isNotEmpty) {
-        return '$price/mes';
+        return '$price/mês';
       }
     }
     return kPlanCatalog[tier]!.monthlyPrice;
@@ -3860,7 +3860,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     }
     if (tier == AppPlanTier.free) {
       return current == AppPlanTier.free
-          ? 'Continuar gratis'
+          ? 'Continuar grátis'
           : 'Voltar ao gratuito';
     }
     if (_planTierWeight(tier) > _planTierWeight(current)) {
@@ -3945,7 +3945,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         current == AppPlanTier.free && tier == AppPlanTier.pro;
     final actionLabel =
         isPrimaryTrialCta
-            ? 'Comecar teste gratis'
+            ? 'Começar teste grátis'
             : _planActionLabel(tier, current);
     final fullPriceLabel = _planPriceLabel(tier);
     final periodSeparatorIndex = fullPriceLabel.indexOf('/');
@@ -4580,7 +4580,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                                   ),
                                 )
                                 : const Icon(Icons.rocket_launch),
-                        label: const Text('Comecar teste gratis'),
+                        label: const Text('Começar teste grátis'),
                       ),
                     ),
                     const SizedBox(height: 6),

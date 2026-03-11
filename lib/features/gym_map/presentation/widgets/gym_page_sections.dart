@@ -139,7 +139,7 @@ class GymPageHeader extends StatelessWidget {
             label: 'Configurações de plano',
             hint: 'Toque para abrir opções de assinatura',
             child: IconButton(
-              tooltip: 'Configuracoes de plano',
+              tooltip: 'Configurações de plano',
               onPressed: onOpenPlanSettings,
               icon: const Icon(Icons.settings, color: Colors.white),
             ),
@@ -583,7 +583,7 @@ class MapTutorialOverlay extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Dicas rapidas do mapa',
+                        'Dicas rápidas do mapa',
                         style: TextStyle(
                           fontWeight: FontWeight.w800,
                           fontSize: 16,
