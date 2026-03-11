@@ -11,8 +11,8 @@ import 'package:postgres/postgres.dart';
 const Map<String, int> _planPricesCents = <String, int>{
   'free': 0,
   'smart': 490,
-  'pro': 990,
-  'elite': 1490,
+  'pro': 1990,
+  'elite': 3490,
 };
 
 Future<void> main() async {
@@ -91,6 +91,9 @@ Future<void> main() async {
       45;
   final requestLogEnabled =
       !_parseBoolEnv(Platform.environment['REQUEST_LOG_DISABLED'] ?? '');
+  final trustProxyHeaders = _parseBoolEnv(
+    Platform.environment['TRUST_PROXY_HEADERS'] ?? '',
+  );
   final authUsers = _parseAuthUsers(
     Platform.environment['AUTH_USERS_JSON'] ?? '',
   );
@@ -173,6 +176,7 @@ Future<void> main() async {
     webhookRetentionDays: webhookRetentionDays,
     crowdReportRetentionDays: crowdReportRetentionDays,
     requestLogEnabled: requestLogEnabled,
+    trustProxyHeaders: trustProxyHeaders,
     authUsers: authUsers,
     authDefaultPassword: authDefaultPassword,
     playPackageName: playPackageName,
@@ -220,6 +224,7 @@ class _PixBillingBackend {
     required this.webhookRetentionDays,
     required this.crowdReportRetentionDays,
     required this.requestLogEnabled,
+    required this.trustProxyHeaders,
     required this.authUsers,
     required this.authDefaultPassword,
     required this.playPackageName,
@@ -261,6 +266,7 @@ class _PixBillingBackend {
   final int webhookRetentionDays;
   final int crowdReportRetentionDays;
   final bool requestLogEnabled;
+  final bool trustProxyHeaders;
   final Map<String, String> authUsers;
   final String authDefaultPassword;
   final String playPackageName;
@@ -337,6 +343,7 @@ class _PixBillingBackend {
     required int webhookRetentionDays,
     required int crowdReportRetentionDays,
     required bool requestLogEnabled,
+    required bool trustProxyHeaders,
     required Map<String, String> authUsers,
     required String authDefaultPassword,
     required String playPackageName,
@@ -401,6 +408,7 @@ class _PixBillingBackend {
       webhookRetentionDays: webhookRetentionDays.clamp(7, 365),
       crowdReportRetentionDays: crowdReportRetentionDays.clamp(7, 365),
       requestLogEnabled: requestLogEnabled,
+      trustProxyHeaders: trustProxyHeaders,
       authUsers: Map<String, String>.from(authUsers),
       authDefaultPassword: authDefaultPassword,
       playPackageName: playPackageName,
@@ -901,7 +909,6 @@ class _PixBillingBackend {
         final maxPerGym = limitPerGym.clamp(1, 200);
 
         final reports = crowdReports.values
-          .where((raw) => '${raw['userId'] ?? ''}'.trim() == userId)
           .where((raw) {
             if (gymIdFilter.isEmpty) {
               return true;
@@ -1575,10 +1582,10 @@ class _PixBillingBackend {
         'error': 'invalid_json',
         'message': e.message,
       });
-    } catch (e) {
+    } catch (_) {
       return _json(req, HttpStatus.internalServerError, <String, dynamic>{
         'error': 'internal_error',
-        'message': '$e',
+        'requestId': requestId,
       });
     } finally {
       final statusCode = req.response.statusCode;
@@ -1655,6 +1662,9 @@ class _PixBillingBackend {
 
   String _clientKeyFor(HttpRequest req) {
     final ip = req.connectionInfo?.remoteAddress.address ?? 'unknown-ip';
+    if (!trustProxyHeaders) {
+      return ip;
+    }
     final forwardedFor = req.headers.value('x-forwarded-for');
     if (forwardedFor != null && forwardedFor.trim().isNotEmpty) {
       final first = forwardedFor.split(',').first.trim();
