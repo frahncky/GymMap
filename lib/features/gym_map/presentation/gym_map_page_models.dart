@@ -71,12 +71,12 @@ const Map<AppPlanTier, PlanInfo> kPlanCatalog = {
   ),
   AppPlanTier.smart: PlanInfo(
     label: 'Essencial',
-    monthlyPrice: 'R\$ 4,90/mês',
+    monthlyPrice: 'R\$ 9,90/mês',
     insights: ['Lotação atual', 'Histórico das últimas 24h'],
   ),
   AppPlanTier.pro: PlanInfo(
     label: 'Pro',
-    monthlyPrice: 'R\$ 9,90/mês',
+    monthlyPrice: 'R\$ 19,90/mês',
     insights: [
       'Lotação atual',
       'Histórico das últimas 24h',
@@ -86,7 +86,7 @@ const Map<AppPlanTier, PlanInfo> kPlanCatalog = {
   ),
   AppPlanTier.elite: PlanInfo(
     label: 'Elite',
-    monthlyPrice: 'R\$ 14,90/mês',
+    monthlyPrice: 'R\$ 34,90/mês',
     insights: [
       'Lotação atual',
       'Histórico das últimas 24h',
