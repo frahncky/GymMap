@@ -183,6 +183,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   Timer? _mapBrowseCenterUiDebounce;
   Timer? _contributionCelebrationTimer;
   Timer? _planSyncTimer;
+  bool _isUiRefreshQueued = false;
   StreamSubscription<List<PurchaseDetails>>? _purchaseStreamSubscription;
   StreamSubscription<Position>? _positionStreamSubscription;
   bool _isStartingBackgroundLocationStream = false;
@@ -397,6 +398,28 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     super.dispose();
   }
 
+  void _setStateIfMapVisible(VoidCallback updateState) {
+    if (!mounted || !widget.isActive) {
+      updateState();
+      return;
+    }
+    setState(updateState);
+  }
+
+  void _queueUiRefreshIfMapVisible() {
+    if (!mounted || !widget.isActive || _isUiRefreshQueued) {
+      return;
+    }
+    _isUiRefreshQueued = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _isUiRefreshQueued = false;
+      if (!mounted || !widget.isActive) {
+        return;
+      }
+      setState(() {});
+    });
+  }
+
   /// Algoritmo de busca local:
   /// - normaliza para minusculas;
   /// - se vazio, retorna todas as academias;
@@ -553,8 +576,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
           continue;
         }
         final merged = _crowdService.mergeReports(reports);
-        if (merged > 0 && mounted) {
-          setState(() {});
+        if (merged > 0) {
+          _queueUiRefreshIfMapVisible();
         }
       }
     } catch (_) {
@@ -702,7 +725,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     if (_isLoadingMapPois || !mounted) {
       return;
     }
-    setState(() {
+    _setStateIfMapVisible(() {
       _isLoadingMapPois = true;
     });
   }
@@ -715,7 +738,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     if (_mapPoiLoadingRequests > 0 || !_isLoadingMapPois || !mounted) {
       return;
     }
-    setState(() {
+    _setStateIfMapVisible(() {
       _isLoadingMapPois = false;
     });
   }
@@ -738,7 +761,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         if (!mounted) {
           return;
         }
-        setState(() {});
+        _queueUiRefreshIfMapVisible();
       });
     }
 
@@ -1037,7 +1060,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       return;
     }
     var hasHydratedFavoriteNames = false;
-    setState(() {
+    _setStateIfMapVisible(() {
       _mapPois = List<MapGymPoi>.unmodifiable(nextPois);
       hasHydratedFavoriteNames = _hydrateFavoriteGymNamesFromPois(nextPois);
     });
@@ -2104,7 +2127,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       return;
     }
 
-    setState(() {
+    _setStateIfMapVisible(() {
       _userLocation = userPoint;
       final selectedGym = _selectedGym;
       if (selectedGym != null &&
