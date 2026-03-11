@@ -73,6 +73,7 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
   Widget build(BuildContext context) {
     final color = occupancyColor(widget.percent);
     const markerInfoOffsetY = 18.0;
+    final showLowCrowdTag = widget.revealDetails && _isLowCrowd;
 
     return Semantics(
       button: true,
@@ -279,33 +280,46 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
                   ],
                 ),
               ),
-              AnimatedOpacity(
-                opacity: widget.revealDetails && _isLowCrowd ? 1 : 0,
+              AnimatedSwitcher(
                 duration: const Duration(milliseconds: 220),
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 1),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: withUiOpacity(GymMapColors.occupancyLow, 0.12),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: withUiOpacity(GymMapColors.occupancyLow, 0.28),
-                      ),
-                    ),
-                    child: const Text(
-                      'Bom momento',
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                        color: GymMapColors.occupancyLow,
-                      ),
-                    ),
-                  ),
-                ),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                child:
+                    showLowCrowdTag
+                        ? Padding(
+                          key: const ValueKey<String>('low-crowd-tag-visible'),
+                          padding: const EdgeInsets.only(top: 1),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: withUiOpacity(
+                                GymMapColors.occupancyLow,
+                                0.12,
+                              ),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(
+                                color: withUiOpacity(
+                                  GymMapColors.occupancyLow,
+                                  0.28,
+                                ),
+                              ),
+                            ),
+                            child: const Text(
+                              'Bom momento',
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                                color: GymMapColors.occupancyLow,
+                              ),
+                            ),
+                          ),
+                        )
+                        : const SizedBox.shrink(
+                          key: ValueKey<String>('low-crowd-tag-hidden'),
+                        ),
               ),
             ],
           ),

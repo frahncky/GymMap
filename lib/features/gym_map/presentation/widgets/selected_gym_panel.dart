@@ -517,6 +517,12 @@ class _HistoryInsightsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final viewportHeight = MediaQuery.sizeOf(context).height;
+    final textScale = MediaQuery.textScalerOf(context).scale(1.0);
+    final chartHeight =
+        ((viewportHeight * 0.19) + ((textScale - 1) * 28))
+            .clamp(132.0, 192.0)
+            .toDouble();
     final peakPoint = sampled.reduce(
       (current, next) =>
           next.occupancyPercent > current.occupancyPercent ? next : current,
@@ -554,7 +560,7 @@ class _HistoryInsightsCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           SizedBox(
-            height: 168,
+            height: chartHeight,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [

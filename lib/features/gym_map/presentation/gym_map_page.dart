@@ -4820,9 +4820,10 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     List<MapGymPoi> mapPois,
   ) {
     const controlsRight = 14.0;
-    // Mantem os botoes flutuantes sempre abaixo da faixa de busca/filtros.
-    final controlsTop = _isFreePlan ? 198.0 : 154.0;
+    final controlsTop = _mapControlsTopOffset(context);
     const controlsGap = 58.0;
+    final markerBaseWidth = _markerBaseWidth(context);
+    final markerBaseHeight = _markerBaseHeight(context);
 
     if (!widget.showMap) {
       return const MapStatusCard(message: 'Mapa desativado no modo de teste');
@@ -4838,8 +4839,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
           final markerScale = _markerScaleForPosition(gym.position);
           return Marker(
             point: gym.position,
-            width: 250 * markerScale,
-            height: 170 * markerScale,
+            width: markerBaseWidth * markerScale,
+            height: markerBaseHeight * markerScale,
             child: Transform.translate(
               offset: Offset(0, _markerBodyAnchorOffset(markerScale)),
               child: Transform.scale(
@@ -4862,7 +4863,12 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
             ),
           );
         }(),
-      for (final poi in mapPois) _buildPoiMarker(poi),
+      for (final poi in mapPois)
+        _buildPoiMarker(
+          poi,
+          markerBaseWidth: markerBaseWidth,
+          markerBaseHeight: markerBaseHeight,
+        ),
     ];
     final userPoint = _userLocation;
     if (userPoint != null) {
@@ -4977,15 +4983,46 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     return _mapMarkerBodyAnchorOffset * markerScale;
   }
 
-  Marker _buildPoiMarker(MapGymPoi poi) {
+  double _mapControlsTopOffset(BuildContext context) {
+    final textScale = MediaQuery.textScalerOf(context).scale(1.0);
+    final normalizedScale = textScale.clamp(1.0, 1.25).toDouble();
+    final searchAndFilterHeight = (56 * normalizedScale) + 10 + (52 * normalizedScale);
+    final adHeight = _isFreePlan ? (52 * normalizedScale) + 8 : 0.0;
+    final computedOffset = 12 + searchAndFilterHeight + adHeight + 8;
+    return computedOffset.clamp(132.0, 230.0).toDouble();
+  }
+
+  double _markerBaseWidth(BuildContext context) {
+    final shortestSide = MediaQuery.sizeOf(context).shortestSide;
+    if (shortestSide <= 360) {
+      return 208;
+    }
+    if (shortestSide <= 420) {
+      return 232;
+    }
+    if (shortestSide >= 720) {
+      return 280;
+    }
+    return 250;
+  }
+
+  double _markerBaseHeight(BuildContext context) {
+    return (_markerBaseWidth(context) * 0.72).clamp(154.0, 220.0).toDouble();
+  }
+
+  Marker _buildPoiMarker(
+    MapGymPoi poi, {
+    required double markerBaseWidth,
+    required double markerBaseHeight,
+  }) {
     final poiGym = _gymFromPoi(poi);
     final poiPercent = _crowdService.snapshotFor(poiGym).occupancyPercent;
     final markerScale = _markerScaleForPosition(poi.position);
     return Marker(
       key: ValueKey<String>('poi-marker-${poi.id}-$_mapVisualReloadTick'),
       point: poi.position,
-      width: 250 * markerScale,
-      height: 170 * markerScale,
+      width: markerBaseWidth * markerScale,
+      height: markerBaseHeight * markerScale,
       child: Transform.translate(
         offset: Offset(0, _markerBodyAnchorOffset(markerScale)),
         child: Transform.scale(
