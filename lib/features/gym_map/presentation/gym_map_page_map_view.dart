@@ -180,7 +180,8 @@ extension _GymMapPageMapView on _GymMapPageState {
   double _mapControlsTopOffset(BuildContext context) {
     final textScale = MediaQuery.textScalerOf(context).scale(1.0);
     final normalizedScale = textScale.clamp(1.0, 1.25).toDouble();
-    final searchAndFilterHeight = (56 * normalizedScale) + 10 + (52 * normalizedScale);
+    final searchAndFilterHeight =
+        (56 * normalizedScale) + 10 + (52 * normalizedScale);
     final adHeight = _isFreePlan ? (52 * normalizedScale) + 8 : 0.0;
     final computedOffset = 12 + searchAndFilterHeight + adHeight + 8;
     return computedOffset.clamp(132.0, 230.0).toDouble();
@@ -264,22 +265,52 @@ extension _GymMapPageMapView on _GymMapPageState {
     return '${(distanceMeters / 1000).toStringAsFixed(1)} km de você';
   }
 
-  void _openRouteForGym(Gym gym) {
+  Future<void> _openRouteForGym(Gym gym) async {
     _moveMapTo(gym.position, 15.6);
-    final userPoint = _userLocation;
-    if (userPoint == null) {
-      _showMapSnack(
-        'Rota exibida no mapa. Ative sua localização para ver distância estimada.',
-      );
-      return;
+    final latitude = gym.position.latitude.toStringAsFixed(6);
+    final longitude = gym.position.longitude.toStringAsFixed(6);
+    final destination = '$latitude,$longitude';
+
+    final androidUri = Uri.parse('google.navigation:q=$destination');
+    final iosUri = Uri.parse(
+      'comgooglemaps://?daddr=$destination&directionsmode=driving',
+    );
+    final webFallbackUri = Uri.https('www.google.com', '/maps/dir/', {
+      'api': '1',
+      'destination': destination,
+      'travelmode': 'driving',
+    });
+
+    try {
+      var launched = false;
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        launched = await launchUrl(
+          androidUri,
+          mode: LaunchMode.externalApplication,
+        );
+      } else if (defaultTargetPlatform == TargetPlatform.iOS) {
+        launched = await launchUrl(
+          iosUri,
+          mode: LaunchMode.externalApplication,
+        );
+        if (!launched) {
+          launched = await launchUrl(
+            webFallbackUri,
+            mode: LaunchMode.externalApplication,
+          );
+        }
+      } else {
+        launched = await launchUrl(
+          webFallbackUri,
+          mode: LaunchMode.externalApplication,
+        );
+      }
+      if (!launched) {
+        _showMapSnack('Nao foi possivel abrir o Google Maps agora.');
+      }
+    } catch (_) {
+      _showMapSnack('Nao foi possivel abrir o Google Maps agora.');
     }
-    final distanceKm =
-        math.sqrt(_distanceSquaredMeters(userPoint, gym.position)) / 1000;
-    final distanceLabel =
-        distanceKm < 1
-            ? '${(distanceKm * 1000).round()} m'
-            : '${distanceKm.toStringAsFixed(1)} km';
-    _showMapSnack('Rota para ${gym.name}: aproximadamente $distanceLabel.');
   }
 
   Widget _buildSelectedGymPanel(Gym gym, GymCrowdSnapshot snapshot) {
@@ -326,7 +357,9 @@ extension _GymMapPageMapView on _GymMapPageState {
       },
       isSubmittingCrowdReport: _isSubmittingCrowdReport,
       onSubmitCrowdReport: _submitCrowdReport,
-      onOpenRoute: () => _openRouteForGym(gym),
+      onOpenRoute: () {
+        unawaited(_openRouteForGym(gym));
+      },
       onVerticalDragStart: _onPanelDismissDragStart,
       onVerticalDragUpdate: _onPanelDismissDragUpdate,
       onVerticalDragEnd: _onPanelDismissDragEnd,
