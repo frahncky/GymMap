@@ -142,13 +142,6 @@ class _ProfilePageState extends State<_ProfilePage> {
                               ),
                             ),
                             const SizedBox(height: 6),
-                            Text(
-                              'Conta e preferências do app.',
-                              style: TextStyle(
-                                color: onSurface.withValues(alpha: 0.72),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
                             const SizedBox(height: 12),
                             Container(
                               width: double.infinity,
@@ -322,15 +315,7 @@ class _ProfilePageState extends State<_ProfilePage> {
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 10),
-                            Text(
-                              'Preferências salvas localmente neste dispositivo.',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: onSurface.withValues(alpha: 0.72),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                            
                           ],
                         ),
                       ),
