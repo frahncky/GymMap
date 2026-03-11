@@ -87,6 +87,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   static const Duration _dataSaverPoiReloadCooldown = Duration(seconds: 16);
   static const Duration _dataSaverCrowdSyncCooldown = Duration(minutes: 3);
   static const Duration _backgroundLocationInterval = Duration(seconds: 25);
+  static const Duration _coverageLockSnackCooldown = Duration(seconds: 8);
   static const double _backgroundLocationDistanceFilterMeters = 35;
   static const double _backgroundLocationUiRefreshMinDistanceMeters = 25;
   static const double _dataSaverPoiReloadMinDistanceMeters = 3200;
@@ -193,6 +194,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   Timer? _mapBrowseCenterUiDebounce;
   Timer? _contributionCelebrationTimer;
   Timer? _planSyncTimer;
+  DateTime? _lastCoverageLockSnackAt;
   bool _isUiRefreshQueued = false;
   StreamSubscription<List<PurchaseDetails>>? _purchaseStreamSubscription;
   StreamSubscription<Position>? _positionStreamSubscription;

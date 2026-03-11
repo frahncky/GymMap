@@ -306,6 +306,7 @@ extension _GymMapPagePlan on _GymMapPageState {
         _isLoadingPlanSubscription = false;
       });
       widget.onActivePlanChanged?.call(nextPlan);
+      _enforcePlanCoverageAfterTierChange();
       _maybeWarnPlanNearExpiry(_activePlan, _activePlanExpiresAtUtc);
       _startPlanSyncTimer();
     } catch (_) {
@@ -353,6 +354,7 @@ extension _GymMapPagePlan on _GymMapPageState {
     });
     if (hasPlanChanged) {
       widget.onActivePlanChanged?.call(nextPlan);
+      _enforcePlanCoverageAfterTierChange();
     }
     _maybeWarnPlanNearExpiry(nextPlan, nextExpiresAt);
 
@@ -933,6 +935,7 @@ extension _GymMapPagePlan on _GymMapPageState {
       _activePlanExpiresAtUtc = snapshot.expiresAt;
     });
     widget.onActivePlanChanged?.call(nextPlan);
+    _enforcePlanCoverageAfterTierChange();
   }
 
   PlanInfo get _activePlanInfo => kPlanCatalog[_activePlan]!;

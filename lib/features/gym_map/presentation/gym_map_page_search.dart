@@ -66,6 +66,10 @@ extension _GymMapPageSearch on _GymMapPageState {
     if (normalized.isEmpty || _hasLocalTextMatch(normalized)) {
       return;
     }
+    if (!_hasNationwideCoverage && _userLocation == null) {
+      _notifyCoverageAccessBlocked(offerEliteUpgrade: false);
+      return;
+    }
 
     _setStateIfMapVisible(() {
       _isResolvingSearchLocation = true;
@@ -113,6 +117,9 @@ extension _GymMapPageSearch on _GymMapPageState {
       }
 
       final center = LatLng(latitude, longitude);
+      if (!_ensurePlanCoverageForCenter(center, notifyIfBlocked: true)) {
+        return;
+      }
       _setStateIfMapVisible(() {
         _mapSearchState.applyResolvedSearchLocation(
           normalizedQuery: normalized,
