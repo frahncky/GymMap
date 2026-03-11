@@ -12,6 +12,7 @@ class GymMarkerBubble extends StatefulWidget {
     required this.isFavorite,
     required this.selected,
     required this.revealDetails,
+    this.enablePulse = true,
     required this.onTap,
   });
 
@@ -20,6 +21,7 @@ class GymMarkerBubble extends StatefulWidget {
   final bool isFavorite;
   final bool selected;
   final bool revealDetails;
+  final bool enablePulse;
   final VoidCallback onTap;
 
   @override
@@ -31,7 +33,8 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
   late final AnimationController _pulseController;
 
   bool get _isLowCrowd => widget.percent <= 35;
-  bool get _shouldPulse => _isLowCrowd && !widget.selected;
+  bool get _shouldPulse =>
+      widget.enablePulse && widget.revealDetails && _isLowCrowd && !widget.selected;
 
   @override
   void initState() {
@@ -47,7 +50,9 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
   void didUpdateWidget(covariant GymMarkerBubble oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.percent != widget.percent ||
-        oldWidget.selected != widget.selected) {
+        oldWidget.selected != widget.selected ||
+        oldWidget.revealDetails != widget.revealDetails ||
+        oldWidget.enablePulse != widget.enablePulse) {
       _syncPulseAnimation();
     }
   }

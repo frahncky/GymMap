@@ -89,6 +89,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   static const int _panelMaxFlex = 66;
   static const double _panelFlexDragSensitivity = 0.28;
   static const double _panelDragPixelThreshold = 3;
+  static const int _maxMarkersForPulseAnimation = 34;
   static const String _smartPlayProductId = String.fromEnvironment(
     'PLAN_PLAY_PRODUCT_ID_SMART',
     defaultValue: 'smart_mensal',
@@ -4913,6 +4914,10 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     const controlsGap = 58.0;
     final markerBaseWidth = _markerBaseWidth(context);
     final markerBaseHeight = _markerBaseHeight(context);
+    final totalMapMarkers = gyms.length + mapPois.length;
+    final enableMarkerPulse = _shouldAnimateMarkerPulse(
+      totalMarkers: totalMapMarkers,
+    );
 
     if (!widget.showMap) {
       return const MapStatusCard(message: 'Mapa desativado no modo de teste');
@@ -4943,6 +4948,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                   isFavorite: _isFavoriteGymId(gym.id),
                   selected: gym.id == _selectedGym?.id,
                   revealDetails: _showMarkerDetails,
+                  enablePulse: enableMarkerPulse,
                   onTap:
                       () => _handleMarkerTap(
                         () => _selectGym(gym, moveMap: false),
@@ -4957,6 +4963,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
           poi,
           markerBaseWidth: markerBaseWidth,
           markerBaseHeight: markerBaseHeight,
+          enablePulse: enableMarkerPulse,
         ),
     ];
     final userPoint = _userLocation;
@@ -5099,10 +5106,22 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     return (_markerBaseWidth(context) * 0.72).clamp(154.0, 220.0).toDouble();
   }
 
+  bool _shouldAnimateMarkerPulse({required int totalMarkers}) {
+    if (!widget.isActive || !_showMarkerDetails) {
+      return false;
+    }
+    if (totalMarkers > _maxMarkersForPulseAnimation) {
+      return false;
+    }
+    final zoom = _isMapReady ? _mapController.camera.zoom : 13.4;
+    return zoom >= 12.8;
+  }
+
   Marker _buildPoiMarker(
     MapGymPoi poi, {
     required double markerBaseWidth,
     required double markerBaseHeight,
+    required bool enablePulse,
   }) {
     final poiGym = _gymFromPoi(poi);
     final poiPercent = _crowdService.snapshotFor(poiGym).occupancyPercent;
@@ -5123,6 +5142,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
             isFavorite: _isFavoriteGymId(poiGym.id),
             selected: poiGym.id == _selectedGym?.id,
             revealDetails: _showMarkerDetails,
+            enablePulse: enablePulse,
             onTap:
                 () =>
                     _handleMarkerTap(() => _selectGym(poiGym, moveMap: false)),
