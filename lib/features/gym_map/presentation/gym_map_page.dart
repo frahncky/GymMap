@@ -210,6 +210,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   int _crowdDataRevision = 0;
   String? _mapDerivedDataCacheKey;
   _MapDerivedData? _mapDerivedDataCache;
+  SharedPreferences? _prefsCache;
+  Future<SharedPreferences>? _prefsFuture;
   bool _hasTrackedMapReadyMetric = false;
   String? _pendingFocusGymId;
   final AppMetricsService _metrics = AppMetricsService.instance;
@@ -339,7 +341,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
 
   Future<bool> _shouldPromptInitialLocationPermission() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await _prefsInstance();
       return !(prefs.getBool(_initialLocationPromptDonePrefKey) ?? false);
     } catch (_) {
       return true;
@@ -348,7 +350,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
 
   Future<void> _markInitialLocationPromptDone() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await _prefsInstance();
       await prefs.setBool(_initialLocationPromptDonePrefKey, true);
     } catch (_) {
       // Falha local não deve bloquear o fluxo.
@@ -422,6 +424,27 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       }
       setState(() {});
     });
+  }
+
+  Future<SharedPreferences> _prefsInstance() async {
+    final cached = _prefsCache;
+    if (cached != null) {
+      return cached;
+    }
+    final inFlight = _prefsFuture;
+    if (inFlight != null) {
+      return inFlight;
+    }
+    final future = SharedPreferences.getInstance();
+    _prefsFuture = future;
+    try {
+      final prefs = await future;
+      _prefsCache = prefs;
+      return prefs;
+    } catch (_) {
+      _prefsFuture = null;
+      rethrow;
+    }
   }
 
   String _locationCacheKey(LatLng? point) {
@@ -581,7 +604,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   Future<void> _loadDataSaverPreference() async {
     var enabled = false;
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await _prefsInstance();
       enabled = prefs.getBool(_dataSaverPrefKey) ?? false;
     } catch (_) {
       // Falha local não deve bloquear o mapa.
@@ -944,7 +967,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   Future<void> _loadQuickFiltersState() async {
     List<String> ids = const <String>[];
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await _prefsInstance();
       ids = prefs.getStringList(_quickFiltersPrefKey) ?? const <String>[];
     } catch (_) {
       // Falha local não impede o uso dos filtros na sessão atual.
@@ -972,7 +995,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
 
   Future<void> _persistQuickFiltersState() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await _prefsInstance();
       final ids = _activeQuickFilters
         .map(_quickFilterId)
         .toList(growable: false)..sort();
@@ -1638,7 +1661,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   Future<void> _loadMapTutorialState() async {
     bool hasSeen = false;
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await _prefsInstance();
       hasSeen = prefs.getBool(_mapTutorialSeenPrefKey) ?? false;
     } catch (_) {
       // Falha de leitura local não impede o app.
@@ -1657,7 +1680,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     List<String> ids = const <String>[];
     final namesById = <String, String>{};
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await _prefsInstance();
       ids = prefs.getStringList(_favoriteGymIdsPrefKey) ?? const <String>[];
       final rawNamesJson = prefs.getString(_favoriteGymNamesPrefKey);
       if (rawNamesJson != null && rawNamesJson.trim().isNotEmpty) {
@@ -1698,7 +1721,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
 
   Future<void> _persistFavoriteGymIds() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await _prefsInstance();
       final ids = _favoriteGymIds.toList(growable: false)..sort();
       await prefs.setStringList(_favoriteGymIdsPrefKey, ids);
       final namesById = <String, String>{};
@@ -1722,7 +1745,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   Future<void> _loadCommunityPoints() async {
     var points = 0;
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await _prefsInstance();
       points = prefs.getInt(_communityPointsPrefKey) ?? 0;
     } catch (_) {
       // Falha local não bloqueia uso.
@@ -1737,7 +1760,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
 
   Future<void> _persistCommunityPoints() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await _prefsInstance();
       await prefs.setInt(_communityPointsPrefKey, _communityPoints);
     } catch (_) {
       // Falha local não bloqueia uso.
@@ -1817,7 +1840,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     }
     _hasSeenMapTutorial = true;
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await _prefsInstance();
       await prefs.setBool(_mapTutorialSeenPrefKey, true);
     } catch (_) {
       // Falha de escrita local não interrompe o fluxo.
@@ -5428,3 +5451,4 @@ class _CelebrationParticle extends StatelessWidget {
     );
   }
 }
+
