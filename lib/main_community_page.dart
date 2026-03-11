@@ -63,6 +63,7 @@ class _CommunityFeedPage extends StatefulWidget {
 
 class _CommunityFeedPageState extends State<_CommunityFeedPage> {
   static const String _communityPointsPrefKey = 'gymmap_community_points_v1';
+  static const String _localCrowdReporterId = 'local-device-user';
   static const int _verificationPoints = 2;
   static const Duration _communityReloadInterval = Duration(minutes: 3);
   static const int _leaderboardWindowDays = 7;
@@ -98,7 +99,8 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     super.didUpdateWidget(oldWidget);
     if (!oldWidget.isActive && widget.isActive) {
       unawaited(_loadCommunityPoints());
-      final forceRetryWithoutLocation = !_hasLocationContext || _reports.isEmpty;
+      final forceRetryWithoutLocation =
+          !_hasLocationContext || _reports.isEmpty;
       _ensureLocalizedReportsLoaded(
         notify: true,
         force: forceRetryWithoutLocation,
@@ -185,19 +187,34 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
         for (final location in scopedLocations) location.id: location,
       };
       var mappedReports = const <_CommunityReportItem>[];
+      var ownReportedGymIds = <String>{};
       if (remoteService.hasRemoteBackend && locationsById.isNotEmpty) {
         final remoteReports = await remoteService.loadReportsForGyms(
           gymIds: locationsById.keys,
           limitPerGym: 40,
         );
+        final ownReporterIds = _resolveOwnReporterIds(remoteService.userId);
+        ownReportedGymIds = _extractOwnReportedGymIds(
+          reports: remoteReports,
+          ownReporterIds: ownReporterIds,
+        );
         mappedReports = _mapRemoteReportsToCommunityItems(
           remoteReports: remoteReports,
           locationsById: locationsById,
+          ownReporterIds: ownReporterIds,
         );
       }
 
       if (mappedReports.isEmpty && hasLocationContext) {
-        mappedReports = _buildNearbyFallbackReports(scopedLocations);
+        final fallbackLocations =
+            ownReportedGymIds.isEmpty
+                ? scopedLocations
+                : scopedLocations
+                    .where(
+                      (location) => !ownReportedGymIds.contains(location.id),
+                    )
+                    .toList(growable: false);
+        mappedReports = _buildNearbyFallbackReports(fallbackLocations);
       }
       if (!mounted) {
         return;
@@ -207,7 +224,8 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
           ..clear()
           ..addAll(mappedReports);
         _isLoadingLocalizedReports = false;
-        _isLocationScopedReports = hasLocationContext && mappedReports.isNotEmpty;
+        _isLocationScopedReports =
+            hasLocationContext && mappedReports.isNotEmpty;
         _hasLocationContext = hasLocationContext;
         _lastLocalizedReportsLoadAt = loadStartedAt;
       });
@@ -343,6 +361,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
   List<_CommunityReportItem> _mapRemoteReportsToCommunityItems({
     required List<CrowdReport> remoteReports,
     required Map<String, CachedGymLocation> locationsById,
+    required Set<String> ownReporterIds,
   }) {
     if (remoteReports.isEmpty || locationsById.isEmpty) {
       return const <_CommunityReportItem>[];
@@ -350,6 +369,9 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     final latestByGym = <String, CrowdReport>{};
     for (final report in remoteReports) {
       if (!locationsById.containsKey(report.gymId)) {
+        continue;
+      }
+      if (_isOwnReportedCrowdEntry(report, ownReporterIds)) {
         continue;
       }
       final previous = latestByGym[report.gymId];
@@ -394,6 +416,49 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
       return left.compareTo(right);
     });
     return items.take(8).toList(growable: false);
+  }
+
+  Set<String> _resolveOwnReporterIds(String userId) {
+    final ownReporterIds = <String>{_localCrowdReporterId};
+    final normalizedUserId = userId.trim();
+    if (normalizedUserId.isEmpty) {
+      return ownReporterIds;
+    }
+    ownReporterIds
+      ..add(normalizedUserId)
+      ..add('user:$normalizedUserId');
+    return ownReporterIds;
+  }
+
+  Set<String> _extractOwnReportedGymIds({
+    required List<CrowdReport> reports,
+    required Set<String> ownReporterIds,
+  }) {
+    if (reports.isEmpty || ownReporterIds.isEmpty) {
+      return const <String>{};
+    }
+    final ownGymIds = <String>{};
+    for (final report in reports) {
+      if (!_isOwnReportedCrowdEntry(report, ownReporterIds)) {
+        continue;
+      }
+      final gymId = report.gymId.trim();
+      if (gymId.isNotEmpty) {
+        ownGymIds.add(gymId);
+      }
+    }
+    return ownGymIds;
+  }
+
+  bool _isOwnReportedCrowdEntry(
+    CrowdReport report,
+    Set<String> ownReporterIds,
+  ) {
+    final reporterId = report.reporterId.trim();
+    if (reporterId.isEmpty) {
+      return false;
+    }
+    return ownReporterIds.contains(reporterId);
   }
 
   List<_CommunityReportItem> _buildNearbyFallbackReports(
@@ -501,9 +566,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     final avgLatRad = ((from.latitude + to.latitude) * 0.5) * math.pi / 180.0;
     final deltaLatMeters = (from.latitude - to.latitude) * metersPerDegree;
     final deltaLngMeters =
-        (from.longitude - to.longitude) *
-        metersPerDegree *
-        math.cos(avgLatRad);
+        (from.longitude - to.longitude) * metersPerDegree * math.cos(avgLatRad);
     return (deltaLatMeters * deltaLatMeters) +
         (deltaLngMeters * deltaLngMeters);
   }
@@ -577,11 +640,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     _leaderboardEntries = <({String name, int points, bool isCurrentUser})>[
       for (final entry in _leaderboardEntries)
         entry.isCurrentUser
-            ? (
-              name: entry.name,
-              points: localUserPoints,
-              isCurrentUser: true,
-            )
+            ? (name: entry.name, points: localUserPoints, isCurrentUser: true)
             : entry,
     ];
   }
@@ -591,7 +650,8 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     required DateTime timestamp,
   }) {
     setState(() {
-      _leaderboardEntries = const <({String name, int points, bool isCurrentUser})>[];
+      _leaderboardEntries =
+          const <({String name, int points, bool isCurrentUser})>[];
       _leaderboardUserRank = 0;
       _hasRealLeaderboard = false;
       _leaderboardRegionLabel = regionLabel;
@@ -688,7 +748,6 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
       _setLeaderboardEmpty(regionLabel: regionLabel, timestamp: startedAt);
     }
   }
-
 
   Color _leaderboardMedalColor(int index) {
     switch (index) {
@@ -788,10 +847,8 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
           pointsDelta = -_verificationPoints;
         }
         if (pointsDelta != 0) {
-          _communityPoints = (_communityPoints + pointsDelta).clamp(
-            0,
-            1000000,
-          ).toInt();
+          _communityPoints =
+              (_communityPoints + pointsDelta).clamp(0, 1000000).toInt();
           _syncLeaderboardPointsWithLocal();
         }
         _reports[index] = current.copyWith(
@@ -818,10 +875,8 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
         pointsDelta = _verificationPoints;
       }
       if (pointsDelta != 0) {
-        _communityPoints = (_communityPoints + pointsDelta).clamp(
-          0,
-          1000000,
-        ).toInt();
+        _communityPoints =
+            (_communityPoints + pointsDelta).clamp(0, 1000000).toInt();
         _syncLeaderboardPointsWithLocal();
       }
 
@@ -851,9 +906,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
             ? '#$userRank'
             : (_isLoadingLeaderboard ? '...' : 'Sem ranking');
     return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: _buildPlanSurfaceGradient(context),
-      ),
+      decoration: BoxDecoration(gradient: _buildPlanSurfaceGradient(context)),
       child: SafeArea(
         child: RefreshIndicator(
           onRefresh: () => _refreshLocalizedReports(force: true, notify: true),
@@ -862,499 +915,511 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
               parent: BouncingScrollPhysics(),
             ),
             slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Comunidade',
-                      style: TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.black87,
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Comunidade',
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.black87,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      _isLoadingLocalizedReports
-                          ? 'Carregando relatos da sua região...'
-                          : _hasLocationContext && _reports.isEmpty
-                          ? 'Ainda não há relatos recentes das academias da sua região.'
-                          : _isLocationScopedReports
-                          ? 'Relatos recentes das academias da sua região.'
-                          : 'Feed de relatos recentes com validação colaborativa.',
-                      style: const TextStyle(
-                        color: Colors.black54,
-                        fontWeight: FontWeight.w600,
+                      const SizedBox(height: 6),
+                      Text(
+                        _isLoadingLocalizedReports
+                            ? 'Carregando relatos da sua região...'
+                            : _hasLocationContext && _reports.isEmpty
+                            ? 'Ainda não há relatos recentes das academias da sua região.'
+                            : _isLocationScopedReports
+                            ? 'Relatos recentes das academias da sua região.'
+                            : 'Feed de relatos recentes com validação colaborativa.',
+                        style: const TextStyle(
+                          color: Colors.black54,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: primary.withValues(alpha: 0.20)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Top contribuidores da semana',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w900,
-                              color: Colors.black87,
-                            ),
+                      const SizedBox(height: 12),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: primary.withValues(alpha: 0.20),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Sua posição: $rankLabel',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              color: Colors.black54,
-                              fontSize: 12,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Top contribuidores da semana',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                color: Colors.black87,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Região: $_leaderboardRegionLabel',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black54,
-                              fontSize: 12,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          if (_isLoadingLeaderboard &&
-                              leaderboardEntries.isEmpty) ...[
-                            const LinearProgressIndicator(minHeight: 2),
                             const SizedBox(height: 8),
-                          ],
-                          if (!_isLoadingLeaderboard &&
-                              leaderboardEntries.isEmpty)
                             Text(
-                              _hasLocationContext
-                                  ? 'Ainda não há ranking suficiente.'
-                                  : 'Ative a localização para carregar ranking real.',
+                              'Sua posição: $rankLabel',
                               style: const TextStyle(
                                 fontWeight: FontWeight.w700,
                                 color: Colors.black54,
                                 fontSize: 12,
                               ),
                             ),
-                          if (_hasRealLeaderboard &&
-                              leaderboardEntries.isNotEmpty) ...[
-                            const SizedBox(height: 2),
-                            const Text(
-                              'Dados reais dos últimos 7 dias',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
+                            const SizedBox(height: 4),
+                            Text(
+                              'Região: $_leaderboardRegionLabel',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
                                 color: Colors.black54,
-                                fontSize: 11,
+                                fontSize: 12,
                               ),
                             ),
-                          ],
-                          if (leaderboardEntries.isNotEmpty)
                             const SizedBox(height: 8),
-                          ...leaderboardEntries.indexed.map((entry) {
-                            final rank = entry.$1 + 1;
-                            final person = entry.$2;
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 6),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color:
-                                      person.isCurrentUser
-                                          ? primary.withValues(alpha: 0.12)
-                                          : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Row(
-                                  children: [
-                                    SizedBox(
-                                      width: 22,
-                                      child:
-                                          rank <= 3
-                                              ? Icon(
-                                                Icons.emoji_events_rounded,
-                                                size: 17,
-                                                color: _leaderboardMedalColor(
-                                                  rank - 1,
-                                                ),
-                                              )
-                                              : Text(
-                                                '$rank.',
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.w900,
-                                                  color: Colors.black54,
-                                                ),
-                                              ),
-                                    ),
-                                    Expanded(
-                                      child: Text(
-                                        person.name,
-                                        style: TextStyle(
-                                          fontWeight:
-                                              person.isCurrentUser
-                                                  ? FontWeight.w900
-                                                  : FontWeight.w700,
-                                          color: Colors.black87,
-                                        ),
-                                      ),
-                                    ),
-                                    Text(
-                                      '${person.points} pts',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w800,
-                                        color:
-                                            person.isCurrentUser
-                                                ? primary
-                                                : Colors.black87,
-                                      ),
-                                    ),
-                                  ],
+                            if (_isLoadingLeaderboard &&
+                                leaderboardEntries.isEmpty) ...[
+                              const LinearProgressIndicator(minHeight: 2),
+                              const SizedBox(height: 8),
+                            ],
+                            if (!_isLoadingLeaderboard &&
+                                leaderboardEntries.isEmpty)
+                              Text(
+                                _hasLocationContext
+                                    ? 'Ainda não há ranking suficiente.'
+                                    : 'Ative a localização para carregar ranking real.',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black54,
+                                  fontSize: 12,
                                 ),
                               ),
-                            );
-                          }),
-                          const SizedBox(height: 4),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: primary.withValues(alpha: 0.10),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: primary.withValues(alpha: 0.24),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.workspace_premium_rounded,
-                                  size: 16,
-                                  color: primary,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Seus pontos: $_communityPoints',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w900,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                                const Spacer(),
-                                const Text(
-                                  '+2 por validação',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.black54,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: widget.onContributeTap,
-                              icon: const Icon(Icons.add_chart_rounded),
-                              label: const Text('Contribuir no mapa'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: primary,
-                                foregroundColor: Colors.white,
-                                minimumSize: const Size.fromHeight(42),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            _hasLocationContext
-                                ? 'Relatos recentes da sua região'
-                                : 'Relatos recentes',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w900,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          tooltip: 'Atualizar relatos',
-                          onPressed:
-                              _isLoadingLocalizedReports
-                                  ? null
-                                  : () {
-                                    _ensureLocalizedReportsLoaded(
-                                      notify: true,
-                                      force: true,
-                                    );
-                                  },
-                          icon: const Icon(
-                            Icons.refresh_rounded,
-                            size: 20,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (_isLoadingLocalizedReports) ...[
-                      const SizedBox(height: 8),
-                      const LinearProgressIndicator(minHeight: 2),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-            if (_isLoadingLocalizedReports && _reports.isEmpty)
-              SliverList.separated(
-                itemBuilder: (_, __) => _buildCommunityLoadingCard(),
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
-                itemCount: 3,
-              ),
-            if (!_isLoadingLocalizedReports && _reports.isEmpty)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: primary.withValues(alpha: 0.20)),
-                    ),
-                    child: Text(
-                      _hasLocationContext
-                          ? 'Sem relatos recentes na sua região agora. Abra o mapa e contribua para aparecer aqui.'
-                          : 'Ative sua localização para ver relatos recentes da sua região.',
-                      style: const TextStyle(
-                        color: Colors.black54,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            if (_reports.isNotEmpty)
-              SliverList.separated(
-                itemBuilder: (context, index) {
-                  final report = _reports[index];
-                  final tone = _occupancyColor(report.occupancyPercent, primary);
-                  final isConfirm = report.userVote == _CommunityVote.confirm;
-                  final isDisagree = report.userVote == _CommunityVote.disagree;
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: primary.withValues(alpha: 0.20)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  report.gymName,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w900,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: tone.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: Text(
-                                  '${report.occupancyPercent}% ${_occupancyLabel(report.occupancyPercent)}',
-                                  style: TextStyle(
-                                    color: tone,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w900,
-                                  ),
+                            if (_hasRealLeaderboard &&
+                                leaderboardEntries.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              const Text(
+                                'Dados reais dos últimos 7 dias',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black54,
+                                  fontSize: 11,
                                 ),
                               ),
                             ],
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            '${report.regionLabel} - ${report.timeAgoLabel}',
-                            style: const TextStyle(
-                              color: Colors.black54,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          if (report.hasPhoto) ...[
-                            const SizedBox(height: 10),
+                            if (leaderboardEntries.isNotEmpty)
+                              const SizedBox(height: 8),
+                            ...leaderboardEntries.indexed.map((entry) {
+                              final rank = entry.$1 + 1;
+                              final person = entry.$2;
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 6),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        person.isCurrentUser
+                                            ? primary.withValues(alpha: 0.12)
+                                            : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      SizedBox(
+                                        width: 22,
+                                        child:
+                                            rank <= 3
+                                                ? Icon(
+                                                  Icons.emoji_events_rounded,
+                                                  size: 17,
+                                                  color: _leaderboardMedalColor(
+                                                    rank - 1,
+                                                  ),
+                                                )
+                                                : Text(
+                                                  '$rank.',
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.w900,
+                                                    color: Colors.black54,
+                                                  ),
+                                                ),
+                                      ),
+                                      Expanded(
+                                        child: Text(
+                                          person.name,
+                                          style: TextStyle(
+                                            fontWeight:
+                                                person.isCurrentUser
+                                                    ? FontWeight.w900
+                                                    : FontWeight.w700,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                      ),
+                                      Text(
+                                        '${person.points} pts',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                          color:
+                                              person.isCurrentUser
+                                                  ? primary
+                                                  : Colors.black87,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }),
+                            const SizedBox(height: 4),
                             Container(
                               width: double.infinity,
-                              padding: const EdgeInsets.all(10),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 8,
+                              ),
                               decoration: BoxDecoration(
-                                color: primary.withValues(alpha: 0.06),
+                                color: primary.withValues(alpha: 0.10),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: primary.withValues(alpha: 0.18),
+                                  color: primary.withValues(alpha: 0.24),
                                 ),
                               ),
                               child: Row(
                                 children: [
-                                  Container(
-                                    width: 56,
-                                    height: 44,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(10),
-                                      gradient: LinearGradient(
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                        colors: [
-                                          tone.withValues(alpha: 0.28),
-                                          primary.withValues(alpha: 0.24),
-                                        ],
-                                      ),
-                                    ),
-                                    child: Icon(
-                                      Icons.photo_camera_rounded,
-                                      size: 18,
-                                      color: primary.withValues(alpha: 0.82),
+                                  Icon(
+                                    Icons.workspace_premium_rounded,
+                                    size: 16,
+                                    color: primary,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Seus pontos: $_communityPoints',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      color: Colors.black87,
                                     ),
                                   ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      report.photoCaption ??
-                                          'Foto enviada pela comunidade.',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.black87,
-                                      ),
+                                  const Spacer(),
+                                  const Text(
+                                    '+2 por validação',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.black54,
+                                      fontSize: 12,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
+                            const SizedBox(height: 4),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: widget.onContributeTap,
+                                icon: const Icon(Icons.add_chart_rounded),
+                                label: const Text('Contribuir no mapa'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: primary,
+                                  foregroundColor: Colors.white,
+                                  minimumSize: const Size.fromHeight(42),
+                                ),
+                              ),
+                            ),
                           ],
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed:
-                                      () => _vote(
-                                        report.id,
-                                        _CommunityVote.confirm,
-                                      ),
-                                  icon: Icon(
-                                    Icons.thumb_up_alt_rounded,
-                                    size: 16,
-                                    color:
-                                        isConfirm
-                                            ? primary
-                                            : Colors.black54,
-                                  ),
-                                  label: Text(
-                                    'Confirmo (${report.confirmCount})',
-                                    style: TextStyle(
-                                      color:
-                                          isConfirm
-                                              ? primary
-                                              : Colors.black87,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                  style: OutlinedButton.styleFrom(
-                                    side: BorderSide(
-                                      color:
-                                          isConfirm
-                                              ? primary
-                                              : primary.withValues(alpha: 0.20),
-                                    ),
-                                    backgroundColor:
-                                        isConfirm
-                                            ? primary.withValues(alpha: 0.08)
-                                            : Colors.transparent,
-                                  ),
-                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _hasLocationContext
+                                  ? 'Relatos recentes da sua região'
+                                  : 'Relatos recentes',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                                color: Colors.black87,
                               ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed:
-                                      () => _vote(
-                                        report.id,
-                                        _CommunityVote.disagree,
-                                      ),
-                                  icon: Icon(
-                                    Icons.thumb_down_alt_rounded,
-                                    size: 16,
-                                    color:
-                                        isDisagree
-                                            ? const Color(0xFFCC4A37)
-                                            : Colors.black54,
-                                  ),
-                                  label: Text(
-                                    'Discordo (${report.disagreeCount})',
-                                    style: TextStyle(
-                                      color:
-                                          isDisagree
-                                              ? const Color(0xFFCC4A37)
-                                              : Colors.black87,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                  style: OutlinedButton.styleFrom(
-                                    side: BorderSide(
-                                      color:
-                                          isDisagree
-                                              ? const Color(0xFFCC4A37)
-                                              : primary.withValues(alpha: 0.20),
-                                    ),
-                                    backgroundColor:
-                                        isDisagree
-                                            ? const Color(
-                                              0xFFCC4A37,
-                                            ).withValues(alpha: 0.08)
-                                            : Colors.transparent,
-                                  ),
-                                ),
-                              ),
-                            ],
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'Atualizar relatos',
+                            onPressed:
+                                _isLoadingLocalizedReports
+                                    ? null
+                                    : () {
+                                      _ensureLocalizedReportsLoaded(
+                                        notify: true,
+                                        force: true,
+                                      );
+                                    },
+                            icon: const Icon(
+                              Icons.refresh_rounded,
+                              size: 20,
+                              color: Colors.black87,
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                  );
-                },
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
-                itemCount: _reports.length,
+                      if (_isLoadingLocalizedReports) ...[
+                        const SizedBox(height: 8),
+                        const LinearProgressIndicator(minHeight: 2),
+                      ],
+                    ],
+                  ),
+                ),
               ),
-            const SliverToBoxAdapter(child: SizedBox(height: 16)),
+              if (_isLoadingLocalizedReports && _reports.isEmpty)
+                SliverList.separated(
+                  itemBuilder: (_, __) => _buildCommunityLoadingCard(),
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemCount: 3,
+                ),
+              if (!_isLoadingLocalizedReports && _reports.isEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: primary.withValues(alpha: 0.20),
+                        ),
+                      ),
+                      child: Text(
+                        _hasLocationContext
+                            ? 'Sem relatos recentes na sua região agora. Abra o mapa e contribua para aparecer aqui.'
+                            : 'Ative sua localização para ver relatos recentes da sua região.',
+                        style: const TextStyle(
+                          color: Colors.black54,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              if (_reports.isNotEmpty)
+                SliverList.separated(
+                  itemBuilder: (context, index) {
+                    final report = _reports[index];
+                    final tone = _occupancyColor(
+                      report.occupancyPercent,
+                      primary,
+                    );
+                    final isConfirm = report.userVote == _CommunityVote.confirm;
+                    final isDisagree =
+                        report.userVote == _CommunityVote.disagree;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: primary.withValues(alpha: 0.20),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    report.gymName,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: tone.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Text(
+                                    '${report.occupancyPercent}% ${_occupancyLabel(report.occupancyPercent)}',
+                                    style: TextStyle(
+                                      color: tone,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              '${report.regionLabel} - ${report.timeAgoLabel}',
+                              style: const TextStyle(
+                                color: Colors.black54,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            if (report.hasPhoto) ...[
+                              const SizedBox(height: 10),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: primary.withValues(alpha: 0.06),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: primary.withValues(alpha: 0.18),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 56,
+                                      height: 44,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(10),
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                          colors: [
+                                            tone.withValues(alpha: 0.28),
+                                            primary.withValues(alpha: 0.24),
+                                          ],
+                                        ),
+                                      ),
+                                      child: Icon(
+                                        Icons.photo_camera_rounded,
+                                        size: 18,
+                                        color: primary.withValues(alpha: 0.82),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        report.photoCaption ??
+                                            'Foto enviada pela comunidade.',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed:
+                                        () => _vote(
+                                          report.id,
+                                          _CommunityVote.confirm,
+                                        ),
+                                    icon: Icon(
+                                      Icons.thumb_up_alt_rounded,
+                                      size: 16,
+                                      color:
+                                          isConfirm ? primary : Colors.black54,
+                                    ),
+                                    label: Text(
+                                      'Confirmo (${report.confirmCount})',
+                                      style: TextStyle(
+                                        color:
+                                            isConfirm
+                                                ? primary
+                                                : Colors.black87,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    style: OutlinedButton.styleFrom(
+                                      side: BorderSide(
+                                        color:
+                                            isConfirm
+                                                ? primary
+                                                : primary.withValues(
+                                                  alpha: 0.20,
+                                                ),
+                                      ),
+                                      backgroundColor:
+                                          isConfirm
+                                              ? primary.withValues(alpha: 0.08)
+                                              : Colors.transparent,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed:
+                                        () => _vote(
+                                          report.id,
+                                          _CommunityVote.disagree,
+                                        ),
+                                    icon: Icon(
+                                      Icons.thumb_down_alt_rounded,
+                                      size: 16,
+                                      color:
+                                          isDisagree
+                                              ? const Color(0xFFCC4A37)
+                                              : Colors.black54,
+                                    ),
+                                    label: Text(
+                                      'Discordo (${report.disagreeCount})',
+                                      style: TextStyle(
+                                        color:
+                                            isDisagree
+                                                ? const Color(0xFFCC4A37)
+                                                : Colors.black87,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    style: OutlinedButton.styleFrom(
+                                      side: BorderSide(
+                                        color:
+                                            isDisagree
+                                                ? const Color(0xFFCC4A37)
+                                                : primary.withValues(
+                                                  alpha: 0.20,
+                                                ),
+                                      ),
+                                      backgroundColor:
+                                          isDisagree
+                                              ? const Color(
+                                                0xFFCC4A37,
+                                              ).withValues(alpha: 0.08)
+                                              : Colors.transparent,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemCount: _reports.length,
+                ),
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
             ],
           ),
         ),
@@ -1362,4 +1427,3 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     );
   }
 }
-
