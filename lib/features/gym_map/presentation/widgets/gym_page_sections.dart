@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../gym_map_colors.dart';
 import '../gym_map_helpers.dart';
@@ -96,7 +98,10 @@ class GymPageHeader extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   onTap: onOpenCommunityRanking,
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
+                    constraints: const BoxConstraints(
+                      minHeight: 48,
+                      minWidth: 48,
+                    ),
                     child: Center(
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -237,9 +242,7 @@ class MapQuickFiltersBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: withUiOpacity(Colors.white, 0.92),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: withUiOpacity(primary, 0.12),
-        ),
+        border: Border.all(color: withUiOpacity(primary, 0.12)),
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -427,11 +430,79 @@ class SelectionHintCard extends StatelessWidget {
   }
 }
 
-class AdBannerCard extends StatelessWidget {
+class AdBannerCard extends StatefulWidget {
   const AdBannerCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  State<AdBannerCard> createState() => _AdBannerCardState();
+}
+
+class _AdBannerCardState extends State<AdBannerCard> {
+  BannerAd? _bannerAd;
+  bool _isBannerLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBannerAd();
+  }
+
+  @override
+  void dispose() {
+    _bannerAd?.dispose();
+    super.dispose();
+  }
+
+  String? _resolveBannerAdUnitId() {
+    if (kIsWeb) {
+      return null;
+    }
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return 'ca-app-pub-3940256099942544/6300978111';
+      case TargetPlatform.iOS:
+        return 'ca-app-pub-3940256099942544/2934735716';
+      default:
+        return null;
+    }
+  }
+
+  void _loadBannerAd() {
+    final adUnitId = _resolveBannerAdUnitId();
+    if (adUnitId == null) {
+      return;
+    }
+    final ad = BannerAd(
+      adUnitId: adUnitId,
+      request: const AdRequest(),
+      size: AdSize.banner,
+      listener: BannerAdListener(
+        onAdLoaded: (loadedAd) {
+          if (!mounted) {
+            loadedAd.dispose();
+            return;
+          }
+          setState(() {
+            _bannerAd = loadedAd as BannerAd;
+            _isBannerLoaded = true;
+          });
+        },
+        onAdFailedToLoad: (failedAd, error) {
+          failedAd.dispose();
+          if (!mounted) {
+            return;
+          }
+          setState(() {
+            _isBannerLoaded = false;
+            _bannerAd = null;
+          });
+        },
+      ),
+    );
+    ad.load();
+  }
+
+  Widget _buildFallbackCard() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -455,6 +526,27 @@ class AdBannerCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bannerAd = _bannerAd;
+    if (!_isBannerLoaded || bannerAd == null) {
+      return _buildFallbackCard();
+    }
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: SizedBox(
+        height: bannerAd.size.height.toDouble(),
+        width: bannerAd.size.width.toDouble(),
+        child: AdWidget(ad: bannerAd),
       ),
     );
   }

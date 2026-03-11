@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -20,6 +21,11 @@ part 'main_community_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await MobileAds.instance.initialize();
+  } catch (_) {
+    // Falha na inicialização de anúncios não bloqueia o app.
+  }
   final initialPlanThemeTier = await _readCachedPlanTier();
   runApp(MyApp(initialPlanThemeTier: initialPlanThemeTier));
 }
@@ -69,7 +75,6 @@ LinearGradient _buildPlanSurfaceGradient(BuildContext context) {
   );
 }
 
-
 class MyApp extends StatefulWidget {
   const MyApp({
     super.key,
@@ -95,7 +100,10 @@ class _MyAppState extends State<MyApp> {
     ).copyWith(
       primary: basePlanPrimary,
       secondary: basePlanPrimary,
-      surface: Color.alphaBlend(basePlanPrimary.withValues(alpha: 0.05), Colors.white),
+      surface: Color.alphaBlend(
+        basePlanPrimary.withValues(alpha: 0.05),
+        Colors.white,
+      ),
       onSurface: const Color(0xFF1F2730),
     );
 
@@ -356,10 +364,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         }),
         labelTextStyle: WidgetStateProperty.resolveWith<TextStyle?>((states) {
           if (states.contains(WidgetState.selected)) {
-            return TextStyle(
-              color: primary,
-              fontWeight: FontWeight.w700,
-            );
+            return TextStyle(color: primary, fontWeight: FontWeight.w700);
           }
           return null;
         }),
@@ -387,9 +392,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         onContributeTap: _goToMapTab,
         isActive: _selectedIndex == 2,
       ),
-      _ProfilePage(
-        onOpenMap: _goToMapTab,
-      ),
+      _ProfilePage(onOpenMap: _goToMapTab),
     ];
 
     return Theme(
@@ -405,7 +408,9 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                 _favoritesRefreshToken++;
               }
             });
-            unawaited(_trackTabSelection(index: index, origin: 'navigation_bar'));
+            unawaited(
+              _trackTabSelection(index: index, origin: 'navigation_bar'),
+            );
           },
           destinations: const [
             NavigationDestination(
@@ -434,4 +439,3 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     );
   }
 }
-

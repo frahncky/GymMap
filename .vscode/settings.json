@@ -1,4 +1,7 @@
 {
     "java.configuration.updateBuildConfiguration": "automatic",
-    "cmake.sourceDirectory": "F:/DevIA/gym_map/windows"
+    "cmake.sourceDirectory": "F:/DevIA/gym_map/windows",
+    "cSpell.words": [
+        "Falha"
+    ]
 }
