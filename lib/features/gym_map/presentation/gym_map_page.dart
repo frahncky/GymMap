@@ -31,6 +31,7 @@ import 'widgets/map_controls.dart';
 import 'widgets/selected_gym_panel.dart';
 
 part 'gym_map_page_models.dart';
+part 'gym_map_page_preferences.dart';
 
 class GymMapPage extends StatefulWidget {
   const GymMapPage({
@@ -339,24 +340,6 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     );
   }
 
-  Future<bool> _shouldPromptInitialLocationPermission() async {
-    try {
-      final prefs = await _prefsInstance();
-      return !(prefs.getBool(_initialLocationPromptDonePrefKey) ?? false);
-    } catch (_) {
-      return true;
-    }
-  }
-
-  Future<void> _markInitialLocationPromptDone() async {
-    try {
-      final prefs = await _prefsInstance();
-      await prefs.setBool(_initialLocationPromptDonePrefKey, true);
-    } catch (_) {
-      // Falha local não deve bloquear o fluxo.
-    }
-  }
-
   @override
   void didUpdateWidget(covariant GymMapPage oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -424,27 +407,6 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       }
       setState(() {});
     });
-  }
-
-  Future<SharedPreferences> _prefsInstance() async {
-    final cached = _prefsCache;
-    if (cached != null) {
-      return cached;
-    }
-    final inFlight = _prefsFuture;
-    if (inFlight != null) {
-      return inFlight;
-    }
-    final future = SharedPreferences.getInstance();
-    _prefsFuture = future;
-    try {
-      final prefs = await future;
-      _prefsCache = prefs;
-      return prefs;
-    } catch (_) {
-      _prefsFuture = null;
-      rethrow;
-    }
   }
 
   String _locationCacheKey(LatLng? point) {
@@ -599,27 +561,6 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     } catch (_) {
       // Falha de inicialização remota não bloqueia experiência local.
     }
-  }
-
-  Future<void> _loadDataSaverPreference() async {
-    var enabled = false;
-    try {
-      final prefs = await _prefsInstance();
-      enabled = prefs.getBool(_dataSaverPrefKey) ?? false;
-    } catch (_) {
-      // Falha local não deve bloquear o mapa.
-    }
-    if (!mounted || _isDataSaverEnabled == enabled) {
-      return;
-    }
-    setState(() {
-      _isDataSaverEnabled = enabled;
-      if (!enabled) {
-        _lastDataSaverPoiReloadCenter = null;
-        _lastDataSaverPoiReloadAt = null;
-        _lastDataSaverCrowdSyncAt = null;
-      }
-    });
   }
 
   Future<void> _syncCrowdReportsForCurrentContext() async {
@@ -963,48 +904,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         return null;
     }
   }
-
-  Future<void> _loadQuickFiltersState() async {
-    List<String> ids = const <String>[];
-    try {
-      final prefs = await _prefsInstance();
-      ids = prefs.getStringList(_quickFiltersPrefKey) ?? const <String>[];
-    } catch (_) {
-      // Falha local não impede o uso dos filtros na sessão atual.
-    }
-    final restoredFilters = <MapQuickFilter>{};
-    for (final idRaw in ids) {
-      final id = idRaw.trim();
-      if (id.isEmpty) {
-        continue;
-      }
-      final filter = _quickFilterFromId(id);
-      if (filter != null) {
-        restoredFilters.add(filter);
-      }
-    }
-    if (!mounted || _hasInteractedWithQuickFilters) {
-      return;
-    }
-    setState(() {
-      _activeQuickFilters
-        ..clear()
-        ..addAll(restoredFilters);
-    });
-  }
-
-  Future<void> _persistQuickFiltersState() async {
-    try {
-      final prefs = await _prefsInstance();
-      final ids = _activeQuickFilters
-        .map(_quickFilterId)
-        .toList(growable: false)..sort();
-      await prefs.setStringList(_quickFiltersPrefKey, ids);
-    } catch (_) {
-      // Falha local de persistência não deve interromper fluxo.
-    }
-  }
-
+
   void _toggleQuickFilterById(String id) {
     final filter = _quickFilterFromId(id);
     if (filter == null) {
@@ -1657,116 +1557,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     _maybeStartOpeningSearchIntro();
     _maybeShowMapTutorialOverlay();
   }
-
-  Future<void> _loadMapTutorialState() async {
-    bool hasSeen = false;
-    try {
-      final prefs = await _prefsInstance();
-      hasSeen = prefs.getBool(_mapTutorialSeenPrefKey) ?? false;
-    } catch (_) {
-      // Falha de leitura local não impede o app.
-    }
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _hasSeenMapTutorial = hasSeen;
-      _hasLoadedMapTutorialState = true;
-    });
-    _maybeShowMapTutorialOverlay();
-  }
-
-  Future<void> _loadFavoriteGymIds() async {
-    List<String> ids = const <String>[];
-    final namesById = <String, String>{};
-    try {
-      final prefs = await _prefsInstance();
-      ids = prefs.getStringList(_favoriteGymIdsPrefKey) ?? const <String>[];
-      final rawNamesJson = prefs.getString(_favoriteGymNamesPrefKey);
-      if (rawNamesJson != null && rawNamesJson.trim().isNotEmpty) {
-        final decoded = jsonDecode(rawNamesJson);
-        if (decoded is Map) {
-          for (final entry in decoded.entries) {
-            final id = '${entry.key}'.trim();
-            final name = '${entry.value}'.trim();
-            if (id.isEmpty || name.isEmpty) {
-              continue;
-            }
-            namesById[id] = name;
-          }
-        }
-      }
-    } catch (_) {
-      // Falha local não impede uso dos favoritos na sessão atual.
-    }
-    if (!mounted) {
-      return;
-    }
-    var hasHydratedFavoriteNames = false;
-    setState(() {
-      _favoriteGymIds
-        ..clear()
-        ..addAll(ids.map((id) => id.trim()).where((id) => id.isNotEmpty));
-      _favoriteGymNamesById
-        ..clear()
-        ..addAll(namesById);
-      hasHydratedFavoriteNames =
-          _hydrateFavoriteGymNamesFromGyms(_gyms) ||
-          _hydrateFavoriteGymNamesFromPois(_mapPois);
-    });
-    if (hasHydratedFavoriteNames) {
-      unawaited(_persistFavoriteGymIds());
-    }
-  }
-
-  Future<void> _persistFavoriteGymIds() async {
-    try {
-      final prefs = await _prefsInstance();
-      final ids = _favoriteGymIds.toList(growable: false)..sort();
-      await prefs.setStringList(_favoriteGymIdsPrefKey, ids);
-      final namesById = <String, String>{};
-      for (final id in ids) {
-        final name = _favoriteGymNamesById[id]?.trim();
-        if (name == null || name.isEmpty) {
-          continue;
-        }
-        namesById[id] = name;
-      }
-      if (namesById.isEmpty) {
-        await prefs.remove(_favoriteGymNamesPrefKey);
-      } else {
-        await prefs.setString(_favoriteGymNamesPrefKey, jsonEncode(namesById));
-      }
-    } catch (_) {
-      // Falha local de persistência não deve interromper fluxo.
-    }
-  }
-
-  Future<void> _loadCommunityPoints() async {
-    var points = 0;
-    try {
-      final prefs = await _prefsInstance();
-      points = prefs.getInt(_communityPointsPrefKey) ?? 0;
-    } catch (_) {
-      // Falha local não bloqueia uso.
-    }
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _communityPoints = points.clamp(0, 1000000);
-    });
-  }
-
-  Future<void> _persistCommunityPoints() async {
-    try {
-      final prefs = await _prefsInstance();
-      await prefs.setInt(_communityPointsPrefKey, _communityPoints);
-    } catch (_) {
-      // Falha local não bloqueia uso.
-    }
-  }
-
+
   bool _isFavoriteGymId(String gymId) => _favoriteGymIds.contains(gymId.trim());
 
   void _toggleFavoriteGym(Gym gym) {
@@ -1827,24 +1618,6 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     setState(() {
       _showMapTutorialOverlay = true;
     });
-  }
-
-  Future<void> _dismissMapTutorialOverlay({bool persist = true}) async {
-    if (mounted && _showMapTutorialOverlay) {
-      setState(() {
-        _showMapTutorialOverlay = false;
-      });
-    }
-    if (!persist || _hasSeenMapTutorial) {
-      return;
-    }
-    _hasSeenMapTutorial = true;
-    try {
-      final prefs = await _prefsInstance();
-      await prefs.setBool(_mapTutorialSeenPrefKey, true);
-    } catch (_) {
-      // Falha de escrita local não interrompe o fluxo.
-    }
   }
 
   void _highlightNearestGymFromTutorial() {
@@ -5451,4 +5224,12 @@ class _CelebrationParticle extends StatelessWidget {
     );
   }
 }
+
+
+
+
+
+
+
+
 
