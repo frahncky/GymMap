@@ -42,6 +42,7 @@ extension _GymMapPageMapView on _GymMapPageState {
                   percent:
                       snapshotsByGymId[gym.id]?.occupancyPercent ??
                       gym.baseOccupancyPercent,
+                  isOpenNow: _isGymOpenNow(gym),
                   isFavorite: _isFavoriteGymId(gym.id),
                   selected: gym.id == _selectedGym?.id,
                   revealDetails: _showMarkerDetails,
@@ -238,6 +239,7 @@ extension _GymMapPageMapView on _GymMapPageState {
           child: GymMarkerBubble(
             label: poi.name,
             percent: poiPercent,
+            isOpenNow: _isGymOpenNow(poiGym),
             isFavorite: _isFavoriteGymId(poiGym.id),
             selected: poiGym.id == _selectedGym?.id,
             revealDetails: _showMarkerDetails,

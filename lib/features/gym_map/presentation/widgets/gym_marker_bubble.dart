@@ -9,6 +9,7 @@ class GymMarkerBubble extends StatefulWidget {
     super.key,
     required this.label,
     required this.percent,
+    required this.isOpenNow,
     required this.isFavorite,
     required this.selected,
     required this.revealDetails,
@@ -18,6 +19,7 @@ class GymMarkerBubble extends StatefulWidget {
 
   final String label;
   final int percent;
+  final bool isOpenNow;
   final bool isFavorite;
   final bool selected;
   final bool revealDetails;
@@ -32,7 +34,7 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
     with SingleTickerProviderStateMixin {
   late final AnimationController _pulseController;
 
-  bool get _isLowCrowd => widget.percent <= 35;
+  bool get _isLowCrowd => widget.isOpenNow && widget.percent <= 35;
   bool get _shouldPulse =>
       widget.enablePulse && widget.revealDetails && _isLowCrowd && !widget.selected;
 
@@ -50,6 +52,7 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
   void didUpdateWidget(covariant GymMarkerBubble oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.percent != widget.percent ||
+        oldWidget.isOpenNow != widget.isOpenNow ||
         oldWidget.selected != widget.selected ||
         oldWidget.revealDetails != widget.revealDetails ||
         oldWidget.enablePulse != widget.enablePulse) {
@@ -76,14 +79,19 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
 
   @override
   Widget build(BuildContext context) {
-    final color = occupancyColor(widget.percent);
+    final color =
+        widget.isOpenNow
+            ? occupancyColor(widget.percent)
+            : GymMapColors.textSecondary;
     const markerInfoOffsetY = 18.0;
     final showLowCrowdTag = widget.revealDetails && _isLowCrowd;
+    final occupancySemantics =
+        widget.isOpenNow ? 'lotação de ${widget.percent} por cento' : 'fechada agora';
 
     return Semantics(
       button: true,
       label:
-          '${widget.label}, lotação de ${widget.percent} por cento${widget.isFavorite ? ', favorita' : ''}',
+          '${widget.label}, $occupancySemantics${widget.isFavorite ? ', favorita' : ''}',
       hint: 'Toque para abrir os detalhes da academia',
       child: GestureDetector(
         onTap: widget.onTap,
@@ -130,14 +138,16 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(
-                                Icons.groups_rounded,
+                              Icon(
+                                widget.isOpenNow
+                                    ? Icons.groups_rounded
+                                    : Icons.schedule_rounded,
                                 size: 11,
                                 color: Colors.white,
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                '${widget.percent}%',
+                                widget.isOpenNow ? '${widget.percent}%' : 'Fechada',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w900,
@@ -282,6 +292,35 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
                         ),
                       ),
                     ),
+                    if (!widget.isOpenNow)
+                      Positioned(
+                        right: 16,
+                        top: 8,
+                        child: Container(
+                          width: 16,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            color: GymMapColors.occupancyCritical,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 1.2),
+                            boxShadow: [
+                              BoxShadow(
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                                color: withUiOpacity(
+                                  GymMapColors.occupancyCritical,
+                                  0.35,
+                                ),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.close_rounded,
+                            size: 10,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),

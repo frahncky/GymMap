@@ -66,6 +66,7 @@ class SelectedGymPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
+    final showOccupancy = isOpenNow;
     final targetOccupancy = snapshot.occupancyPercent.clamp(0, 100).toDouble();
     return Container(
       width: double.infinity,
@@ -294,93 +295,136 @@ class SelectedGymPanel extends StatelessWidget {
                     ),
                   ),
                 ),
-                TweenAnimationBuilder<double>(
-                  tween: Tween<double>(end: targetOccupancy),
-                  duration: const Duration(milliseconds: 520),
-                  curve: Curves.easeOutCubic,
-                  builder: (context, animatedOccupancy, _) {
-                    final occupancyPercent = animatedOccupancy.round().clamp(
-                      0,
-                      100,
-                    );
-                    final occupancyAccent = occupancyColorForValue(
-                      animatedOccupancy,
-                    );
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        color: withUiOpacity(occupancyAccent, 0.14),
-                        border: Border.all(
-                          color: withUiOpacity(occupancyAccent, 0.22),
+                if (showOccupancy)
+                  TweenAnimationBuilder<double>(
+                    tween: Tween<double>(end: targetOccupancy),
+                    duration: const Duration(milliseconds: 520),
+                    curve: Curves.easeOutCubic,
+                    builder: (context, animatedOccupancy, _) {
+                      final occupancyPercent = animatedOccupancy.round().clamp(
+                        0,
+                        100,
+                      );
+                      final occupancyAccent = occupancyColorForValue(
+                        animatedOccupancy,
+                      );
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
-                            color: withUiOpacity(occupancyAccent, 0.12),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          color: withUiOpacity(occupancyAccent, 0.14),
+                          border: Border.all(
+                            color: withUiOpacity(occupancyAccent, 0.22),
                           ),
-                        ],
-                      ),
-                      child: Text(
-                        '$occupancyPercent%',
-                        style: TextStyle(
-                          color: occupancyAccent,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 16,
+                          boxShadow: [
+                            BoxShadow(
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                              color: withUiOpacity(occupancyAccent, 0.12),
+                            ),
+                          ],
                         ),
+                        child: Text(
+                          '$occupancyPercent%',
+                          style: TextStyle(
+                            color: occupancyAccent,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 16,
+                          ),
+                        ),
+                      );
+                    },
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color: withUiOpacity(GymMapColors.textSecondary, 0.12),
+                      border: Border.all(
+                        color: withUiOpacity(GymMapColors.textSecondary, 0.22),
                       ),
-                    );
-                  },
-                ),
+                    ),
+                    child: const Text(
+                      'Fechada',
+                      style: TextStyle(
+                        color: GymMapColors.textSecondary,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ),
               ],
             ),
             const SizedBox(height: 14),
-            TweenAnimationBuilder<double>(
-              tween: Tween<double>(end: targetOccupancy),
-              duration: const Duration(milliseconds: 520),
-              curve: Curves.easeOutCubic,
-              builder: (context, animatedOccupancy, _) {
-                final occupancyPercent = animatedOccupancy.round().clamp(
-                  0,
-                  100,
-                );
-                final occupancyAccent = occupancyColorForValue(
-                  animatedOccupancy,
-                );
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: LinearProgressIndicator(
-                        minHeight: 11,
-                        value: occupancyPercent / 100,
-                        color: occupancyAccent,
-                        backgroundColor: GymMapColors.progressBackground,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 240),
-                      child: Text(
-                        'Status: ${occupancyLabel(occupancyPercent)}',
-                        key: ValueKey<String>(
-                          'occupancy-status-$occupancyPercent',
-                        ),
-                        style: const TextStyle(
-                          color: GymMapColors.textPrimary,
-                          fontWeight: FontWeight.w700,
+            if (showOccupancy)
+              TweenAnimationBuilder<double>(
+                tween: Tween<double>(end: targetOccupancy),
+                duration: const Duration(milliseconds: 520),
+                curve: Curves.easeOutCubic,
+                builder: (context, animatedOccupancy, _) {
+                  final occupancyPercent = animatedOccupancy.round().clamp(
+                    0,
+                    100,
+                  );
+                  final occupancyAccent = occupancyColorForValue(
+                    animatedOccupancy,
+                  );
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: LinearProgressIndicator(
+                          minHeight: 11,
+                          value: occupancyPercent / 100,
+                          color: occupancyAccent,
+                          backgroundColor: GymMapColors.progressBackground,
                         ),
                       ),
-                    ),
-                  ],
-                );
-              },
-            ),
+                      const SizedBox(height: 8),
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 240),
+                        child: Text(
+                          'Status: ${occupancyLabel(occupancyPercent)}',
+                          key: ValueKey<String>(
+                            'occupancy-status-$occupancyPercent',
+                          ),
+                          style: const TextStyle(
+                            color: GymMapColors.textPrimary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              )
+            else
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: withUiOpacity(GymMapColors.textSecondary, 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Text(
+                  'Academia fechada agora. Lotacao oculta no mapa.',
+                  style: TextStyle(
+                    color: GymMapColors.textSecondary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
             const SizedBox(height: 4),
             Text(
               '${snapshot.reportsCount} relatos totais | '
@@ -406,15 +450,15 @@ class SelectedGymPanel extends StatelessWidget {
                 label: const Text('Ver rota'),
               ),
             ),
-            if (hasHistoryInsights && historySampled.isNotEmpty) ...[
+            if (showOccupancy && hasHistoryInsights && historySampled.isNotEmpty) ...[
               const SizedBox(height: 12),
               _HistoryInsightsCard(sampled: historySampled),
             ],
-            if (hasProInsights && peakWindow != null) ...[
+            if (showOccupancy && hasProInsights && peakWindow != null) ...[
               const SizedBox(height: 12),
               _ProInsightsCard(peakWindow: peakWindow!, comparison: comparison),
             ],
-            if (hasEliteInsights) ...[
+            if (showOccupancy && hasEliteInsights) ...[
               const SizedBox(height: 12),
               _EliteInsightsCard(forecast: forecast, alerts: alerts),
             ],
@@ -448,61 +492,80 @@ class SelectedGymPanel extends StatelessWidget {
             const SizedBox(height: 10),
             const Divider(height: 1),
             const SizedBox(height: 10),
-            Text(
-              'Atualize a lotação desta academia',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            Row(
-              children: [
-                Expanded(
-                  child: Slider(
-                    value: reportPercent,
-                    min: 0,
-                    max: 100,
-                    divisions: 20,
-                    label: '${reportPercent.round()}%',
-                    onChanged:
-                        isSubmittingCrowdReport ? null : onReportPercentChanged,
-                  ),
+            if (showOccupancy)
+              Text(
+                'Atualize a lotação desta academia',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w800,
                 ),
-                Container(
-                  width: 56,
-                  alignment: Alignment.center,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  decoration: BoxDecoration(
-                    color: GymMapColors.chipBackground,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    '${reportPercent.round()}%',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w800,
-                      color: GymMapColors.valueChipText,
+              ),
+            if (showOccupancy)
+              Row(
+                children: [
+                  Expanded(
+                    child: Slider(
+                      value: reportPercent,
+                      min: 0,
+                      max: 100,
+                      divisions: 20,
+                      label: '${reportPercent.round()}%',
+                      onChanged:
+                          isSubmittingCrowdReport ? null : onReportPercentChanged,
                     ),
                   ),
-                ),
-              ],
-            ),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: isSubmittingCrowdReport ? null : onSubmitCrowdReport,
-                icon:
-                    isSubmittingCrowdReport
-                        ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                        : const Icon(Icons.send),
-                label: Text(
-                  isSubmittingCrowdReport ? 'Enviando relato...' : 'Contribuir',
+                  Container(
+                    width: 56,
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color: GymMapColors.chipBackground,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '${reportPercent.round()}%',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: GymMapColors.valueChipText,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            if (showOccupancy)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: isSubmittingCrowdReport ? null : onSubmitCrowdReport,
+                  icon:
+                      isSubmittingCrowdReport
+                          ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                          : const Icon(Icons.send),
+                  label: Text(
+                    isSubmittingCrowdReport ? 'Enviando relato...' : 'Contribuir',
+                  ),
                 ),
               ),
-            ),
+            if (!showOccupancy)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                decoration: BoxDecoration(
+                  color: withUiOpacity(GymMapColors.textSecondary, 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Text(
+                  'Contribuicao de lotacao disponivel apenas com academia aberta.',
+                  style: TextStyle(
+                    color: GymMapColors.textSecondary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
           ],
         ),
       ),
