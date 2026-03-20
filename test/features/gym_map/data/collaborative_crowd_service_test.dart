@@ -141,4 +141,101 @@ void main() {
       expect(second.accepted, isTrue);
     });
   });
+
+  group('CollaborativeCrowdService consensus threshold', () {
+    final gym = _gymFixture(
+      id: 'gym_consensus',
+      name: 'Gym Consensus',
+      lat: -23.5635,
+      lon: -46.6588,
+      baseOccupancyPercent: 45,
+    );
+
+    test('single opinion does not change snapshot occupancy', () {
+      final service = CollaborativeCrowdService();
+      final before = service.snapshotFor(gym);
+
+      final submit = service.submitReport(
+        gym: gym,
+        reporterId: 'u1',
+        occupancyPercent: 82,
+      );
+      final after = service.snapshotFor(gym);
+
+      expect(submit.accepted, isTrue);
+      expect(after.occupancyPercent, before.occupancyPercent);
+      expect(after.occupancyPercent, gym.baseOccupancyPercent);
+    });
+
+    test('two distinct reporters are still not enough', () {
+      final service = CollaborativeCrowdService();
+
+      service.submitReport(gym: gym, reporterId: 'u1', occupancyPercent: 80);
+      service.submitReport(gym: gym, reporterId: 'u2', occupancyPercent: 84);
+      final snapshot = service.snapshotFor(gym);
+
+      expect(snapshot.occupancyPercent, gym.baseOccupancyPercent);
+    });
+
+    test('three distinct reporters can change snapshot occupancy', () {
+      final service = CollaborativeCrowdService();
+
+      service.submitReport(gym: gym, reporterId: 'u1', occupancyPercent: 80);
+      service.submitReport(gym: gym, reporterId: 'u2', occupancyPercent: 84);
+      service.submitReport(gym: gym, reporterId: 'u3', occupancyPercent: 88);
+      final snapshot = service.snapshotFor(gym);
+
+      expect(snapshot.occupancyPercent, isNot(gym.baseOccupancyPercent));
+      expect(snapshot.occupancyPercent, greaterThan(gym.baseOccupancyPercent));
+    });
+
+    test('tolerance reduces the impact of an outlier vote', () {
+      final now = DateTime.now();
+      final reports = <CrowdReport>[
+        CrowdReport(
+          gymId: gym.id,
+          occupancyPercent: 50,
+          createdAt: now,
+          reporterId: 'u1',
+        ),
+        CrowdReport(
+          gymId: gym.id,
+          occupancyPercent: 52,
+          createdAt: now,
+          reporterId: 'u2',
+        ),
+        CrowdReport(
+          gymId: gym.id,
+          occupancyPercent: 95,
+          createdAt: now,
+          reporterId: 'u3',
+        ),
+      ];
+
+      final strictTolerance = CollaborativeCrowdService(voteTolerancePercent: 10);
+      final wideTolerance = CollaborativeCrowdService(voteTolerancePercent: 40);
+      strictTolerance.mergeReports(reports);
+      wideTolerance.mergeReports(reports);
+
+      final strictSnapshot = strictTolerance.snapshotFor(gym);
+      final wideSnapshot = wideTolerance.snapshotFor(gym);
+
+      expect(strictSnapshot.occupancyPercent, lessThan(wideSnapshot.occupancyPercent));
+      expect(strictSnapshot.occupancyPercent, inInclusiveRange(45, 60));
+      expect(wideSnapshot.occupancyPercent, inInclusiveRange(60, 95));
+    });
+
+    test('multiple reports from same user do not satisfy consensus', () {
+      final service = CollaborativeCrowdService(
+        cooldownWindow: Duration.zero,
+      );
+
+      service.submitReport(gym: gym, reporterId: 'u1', occupancyPercent: 78);
+      service.submitReport(gym: gym, reporterId: 'u1', occupancyPercent: 82);
+      service.submitReport(gym: gym, reporterId: 'u1', occupancyPercent: 86);
+      final snapshot = service.snapshotFor(gym);
+
+      expect(snapshot.occupancyPercent, gym.baseOccupancyPercent);
+    });
+  });
 }

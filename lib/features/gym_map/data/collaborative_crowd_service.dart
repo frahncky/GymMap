@@ -26,10 +26,16 @@ class ReportSubmissionResult {
 
 /// Serviço local em memória para simular backend colaborativo.
 class CollaborativeCrowdService {
-  CollaborativeCrowdService({Duration? cooldownWindow})
-    : _reports = [],
-      _cooldownWindow = cooldownWindow ?? const Duration(minutes: 10),
-      _reporterTrust = {};
+  CollaborativeCrowdService({
+    Duration? cooldownWindow,
+    int minDistinctReportersForSnapshot = 3,
+    int voteTolerancePercent = 18,
+  }) : _reports = [],
+       _cooldownWindow = cooldownWindow ?? const Duration(minutes: 10),
+       _reporterTrust = {},
+       _minDistinctReportersForSnapshot =
+           minDistinctReportersForSnapshot.clamp(1, 8).toInt(),
+       _voteTolerancePercent = voteTolerancePercent.clamp(0, 40).toInt();
 
   factory CollaborativeCrowdService.withSeedData() {
     return CollaborativeCrowdService();
@@ -39,6 +45,8 @@ class CollaborativeCrowdService {
   final Duration _cooldownWindow;
   final Map<String, double> _reporterTrust;
   final Set<String> _reportKeys = <String>{};
+  final int _minDistinctReportersForSnapshot;
+  final int _voteTolerancePercent;
 
   /// Registra um relato com anti-spam e peso por confiabilidade do usuário.
   ReportSubmissionResult submitReport({
@@ -107,7 +115,8 @@ class CollaborativeCrowdService {
   /// Calcula o snapshot da academia usando dados colaborativos:
   /// 1) Prioriza relatos das últimas 2 horas.
   /// 2) Se não houver relatos recentes, usa até 4 relatos mais novos.
-  /// 3) Se não houver relatos, usa o valor base da academia.
+  /// 3) Sem consenso minimo de relatores distintos, usa o valor base.
+  /// 4) Com consenso, aplica tolerancia para reduzir impacto de outliers.
   GymCrowdSnapshot snapshotFor(Gym gym) {
     final now = DateTime.now();
     final gymReports =
@@ -125,6 +134,8 @@ class CollaborativeCrowdService {
     final occupancy = _calculateAverageOccupancy(
       basis,
       gym.baseOccupancyPercent,
+      minDistinctReporters: _minDistinctReportersForSnapshot,
+      voteTolerancePercent: _voteTolerancePercent,
     );
 
     return GymCrowdSnapshot(
@@ -291,13 +302,37 @@ class CollaborativeCrowdService {
     return alerts;
   }
 
-  /// Calcula a media dos relatos de referência e aplica fallback quando vazio.
-  int _calculateAverageOccupancy(List<CrowdReport> basis, int fallback) {
+  /// Calcula a media dos relatos e usa fallback sem consenso minimo.
+  int _calculateAverageOccupancy(
+    List<CrowdReport> basis,
+    int fallback, {
+    required int minDistinctReporters,
+    required int voteTolerancePercent,
+  }) {
     if (basis.isEmpty) {
       return fallback;
     }
+    final uniqueReports = <CrowdReport>[];
+    final reporterIds = <String>{};
+    for (final report in basis) {
+      final normalizedReporterId = _normalizedReporterId(report.reporterId);
+      if (reporterIds.add(normalizedReporterId)) {
+        uniqueReports.add(report);
+      }
+    }
+    if (reporterIds.length < minDistinctReporters) {
+      return fallback;
+    }
+    final sortedVotes =
+        uniqueReports
+            .map((report) => report.occupancyPercent.clamp(0, 100).toInt())
+            .toList()
+          ..sort();
+    final medianVote = sortedVotes[sortedVotes.length ~/ 2];
+    final minAllowed = (medianVote - voteTolerancePercent).clamp(0, 100);
+    final maxAllowed = (medianVote + voteTolerancePercent).clamp(0, 100);
 
-    final totalWeight = basis.fold<double>(
+    final totalWeight = uniqueReports.fold<double>(
       0,
       (sum, report) =>
           sum + report.reliabilityWeight.clamp(0.2, 1.6).toDouble(),
@@ -306,14 +341,21 @@ class CollaborativeCrowdService {
       return fallback;
     }
 
-    final weightedTotal = basis.fold<double>(
+    final weightedTotal = uniqueReports.fold<double>(
       0,
-      (sum, report) =>
-          sum +
-          report.occupancyPercent *
-              report.reliabilityWeight.clamp(0.2, 1.6).toDouble(),
+      (sum, report) {
+        final boundedVote =
+            report.occupancyPercent.clamp(minAllowed, maxAllowed).toDouble();
+        final boundedWeight = report.reliabilityWeight.clamp(0.2, 1.6);
+        return sum + (boundedVote * boundedWeight.toDouble());
+      },
     );
     return (weightedTotal / totalWeight).round().clamp(0, 100);
+  }
+
+  String _normalizedReporterId(String reporterId) {
+    final normalized = reporterId.trim().toLowerCase();
+    return normalized.isEmpty ? 'anonymous' : normalized;
   }
 
   Duration? _remainingCooldown({
