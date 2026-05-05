@@ -65,7 +65,9 @@ class GymMapPage extends StatefulWidget {
 }
 
 class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
-  static const LatLng _fallbackMapCenter = LatLng(-23.5615, -46.6560);
+  static const LatLng _fallbackMapCenter = LatLng(-14.2350, -51.9253);
+  static const double _fallbackMapZoom = 4.2;
+  static const double _minZoomForAreaPoiSearch = 12.0;
   static const String _localReporterId = 'local-device-user';
   static const String _mapTutorialSeenPrefKey = 'gymmap_map_tutorial_seen_v1';
   static const String _initialLocationPromptDonePrefKey =
@@ -274,7 +276,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   Future<void> _runInitialMapBootstrap() async {
     final bootstrapUserLocation = await _resolveBootstrapUserLocation();
     final initialCenter = bootstrapUserLocation ?? _fallbackMapCenter;
-    final initialZoom = bootstrapUserLocation != null ? 14.8 : 13.4;
+    final initialZoom = bootstrapUserLocation != null ? 14.8 : _fallbackMapZoom;
 
     if (mounted) {
       setState(() {
@@ -436,6 +438,12 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
         !hasVisiblePins;
     final hasNoNearbyGyms =
         _searchTerm.trim().isEmpty && _userLocation != null && !hasVisiblePins;
+    final needsLocationForNearbyGyms =
+        _searchTerm.trim().isEmpty &&
+        !_hasNationwideCoverage &&
+        _userLocation == null &&
+        !hasVisiblePins &&
+        _hasCompletedInitialLocationAttempt;
     final selectedGym = _selectedGym;
     final snapshot =
         selectedGym == null
@@ -563,6 +571,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                                   child: SelectionHintCard(
                                     hasNoResults: hasNoSearchResults,
                                     hasNoNearbyGyms: hasNoNearbyGyms,
+                                    needsLocationForNearbyGyms:
+                                        needsLocationForNearbyGyms,
                                     hasActiveFilters:
                                         _activeQuickFilters.isNotEmpty,
                                     onClearFilters: _clearAllQuickFilters,

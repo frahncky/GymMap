@@ -26,13 +26,16 @@ extension _GymMapPageFilters on _GymMapPageState {
           ? _GymMapPageState._eliteCoverageRadiusMeters
           : _GymMapPageState._defaultCoverageRadiusMeters;
 
-  bool _isOutsideCurrentPlanCoverage(LatLng center) {
+  bool _isOutsideCurrentPlanCoverage(
+    LatLng center, {
+    bool allowWithoutUserLocation = false,
+  }) {
     if (_hasNationwideCoverage) {
       return false;
     }
     final userPoint = _userLocation;
     if (userPoint == null) {
-      return true;
+      return !allowWithoutUserLocation;
     }
     return !_isWithinDistanceMeters(
       userPoint,
@@ -45,8 +48,12 @@ extension _GymMapPageFilters on _GymMapPageState {
     LatLng center, {
     bool notifyIfBlocked = false,
     bool offerEliteUpgrade = false,
+    bool allowWithoutUserLocation = false,
   }) {
-    if (!_isOutsideCurrentPlanCoverage(center)) {
+    if (!_isOutsideCurrentPlanCoverage(
+      center,
+      allowWithoutUserLocation: allowWithoutUserLocation,
+    )) {
       return true;
     }
     if (notifyIfBlocked) {
@@ -82,14 +89,15 @@ extension _GymMapPageFilters on _GymMapPageState {
     if (_hasNationwideCoverage) {
       return pois.toList(growable: false);
     }
-    final userPoint = _userLocation;
-    if (userPoint == null) {
+    final coverageCenter =
+        _userLocation ?? _searchLocationCenter ?? _manualBrowseCenter;
+    if (coverageCenter == null) {
       return const <MapGymPoi>[];
     }
     return pois
         .where(
           (poi) => _isWithinDistanceMeters(
-            userPoint,
+            coverageCenter,
             poi.position,
             _GymMapPageState._defaultCoverageRadiusMeters,
           ),
@@ -150,7 +158,9 @@ extension _GymMapPageFilters on _GymMapPageState {
       _mapSearchState.normalizeSearchTerm(value);
 
   List<Gym> _applyLocationFilter(List<Gym> gyms, {String? term}) {
-    if (!_hasNationwideCoverage && _userLocation == null) {
+    final hasAreaAnchor =
+        _searchLocationCenter != null || _manualBrowseCenter != null;
+    if (!_hasNationwideCoverage && _userLocation == null && !hasAreaAnchor) {
       return const <Gym>[];
     }
     return GymMapLogic.applyLocationFilter(
@@ -165,7 +175,9 @@ extension _GymMapPageFilters on _GymMapPageState {
   }
 
   List<MapGymPoi> _filteredMapPois() {
-    if (!_hasNationwideCoverage && _userLocation == null) {
+    final hasAreaAnchor =
+        _searchLocationCenter != null || _manualBrowseCenter != null;
+    if (!_hasNationwideCoverage && _userLocation == null && !hasAreaAnchor) {
       return const <MapGymPoi>[];
     }
     return GymMapLogic.filterMapPois(
@@ -322,8 +334,12 @@ extension _GymMapPageFilters on _GymMapPageState {
   Future<void> _restoreCachedMapPoisNear(
     LatLng center, {
     bool force = false,
+    bool allowWithoutUserLocation = false,
   }) async {
-    if (!_ensurePlanCoverageForCenter(center)) {
+    if (!_ensurePlanCoverageForCenter(
+      center,
+      allowWithoutUserLocation: allowWithoutUserLocation,
+    )) {
       return;
     }
     final hasNearbyInMemory = _mapPois.any(
@@ -346,8 +362,14 @@ extension _GymMapPageFilters on _GymMapPageState {
     _setMapPoisIfChanged(visibleNearby);
   }
 
-  Future<void> _loadMapPoisAround(LatLng center) async {
-    if (!_ensurePlanCoverageForCenter(center)) {
+  Future<void> _loadMapPoisAround(
+    LatLng center, {
+    bool allowWithoutUserLocation = false,
+  }) async {
+    if (!_ensurePlanCoverageForCenter(
+      center,
+      allowWithoutUserLocation: allowWithoutUserLocation,
+    )) {
       return;
     }
     _beginMapPoiLoading();
@@ -355,7 +377,10 @@ extension _GymMapPageFilters on _GymMapPageState {
       await _mapPoiReloadController.loadWithQueue(
         center: center,
         onLoad: (targetCenter) async {
-          if (!_ensurePlanCoverageForCenter(targetCenter)) {
+          if (!_ensurePlanCoverageForCenter(
+            targetCenter,
+            allowWithoutUserLocation: allowWithoutUserLocation,
+          )) {
             return false;
           }
           try {
@@ -393,11 +418,18 @@ extension _GymMapPageFilters on _GymMapPageState {
     }
   }
 
-  void _scheduleMapPoiReload(LatLng center, {bool force = false}) {
+  void _scheduleMapPoiReload(
+    LatLng center, {
+    bool force = false,
+    bool allowWithoutUserLocation = false,
+  }) {
     if (!widget.showMap) {
       return;
     }
-    if (!_ensurePlanCoverageForCenter(center)) {
+    if (!_ensurePlanCoverageForCenter(
+      center,
+      allowWithoutUserLocation: allowWithoutUserLocation,
+    )) {
       return;
     }
     if (_isDataSaverEnabled && !force) {
@@ -427,7 +459,10 @@ extension _GymMapPageFilters on _GymMapPageState {
         if (!mounted) {
           return;
         }
-        await _loadMapPoisAround(targetCenter);
+        await _loadMapPoisAround(
+          targetCenter,
+          allowWithoutUserLocation: allowWithoutUserLocation,
+        );
       },
     );
   }
@@ -460,7 +495,15 @@ extension _GymMapPageFilters on _GymMapPageState {
       return;
     }
     final center = camera.center;
-    if (!_ensurePlanCoverageForCenter(center, notifyIfBlocked: true)) {
+    final allowWithoutUserLocation =
+        !_hasNationwideCoverage &&
+        _userLocation == null &&
+        camera.zoom >= _GymMapPageState._minZoomForAreaPoiSearch;
+    if (!_ensurePlanCoverageForCenter(
+      center,
+      notifyIfBlocked: _userLocation != null,
+      allowWithoutUserLocation: allowWithoutUserLocation,
+    )) {
       return;
     }
     final normalizedSearchTerm = _normalizeSearchTerm(_searchTerm);
@@ -482,9 +525,18 @@ extension _GymMapPageFilters on _GymMapPageState {
           _queueUiRefreshIfMapVisible();
         },
       );
+      unawaited(
+        _restoreCachedMapPoisNear(
+          center,
+          allowWithoutUserLocation: allowWithoutUserLocation,
+        ),
+      );
     }
 
-    _scheduleMapPoiReload(center);
+    _scheduleMapPoiReload(
+      center,
+      allowWithoutUserLocation: allowWithoutUserLocation,
+    );
   }
 
   List<Gym> get _filteredGyms =>

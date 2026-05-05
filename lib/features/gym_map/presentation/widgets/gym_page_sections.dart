@@ -379,23 +379,27 @@ class SelectionHintCard extends StatelessWidget {
     super.key,
     required this.hasNoResults,
     required this.hasNoNearbyGyms,
+    required this.needsLocationForNearbyGyms,
     this.hasActiveFilters = false,
     this.onClearFilters,
   });
 
   final bool hasNoResults;
   final bool hasNoNearbyGyms;
+  final bool needsLocationForNearbyGyms;
   final bool hasActiveFilters;
   final VoidCallback? onClearFilters;
 
   @override
   Widget build(BuildContext context) {
-    if (!hasNoResults && !hasNoNearbyGyms) {
+    if (!hasNoResults && !hasNoNearbyGyms && !needsLocationForNearbyGyms) {
       return const SizedBox.shrink();
     }
 
     final message =
-        hasNoResults && hasActiveFilters
+        needsLocationForNearbyGyms
+            ? 'Aproxime o mapa para carregar academias automaticamente.'
+            : hasNoResults && hasActiveFilters
             ? 'Nenhuma academia corresponde aos filtros ativos.'
             : hasNoResults
             ? 'Nenhum resultado encontrado para sua busca.'

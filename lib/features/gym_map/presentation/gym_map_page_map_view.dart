@@ -76,6 +76,8 @@ extension _GymMapPageMapView on _GymMapPageState {
       );
     }
 
+    final hasInitialFocus = _selectedGym != null || _userLocation != null;
+
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -86,7 +88,8 @@ extension _GymMapPageMapView on _GymMapPageState {
                 _selectedGym?.position ??
                 _userLocation ??
                 _GymMapPageState._fallbackMapCenter,
-            initialZoom: 13.4,
+            initialZoom:
+                hasInitialFocus ? 13.4 : _GymMapPageState._fallbackMapZoom,
             minZoom: 3,
             maxZoom: 18,
             initialRotation: 0,

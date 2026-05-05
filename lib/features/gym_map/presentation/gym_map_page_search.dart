@@ -66,11 +66,6 @@ extension _GymMapPageSearch on _GymMapPageState {
     if (normalized.isEmpty || _hasLocalTextMatch(normalized)) {
       return;
     }
-    if (!_hasNationwideCoverage && _userLocation == null) {
-      _notifyCoverageAccessBlocked(offerEliteUpgrade: false);
-      return;
-    }
-
     _setStateIfMapVisible(() {
       _isResolvingSearchLocation = true;
     });
@@ -117,7 +112,13 @@ extension _GymMapPageSearch on _GymMapPageState {
       }
 
       final center = LatLng(latitude, longitude);
-      if (!_ensurePlanCoverageForCenter(center, notifyIfBlocked: true)) {
+      final allowWithoutUserLocation =
+          !_hasNationwideCoverage && _userLocation == null;
+      if (!_ensurePlanCoverageForCenter(
+        center,
+        notifyIfBlocked: !allowWithoutUserLocation,
+        allowWithoutUserLocation: allowWithoutUserLocation,
+      )) {
         return;
       }
       _setStateIfMapVisible(() {
@@ -132,7 +133,19 @@ extension _GymMapPageSearch on _GymMapPageState {
       });
 
       _moveMapTo(center, 13.8);
-      unawaited(_loadMapPoisAround(center));
+      unawaited(
+        _restoreCachedMapPoisNear(
+          center,
+          force: true,
+          allowWithoutUserLocation: allowWithoutUserLocation,
+        ),
+      );
+      unawaited(
+        _loadMapPoisAround(
+          center,
+          allowWithoutUserLocation: allowWithoutUserLocation,
+        ),
+      );
     } on TimeoutException {
       _showMapSnack('Tempo esgotado ao buscar essa localização.');
     } catch (_) {

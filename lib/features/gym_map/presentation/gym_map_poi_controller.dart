@@ -18,6 +18,7 @@ class GymMapPoiController {
   static final Uri _overpassUri = Uri.parse(
     'https://overpass-api.de/api/interpreter',
   );
+  static const String _overpassUserAgent = 'gymmap/1.0';
 
   GymLocationCacheService? _cacheService;
   final http.Client _httpClient;
@@ -103,7 +104,11 @@ class GymMapPoiController {
     final response = await _httpClient
         .post(
           _overpassUri,
-          headers: const {'Content-Type': 'text/plain; charset=utf-8'},
+          headers: const {
+            'Accept': 'application/json',
+            'Content-Type': 'text/plain; charset=utf-8',
+            'User-Agent': _overpassUserAgent,
+          },
           body: query,
         )
         .timeout(_overpassTimeout);
@@ -163,8 +168,15 @@ class GymMapPoiController {
       }
 
       final tags = element['tags'];
+      if (tags is! Map) {
+        continue;
+      }
+      if (!_looksLikeGym(tags)) {
+        continue;
+      }
+
       String name = 'Academia';
-      if (tags is Map && tags['name'] is String) {
+      if (tags['name'] is String) {
         name = (tags['name'] as String).trim();
         if (name.isEmpty) {
           name = 'Academia';
@@ -175,6 +187,21 @@ class GymMapPoiController {
     }
 
     return List<MapGymPoi>.unmodifiable(poiList);
+  }
+
+  bool _looksLikeGym(Map tags) {
+    final amenity = '${tags['amenity'] ?? ''}'.toLowerCase();
+    final leisure = '${tags['leisure'] ?? ''}'.toLowerCase();
+    final sport = '${tags['sport'] ?? ''}'.toLowerCase();
+    final name = '${tags['name'] ?? ''}'.toLowerCase();
+    return amenity == 'gym' ||
+        leisure == 'fitness_centre' ||
+        sport.contains('fitness') ||
+        sport.contains('bodybuilding') ||
+        name.contains('academia') ||
+        name.contains('fitness') ||
+        name.contains('gym') ||
+        name.contains('crossfit');
   }
 
   Future<GymLocationCacheService> _ensureCacheService() async {
@@ -191,14 +218,12 @@ class GymMapPoiController {
     return '''
 [out:json][timeout:18];
 (
-  node["amenity"="gym"](around:18000,${center.latitude},${center.longitude});
-  node["leisure"="fitness_centre"](around:18000,${center.latitude},${center.longitude});
-  way["amenity"="gym"](around:18000,${center.latitude},${center.longitude});
-  way["leisure"="fitness_centre"](around:18000,${center.latitude},${center.longitude});
-  relation["amenity"="gym"](around:18000,${center.latitude},${center.longitude});
-  relation["leisure"="fitness_centre"](around:18000,${center.latitude},${center.longitude});
+  nwr["amenity"="gym"](around:25000,${center.latitude},${center.longitude});
+  nwr["leisure"="fitness_centre"](around:25000,${center.latitude},${center.longitude});
+  nwr["sport"~"^(fitness|bodybuilding)\$",i](around:25000,${center.latitude},${center.longitude});
+  nwr["name"~"(academia|fitness|gym|crossfit)",i](around:12000,${center.latitude},${center.longitude});
 );
-out center tags;
+out body center;
 ''';
   }
 }
