@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../gym_map_colors.dart';
 import '../gym_map_helpers.dart';
@@ -36,7 +36,10 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
 
   bool get _isLowCrowd => widget.isOpenNow && widget.percent <= 35;
   bool get _shouldPulse =>
-      widget.enablePulse && widget.revealDetails && _isLowCrowd && !widget.selected;
+      widget.enablePulse &&
+      widget.revealDetails &&
+      _isLowCrowd &&
+      !widget.selected;
 
   @override
   void initState() {
@@ -86,7 +89,9 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
     const markerInfoOffsetY = 18.0;
     final showLowCrowdTag = widget.revealDetails && _isLowCrowd;
     final occupancySemantics =
-        widget.isOpenNow ? 'lotação de ${widget.percent} por cento' : 'fechada agora';
+        widget.isOpenNow
+            ? 'lotação de ${widget.percent} por cento'
+            : 'fechada agora';
 
     return Semantics(
       button: true,
@@ -99,7 +104,13 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeOutCubic,
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-          transform: Matrix4.identity()..scale(widget.selected ? 1.05 : 1.0),
+          transform:
+              Matrix4.identity()..scaleByDouble(
+                widget.selected ? 1.05 : 1.0,
+                widget.selected ? 1.05 : 1.0,
+                1.0,
+                1.0,
+              ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -147,7 +158,9 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                widget.isOpenNow ? '${widget.percent}%' : 'Fechada',
+                                widget.isOpenNow
+                                    ? '${widget.percent}%'
+                                    : 'Fechada',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w900,
