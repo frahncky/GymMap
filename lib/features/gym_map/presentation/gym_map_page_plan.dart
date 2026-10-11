@@ -72,8 +72,12 @@ extension _GymMapPagePlan on _GymMapPageState {
     if (service.isProductionMode && !service.hasAuthSession) {
       return 'Modo produção exige sessão autenticada';
     }
+    if (service.isAnonymousSession) {
+      return 'Conta anônima neste aparelho. Crie uma conta para não perder '
+          'sua assinatura ao trocar de celular.';
+    }
     if (service.hasAuthSession) {
-      return 'Sessão ativa para ${service.userId}';
+      return 'Sessão ativa para ${service.username ?? service.userId}';
     }
     return 'Sessão não autenticada';
   }
@@ -187,6 +191,15 @@ extension _GymMapPagePlan on _GymMapPageState {
         return 'Usuário ou senha inválidos.';
       case 'missing_credentials':
         return 'Informe usuário e senha.';
+      case 'invalid_username':
+        return 'Usuário deve ter de 3 a 32 caracteres: letras minúsculas, '
+            'números, ponto, hífen ou sublinhado.';
+      case 'username_taken':
+        return 'Este usuário já está em uso.';
+      case 'invalid_password_length':
+        return 'A senha precisa ter pelo menos 8 caracteres.';
+      case 'already_registered':
+        return 'Esta sessão já pertence a uma conta registrada.';
       case 'unauthorized':
         return 'Sessão não autorizada.';
       case '':
@@ -294,6 +307,7 @@ extension _GymMapPagePlan on _GymMapPageState {
   Future<void> _initializePlanSubscription() async {
     try {
       final service = await PlanSubscriptionService.create();
+      await _ensurePlanSession(service);
       final snapshot = await service.loadActiveSubscription();
       final nextPlan = _tierFromPlanKey(snapshot.activePlanKey);
       if (!mounted) {
@@ -319,6 +333,22 @@ extension _GymMapPagePlan on _GymMapPageState {
     }
   }
 
+  /// Cria ou renova a conta anônima do aparelho para que os recursos que
+  /// dependem do backend (lotação, assinatura) funcionem sem login manual.
+  Future<void> _ensurePlanSession(PlanSubscriptionService service) async {
+    final hadSession = service.hasAuthSession;
+    final previousUserId = service.userId;
+    try {
+      await service.ensureSession();
+    } catch (_) {
+      // Sem backend disponível o app segue com o cache local.
+      return;
+    }
+    if (!hadSession || previousUserId != service.userId) {
+      _crowdReportRemoteService?.refreshAuthFromStorage();
+    }
+  }
+
   void _startPlanSyncTimer() {
     _planSyncTimer?.cancel();
     _planSyncTimer = Timer.periodic(const Duration(minutes: 1), (_) {
@@ -332,6 +362,7 @@ extension _GymMapPagePlan on _GymMapPageState {
       return;
     }
 
+    await _ensurePlanSession(service);
     final previousPlan = _activePlan;
     final snapshot = await service.loadActiveSubscription();
     if (!mounted) {
@@ -376,7 +407,10 @@ extension _GymMapPagePlan on _GymMapPageState {
     _showMapSnack('Plano gratuito ativado.');
   }
 
-  Future<void> _startPlanLoginFlow(BuildContext sheetContext) async {
+  Future<void> _startPlanLoginFlow(
+    BuildContext sheetContext, {
+    bool register = false,
+  }) async {
     final service = _planSubscriptionService;
     if (service == null) {
       _showMapSnack('Assinatura ainda está inicializando. Tente novamente.');
@@ -387,7 +421,9 @@ extension _GymMapPagePlan on _GymMapPageState {
       return;
     }
 
-    final userController = TextEditingController(text: service.userId);
+    final userController = TextEditingController(
+      text: register || service.isAnonymousSession ? '' : service.userId,
+    );
     final passwordController = TextEditingController();
     try {
       await showDialog<void>(
@@ -418,10 +454,16 @@ extension _GymMapPagePlan on _GymMapPageState {
                   });
                 }
                 try {
-                  final session = await service.signIn(
-                    userId: userId,
-                    password: password,
-                  );
+                  final session =
+                      register
+                          ? await service.register(
+                            username: userId,
+                            password: password,
+                          )
+                          : await service.signIn(
+                            userId: userId,
+                            password: password,
+                          );
                   await _syncPlanFromStorage(showExpiryNotice: false);
                   _crowdReportRemoteService?.refreshAuthFromStorage();
                   unawaited(_syncCrowdReportsForCurrentContext());
@@ -434,7 +476,11 @@ extension _GymMapPagePlan on _GymMapPageState {
                   if (sheetContext.mounted) {
                     Navigator.of(sheetContext).pop();
                   }
-                  _showMapSnack('Login concluido para ${session.userId}.');
+                  _showMapSnack(
+                    register
+                        ? 'Conta criada para ${service.username ?? session.userId}.'
+                        : 'Login concluído para ${service.username ?? session.userId}.',
+                  );
                 } catch (error) {
                   if (dialogContext.mounted) {
                     setDialogState(() {
@@ -456,7 +502,9 @@ extension _GymMapPagePlan on _GymMapPageState {
               }
 
               return AlertDialog(
-                title: const Text('Entrar no plano mensal'),
+                title: Text(
+                  register ? 'Criar conta' : 'Entrar no plano mensal',
+                ),
                 content: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -464,9 +512,13 @@ extension _GymMapPagePlan on _GymMapPageState {
                       controller: userController,
                       enabled: !isSubmitting,
                       textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Usuário',
                         hintText: 'user-001',
+                        helperText:
+                            register
+                                ? '3 a 32 caracteres: a-z, 0-9, ponto, hífen ou _'
+                                : null,
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -479,6 +531,7 @@ extension _GymMapPagePlan on _GymMapPageState {
                       },
                       decoration: InputDecoration(
                         labelText: 'Senha',
+                        helperText: register ? 'Mínimo de 8 caracteres' : null,
                         suffixIcon: IconButton(
                           onPressed:
                               isSubmitting
@@ -533,8 +586,12 @@ extension _GymMapPagePlan on _GymMapPageState {
                               height: 16,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                            : const Icon(Icons.login),
-                    label: Text(isSubmitting ? 'Entrando...' : 'Entrar'),
+                            : Icon(register ? Icons.person_add : Icons.login),
+                    label: Text(
+                      register
+                          ? (isSubmitting ? 'Criando...' : 'Criar conta')
+                          : (isSubmitting ? 'Entrando...' : 'Entrar'),
+                    ),
                   ),
                 ],
               );
@@ -554,7 +611,7 @@ extension _GymMapPagePlan on _GymMapPageState {
       _showMapSnack('Assinatura ainda está inicializando. Tente novamente.');
       return;
     }
-    if (!service.hasAuthSession) {
+    if (!service.hasAuthSession || service.isAnonymousSession) {
       _showMapSnack('Não existe sessão autenticada.');
       return;
     }
@@ -567,6 +624,7 @@ extension _GymMapPagePlan on _GymMapPageState {
     });
     try {
       await service.signOut();
+      // _syncPlanFromStorage volta para a conta anônima do aparelho.
       await _syncPlanFromStorage(showExpiryNotice: false);
       _crowdReportRemoteService?.refreshAuthFromStorage();
       unawaited(_syncCrowdReportsForCurrentContext());
@@ -1473,6 +1531,7 @@ extension _GymMapPagePlan on _GymMapPageState {
         final service = _planSubscriptionService;
         final hasRemoteBackend = service?.hasRemoteBackend ?? false;
         final hasAuthSession = service?.hasAuthSession ?? false;
+        final isAnonymousSession = service?.isAnonymousSession ?? false;
         final promoLabel = _paywallPromoLabel();
         const recommendedTier = AppPlanTier.pro;
         return SafeArea(
@@ -1657,7 +1716,27 @@ extension _GymMapPagePlan on _GymMapPageState {
                           label: const Text('Entrar'),
                         ),
                       ),
-                      if (hasAuthSession) ...[
+                      if (isAnonymousSession) ...[
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: FilledButton.tonalIcon(
+                            onPressed:
+                                _isLoadingPlanSubscription || _isPlanAuthBusy
+                                    ? null
+                                    : () {
+                                      unawaited(
+                                        _startPlanLoginFlow(
+                                          context,
+                                          register: true,
+                                        ),
+                                      );
+                                    },
+                            icon: const Icon(Icons.person_add),
+                            label: const Text('Criar conta'),
+                          ),
+                        ),
+                      ],
+                      if (hasAuthSession && !isAnonymousSession) ...[
                         const SizedBox(width: 8),
                         Expanded(
                           child: TextButton.icon(

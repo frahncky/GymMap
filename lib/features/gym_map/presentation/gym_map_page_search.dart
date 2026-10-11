@@ -71,7 +71,7 @@ extension _GymMapPageSearch on _GymMapPageState {
     });
 
     try {
-      final uri = Uri.https('nominatim.openstreetmap.org', '/search', {
+      final uri = MapServicesConfig.nominatimSearchUri({
         'q': query,
         'format': 'jsonv2',
         'limit': '1',

@@ -1,13 +1,18 @@
-FROM dart:stable
+FROM dart:stable AS build
 
 WORKDIR /app
 
-COPY pubspec.yaml pubspec.lock ./
-RUN dart pub get
+COPY backend/pubspec.yaml backend/pubspec.lock ./backend/
+RUN cd backend && dart pub get
 
 COPY backend ./backend
-COPY lib ./lib
+RUN dart compile exe backend/server.dart -o /app/gymmap-backend
+
+FROM dart:stable
+
+WORKDIR /app
+COPY --from=build /app/gymmap-backend /app/gymmap-backend
 
 EXPOSE 8080
 
-CMD ["dart", "run", "backend/server.dart"]
+CMD ["/app/gymmap-backend"]

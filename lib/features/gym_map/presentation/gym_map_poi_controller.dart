@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
 import '../data/gym_location_cache_service.dart';
+import '../data/map_services_config.dart';
 import '../domain/gym_models.dart';
 import 'gym_map_logic.dart';
 
@@ -15,9 +16,7 @@ class GymMapPoiController {
        _httpClient = httpClient ?? http.Client();
 
   static const Duration _overpassTimeout = Duration(seconds: 16);
-  static final Uri _overpassUri = Uri.parse(
-    'https://overpass-api.de/api/interpreter',
-  );
+  static final Uri _overpassUri = MapServicesConfig.overpassUri;
   static const String _overpassUserAgent = 'gymmap/1.0';
 
   GymLocationCacheService? _cacheService;
