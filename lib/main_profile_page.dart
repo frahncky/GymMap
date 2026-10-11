@@ -627,135 +627,139 @@ class _ProfilePageState extends State<_ProfilePage> {
                               ),
                             ),
                             const SizedBox(height: 12),
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
+                            // Material (e não Container com cor) para que o
+                            // efeito de toque dos SwitchListTile apareça.
+                            Material(
+                              color: Colors.white,
+                              clipBehavior: Clip.antiAlias,
+                              shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
+                                side: BorderSide(
                                   color: primary.withValues(alpha: 0.20),
                                 ),
                               ),
-                              child: Column(
-                                children: [
-                                  SwitchListTile.adaptive(
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                    ),
-                                    title: const Text(
-                                      'Permitir visualização pública',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w800,
+                              child: Padding(
+                                padding: const EdgeInsets.all(10),
+                                child: Column(
+                                  children: [
+                                    SwitchListTile.adaptive(
+                                      contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
                                       ),
-                                    ),
-                                    subtitle: const Text(
-                                      'Permite que seu nome e foto apareçam na comunidade.',
-                                    ),
-                                    value: _preferences.isProfileVisible,
-                                    onChanged: _setProfileVisibility,
-                                  ),
-                                  SwitchListTile.adaptive(
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                    ),
-                                    title: const Text(
-                                      'Notificações push',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w800,
+                                      title: const Text(
+                                        'Permitir visualização pública',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                        ),
                                       ),
-                                    ),
-                                    subtitle: const Text(
-                                      'Receber alertas de lotação e atualizações.',
-                                    ),
-                                    value: _preferences.pushNotifications,
-                                    onChanged: (value) {
-                                      _updatePreference(
-                                        value: value,
-                                        prefKey: _pushNotificationsPrefKey,
-                                        reducer:
-                                            (current) => current.copyWith(
-                                              pushNotifications: value,
-                                            ),
-                                      );
-                                    },
-                                  ),
-                                  SwitchListTile.adaptive(
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                    ),
-                                    title: const Text(
-                                      'Alertas por localização',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w800,
+                                      subtitle: const Text(
+                                        'Permite que seu nome e foto apareçam na comunidade.',
                                       ),
+                                      value: _preferences.isProfileVisible,
+                                      onChanged: _setProfileVisibility,
                                     ),
-                                    subtitle: const Text(
-                                      'Avisar quando houver academia com lotação baixa perto de você.',
-                                    ),
-                                    value: _preferences.locationAlerts,
-                                    onChanged: (value) {
-                                      _updatePreference(
-                                        value: value,
-                                        prefKey: _locationAlertsPrefKey,
-                                        reducer:
-                                            (current) => current.copyWith(
-                                              locationAlerts: value,
-                                            ),
-                                      );
-                                    },
-                                  ),
-                                  SwitchListTile.adaptive(
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                    ),
-                                    title: const Text(
-                                      'Feedback vibratório',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w800,
+                                    SwitchListTile.adaptive(
+                                      contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
                                       ),
-                                    ),
-                                    subtitle: const Text(
-                                      'Usar vibração em ações importantes.',
-                                    ),
-                                    value: _preferences.hapticFeedback,
-                                    onChanged: (value) {
-                                      _updatePreference(
-                                        value: value,
-                                        prefKey: _hapticsPrefKey,
-                                        reducer:
-                                            (current) => current.copyWith(
-                                              hapticFeedback: value,
-                                            ),
-                                      );
-                                    },
-                                  ),
-                                  SwitchListTile.adaptive(
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                    ),
-                                    title: const Text(
-                                      'Modo economia de dados',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w800,
+                                      title: const Text(
+                                        'Notificações push',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                        ),
                                       ),
+                                      subtitle: const Text(
+                                        'Receber alertas de lotação e atualizações.',
+                                      ),
+                                      value: _preferences.pushNotifications,
+                                      onChanged: (value) {
+                                        _updatePreference(
+                                          value: value,
+                                          prefKey: _pushNotificationsPrefKey,
+                                          reducer:
+                                              (current) => current.copyWith(
+                                                pushNotifications: value,
+                                              ),
+                                        );
+                                      },
                                     ),
-                                    subtitle: const Text(
-                                      'Reduzir atualizações em segundo plano.',
+                                    SwitchListTile.adaptive(
+                                      contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                      ),
+                                      title: const Text(
+                                        'Alertas por localização',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                      subtitle: const Text(
+                                        'Avisar quando houver academia com lotação baixa perto de você.',
+                                      ),
+                                      value: _preferences.locationAlerts,
+                                      onChanged: (value) {
+                                        _updatePreference(
+                                          value: value,
+                                          prefKey: _locationAlertsPrefKey,
+                                          reducer:
+                                              (current) => current.copyWith(
+                                                locationAlerts: value,
+                                              ),
+                                        );
+                                      },
                                     ),
-                                    value: _preferences.dataSaverMode,
-                                    onChanged: (value) {
-                                      _updatePreference(
-                                        value: value,
-                                        prefKey: _dataSaverPrefKey,
-                                        reducer:
-                                            (current) => current.copyWith(
-                                              dataSaverMode: value,
-                                            ),
-                                      );
-                                    },
-                                  ),
-                                ],
+                                    SwitchListTile.adaptive(
+                                      contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                      ),
+                                      title: const Text(
+                                        'Feedback vibratório',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                      subtitle: const Text(
+                                        'Usar vibração em ações importantes.',
+                                      ),
+                                      value: _preferences.hapticFeedback,
+                                      onChanged: (value) {
+                                        _updatePreference(
+                                          value: value,
+                                          prefKey: _hapticsPrefKey,
+                                          reducer:
+                                              (current) => current.copyWith(
+                                                hapticFeedback: value,
+                                              ),
+                                        );
+                                      },
+                                    ),
+                                    SwitchListTile.adaptive(
+                                      contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                      ),
+                                      title: const Text(
+                                        'Modo economia de dados',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                      subtitle: const Text(
+                                        'Reduzir atualizações em segundo plano.',
+                                      ),
+                                      value: _preferences.dataSaverMode,
+                                      onChanged: (value) {
+                                        _updatePreference(
+                                          value: value,
+                                          prefKey: _dataSaverPrefKey,
+                                          reducer:
+                                              (current) => current.copyWith(
+                                                dataSaverMode: value,
+                                              ),
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ],
