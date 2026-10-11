@@ -38,6 +38,13 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // AdMob App ID: defina admobAppId em android/key.properties (ou a
+        // variável de ambiente ADMOB_APP_ID_ANDROID) para o build de produção.
+        // Sem isso usa o ID de teste do Google, que não gera receita.
+        manifestPlaceholders["admobAppId"] =
+            (keystoreProperties["admobAppId"] as String?)?.takeIf { it.isNotBlank() }
+                ?: System.getenv("ADMOB_APP_ID_ANDROID")?.takeIf { it.isNotBlank() }
+                ?: "ca-app-pub-3940256099942544~3347511713"
     }
 
     signingConfigs {

@@ -301,6 +301,10 @@ class _PixBillingBackend {
   final Map<String, int> _routeHits = <String, int>{};
   final Map<String, int> _routeErrors = <String, int>{};
 
+  Future<void> _persistTail = Future<void>.value();
+  final Map<String, Map<String, String>> _persistedDigests =
+      <String, Map<String, String>>{};
+
   bool get _dbMode => db != null;
   bool get _jwtEnabled => jwtSecret.trim().isNotEmpty;
   bool get _adminEnabled => adminApiToken.trim().isNotEmpty;
@@ -421,6 +425,9 @@ class _PixBillingBackend {
       gymLocations: state.gymLocations,
       crowdReports: state.crowdReports,
     );
+    if (backend._dbMode) {
+      backend._seedPersistedDigests();
+    }
     await backend._persist();
     return backend;
   }
@@ -973,9 +980,14 @@ class _PixBillingBackend {
           });
         }
         final normalizedOccupancy = occupancy.clamp(0, 100);
+        // Com JWT ativo o reporterId é derivado do token: aceitar o valor do
+        // cliente permitiria que um único usuário simulasse vários relatores
+        // e burlasse o consenso de lotação.
         final reporterIdRaw = '${payload['reporterId'] ?? ''}'.trim();
         final reporterId =
-            reporterIdRaw.isEmpty ? 'user:$userId' : reporterIdRaw;
+            _jwtEnabled || reporterIdRaw.isEmpty
+                ? 'user:$userId'
+                : reporterIdRaw;
         var regionKey = _normalizeCrowdRegionKey(
           '${payload['regionKey'] ?? payload['region'] ?? ''}',
         );
@@ -2477,12 +2489,14 @@ class _PixBillingBackend {
     return '$userId::$gymId';
   }
 
-  Future<void> _persist() async {
-    if (_dbMode) {
-      await _persistDb();
-    } else {
-      await _persistFile();
-    }
+  /// Serializa as gravações para que cada diff seja calculado sobre o
+  /// estado já confirmado pela gravação anterior.
+  Future<void> _persist() {
+    final run = _persistTail.then(
+      (_) => _dbMode ? _persistDb() : _persistFile(),
+    );
+    _persistTail = run.catchError((Object _) {});
+    return run;
   }
 
   Future<void> _persistFile() async {
@@ -2503,34 +2517,110 @@ class _PixBillingBackend {
     );
   }
 
+  static const List<String> _dbKinds = <String>[
+    'subscription',
+    'charge',
+    'webhook_event',
+    'gym_location',
+    'crowd_report',
+  ];
+
+  Map<String, Map<String, dynamic>> _sourceForDbKind(String kind) {
+    switch (kind) {
+      case 'subscription':
+        return subscriptions;
+      case 'charge':
+        return charges;
+      case 'webhook_event':
+        return webhookEvents;
+      case 'gym_location':
+        return gymLocations;
+      case 'crowd_report':
+        return crowdReports;
+    }
+    throw ArgumentError.value(kind, 'kind');
+  }
+
+  static String _dbRowDigest(String payloadJson) {
+    return sha1.convert(utf8.encode(payloadJson)).toString();
+  }
+
+  /// Marca o estado atual como já gravado no banco (usado após o load).
+  void _seedPersistedDigests() {
+    _persistedDigests.clear();
+    for (final kind in _dbKinds) {
+      final digests = <String, String>{};
+      for (final entry in _sourceForDbKind(kind).entries) {
+        digests[entry.key] = _dbRowDigest(jsonEncode(entry.value));
+      }
+      _persistedDigests[kind] = digests;
+    }
+  }
+
+  /// Grava apenas as linhas que mudaram desde a última gravação, em vez de
+  /// apagar e reinserir a tabela inteira a cada requisição.
   Future<void> _persistDb() async {
     final connection = db;
     if (connection == null) return;
-    await _ensureDbSchema(connection);
-    await connection.transaction((ctx) async {
-      await ctx.query('DELETE FROM app_state');
-      Future<void> insertKind(
-        String kind,
-        Map<String, Map<String, dynamic>> source,
-      ) async {
-        for (final entry in source.entries) {
-          await ctx.query(
-            'INSERT INTO app_state(kind,id,payload_json,updated_at) VALUES (@k,@i,@p,NOW())',
-            substitutionValues: <String, dynamic>{
-              'k': kind,
-              'i': entry.key,
-              'p': jsonEncode(entry.value),
-            },
-          );
+
+    final upserts = <String, Map<String, String>>{};
+    final deletes = <String, List<String>>{};
+    final nextDigests = <String, Map<String, String>>{};
+    for (final kind in _dbKinds) {
+      final source = _sourceForDbKind(kind);
+      final previous = _persistedDigests[kind] ?? const <String, String>{};
+      final current = <String, String>{};
+      final changed = <String, String>{};
+      for (final entry in source.entries) {
+        final payloadJson = jsonEncode(entry.value);
+        final digest = _dbRowDigest(payloadJson);
+        current[entry.key] = digest;
+        if (previous[entry.key] != digest) {
+          changed[entry.key] = payloadJson;
         }
       }
+      final removed = previous.keys
+          .where((id) => !current.containsKey(id))
+          .toList(growable: false);
+      if (changed.isNotEmpty) upserts[kind] = changed;
+      if (removed.isNotEmpty) deletes[kind] = removed;
+      nextDigests[kind] = current;
+    }
 
-      await insertKind('subscription', subscriptions);
-      await insertKind('charge', charges);
-      await insertKind('webhook_event', webhookEvents);
-      await insertKind('gym_location', gymLocations);
-      await insertKind('crowd_report', crowdReports);
-    });
+    if (upserts.isNotEmpty || deletes.isNotEmpty) {
+      await connection.transaction((ctx) async {
+        for (final kindEntry in deletes.entries) {
+          for (final id in kindEntry.value) {
+            await ctx.query(
+              'DELETE FROM app_state WHERE kind = @k AND id = @i',
+              substitutionValues: <String, dynamic>{
+                'k': kindEntry.key,
+                'i': id,
+              },
+            );
+          }
+        }
+        for (final kindEntry in upserts.entries) {
+          for (final row in kindEntry.value.entries) {
+            await ctx.query(
+              'INSERT INTO app_state(kind,id,payload_json,updated_at) '
+              'VALUES (@k,@i,@p,NOW()) '
+              'ON CONFLICT (kind, id) DO UPDATE SET '
+              'payload_json = EXCLUDED.payload_json, updated_at = NOW()',
+              substitutionValues: <String, dynamic>{
+                'k': kindEntry.key,
+                'i': row.key,
+                'p': row.value,
+              },
+            );
+          }
+        }
+      });
+    }
+
+    _persistedDigests
+      ..clear()
+      ..addAll(nextDigests);
   }
 
   static Future<PostgreSQLConnection> _openDb(String databaseUrl) async {

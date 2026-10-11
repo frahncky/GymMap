@@ -109,7 +109,7 @@ extension _GymMapPageMapView on _GymMapPageState {
           children: [
             TileLayer(
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'com.example.gymmap',
+              userAgentPackageName: 'com.devia.gymmap',
             ),
             MarkerLayer(
               key: ValueKey<String>('marker-layer-$_mapVisualReloadTick'),

@@ -2,3 +2,4 @@ storePassword=<YOUR_STORE_PASSWORD>
 keyPassword=<YOUR_KEY_PASSWORD>
 keyAlias=<YOUR_KEY_ALIAS>
 storeFile=<PATH_TO_UPLOAD_KEYSTORE_FILE>
+admobAppId=<YOUR_ADMOB_APP_ID>
