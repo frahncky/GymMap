@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:math' as math;
 
 import 'package:crypto/crypto.dart';
@@ -236,6 +237,7 @@ class _PixBillingBackend {
     required this.webhookEvents,
     required this.gymLocations,
     required this.crowdReports,
+    required this.accounts,
   });
 
   final String storageLabel;
@@ -278,7 +280,13 @@ class _PixBillingBackend {
   final Map<String, Map<String, dynamic>> webhookEvents;
   final Map<String, Map<String, dynamic>> gymLocations;
   final Map<String, Map<String, dynamic>> crowdReports;
+
+  /// Contas de usuários finais (anônimas por aparelho ou com usuário/senha),
+  /// indexadas pelo userId usado como `sub` do JWT.
+  final Map<String, Map<String, dynamic>> accounts;
+  final Map<String, String> _userIdByUsername = <String, String>{};
   final math.Random _random = math.Random();
+  final math.Random _secureRandom = math.Random.secure();
   static const Duration _crowdReportCooldownWindow = Duration(minutes: 10);
   static const Duration _rateLimitWindow = Duration(minutes: 1);
   static const Duration _retentionSweepInterval = Duration(minutes: 20);
@@ -314,8 +322,6 @@ class _PixBillingBackend {
       pixProviderApiKey.trim().isNotEmpty;
   bool get _isMercadoPagoProvider =>
       pixProviderVendor == 'mercado_pago' || pixProviderVendor == 'mercadopago';
-  bool get _loginEnabled =>
-      _jwtEnabled && (authUsers.isNotEmpty || authDefaultPassword.isNotEmpty);
   bool get _playBillingConfigured =>
       playBillingClient != null && playPackageName.trim().isNotEmpty;
 
@@ -424,7 +430,9 @@ class _PixBillingBackend {
       webhookEvents: state.webhookEvents,
       gymLocations: state.gymLocations,
       crowdReports: state.crowdReports,
+      accounts: state.accounts,
     );
+    backend._rebuildUsernameIndex();
     if (backend._dbMode) {
       backend._seedPersistedDigests();
     }
@@ -573,6 +581,7 @@ class _PixBillingBackend {
             'webhookEvents': webhookEvents.length,
             'gymLocations': gymLocations.length,
             'crowdReports': crowdReports.length,
+            'accounts': accounts.length,
           },
           'memoryRssMb': memoryRssMb,
           'requestId': requestId,
@@ -589,11 +598,6 @@ class _PixBillingBackend {
             'error': 'jwt_not_configured',
           });
         }
-        if (!_loginEnabled) {
-          return _json(req, HttpStatus.serviceUnavailable, <String, dynamic>{
-            'error': 'login_not_configured',
-          });
-        }
         final payload = await _readJson(req);
         final userId =
             '${payload['userId'] ?? payload['username'] ?? ''}'.trim();
@@ -603,26 +607,109 @@ class _PixBillingBackend {
             'error': 'missing_credentials',
           });
         }
-        if (!_validateLogin(userId, password)) {
+        final resolvedUserId = await _resolveLogin(userId, password);
+        if (resolvedUserId == null) {
           return _json(req, HttpStatus.unauthorized, <String, dynamic>{
             'error': 'invalid_credentials',
           });
         }
-
-        final token = _issueJwt(userId);
-        final nowSec = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
-        final effectiveTtl = _normalizedJwtTtlSec();
-        final expiresAt = DateTime.fromMillisecondsSinceEpoch(
-          (nowSec + effectiveTtl) * 1000,
-          isUtc: true,
+        return _json(
+          req,
+          HttpStatus.ok,
+          _authSessionPayload(resolvedUserId),
         );
-        return _json(req, HttpStatus.ok, <String, dynamic>{
-          'tokenType': 'Bearer',
-          'accessToken': token,
-          'expiresAt': expiresAt.toIso8601String(),
-          'expiresInSec': effectiveTtl,
+      }
+
+      if (req.method == 'POST' &&
+          segments.length == 3 &&
+          segments[0] == 'v1' &&
+          segments[1] == 'auth' &&
+          segments[2] == 'anonymous') {
+        if (!_jwtEnabled) {
+          return _json(req, HttpStatus.serviceUnavailable, <String, dynamic>{
+            'error': 'jwt_not_configured',
+          });
+        }
+        final userId = _newAccountId('anon');
+        final deviceSecret = _base64UrlNoPad(
+          List<int>.generate(32, (_) => _secureRandom.nextInt(256)),
+        );
+        final nowIso = DateTime.now().toUtc().toIso8601String();
+        accounts[userId] = <String, dynamic>{
           'userId': userId,
+          'kind': 'anonymous',
+          'deviceSecretSha256': _sha256Hex(deviceSecret),
+          'createdAt': nowIso,
+          'updatedAt': nowIso,
+        };
+        await _persist();
+        return _json(req, HttpStatus.created, <String, dynamic>{
+          ..._authSessionPayload(userId),
+          'deviceSecret': deviceSecret,
         });
+      }
+
+      if (req.method == 'POST' &&
+          segments.length == 3 &&
+          segments[0] == 'v1' &&
+          segments[1] == 'auth' &&
+          segments[2] == 'register') {
+        if (!_jwtEnabled) {
+          return _json(req, HttpStatus.serviceUnavailable, <String, dynamic>{
+            'error': 'jwt_not_configured',
+          });
+        }
+        final payload = await _readJson(req);
+        final username = _normalizeUsername('${payload['username'] ?? ''}');
+        final password = '${payload['password'] ?? ''}';
+        final usernameError = _validateUsername(username);
+        if (usernameError != null) {
+          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+            'error': usernameError,
+          });
+        }
+        if (password.length < _minPasswordLength ||
+            password.length > _maxPasswordLength) {
+          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+            'error': 'invalid_password_length',
+            'minLength': _minPasswordLength,
+          });
+        }
+
+        // Com sessão anônima válida, a conta é promovida mantendo o userId,
+        // então assinatura e relatos feitos no aparelho continuam valendo.
+        final authUser = _authenticate(req);
+        final existing = authUser == null ? null : accounts[authUser];
+        if (existing != null && existing['kind'] != 'anonymous') {
+          return _json(req, HttpStatus.conflict, <String, dynamic>{
+            'error': 'already_registered',
+          });
+        }
+        final hash = await _hashPassword(password);
+        // Revalida após o await: outro cadastro pode ter pego o nome.
+        if (_userIdByUsername.containsKey(username)) {
+          return _json(req, HttpStatus.conflict, <String, dynamic>{
+            'error': 'username_taken',
+          });
+        }
+
+        final userId = existing == null ? _newAccountId('usr') : authUser!;
+        final nowIso = DateTime.now().toUtc().toIso8601String();
+        accounts[userId] = <String, dynamic>{
+          'userId': userId,
+          'kind': 'registered',
+          'username': username,
+          ...hash,
+          'createdAt': existing?['createdAt'] ?? nowIso,
+          'updatedAt': nowIso,
+        };
+        _userIdByUsername[username] = userId;
+        await _persist();
+        return _json(
+          req,
+          existing == null ? HttpStatus.created : HttpStatus.ok,
+          _authSessionPayload(userId),
+        );
       }
 
       if (req.method == 'GET' &&
@@ -1800,7 +1887,9 @@ class _PixBillingBackend {
     if (globalRetry != null) {
       return globalRetry;
     }
-    if (routeKey == 'POST /v1/auth/login') {
+    if (routeKey == 'POST /v1/auth/login' ||
+        routeKey == 'POST /v1/auth/register' ||
+        routeKey == 'POST /v1/auth/anonymous') {
       return _loginRateLimiter.hit(
         key: clientKey,
         now: now,
@@ -1928,15 +2017,170 @@ class _PixBillingBackend {
     return toRemove.length;
   }
 
-  bool _validateLogin(String userId, String password) {
-    final perUserPassword = authUsers[userId];
+  static const int _minPasswordLength = 8;
+  static const int _maxPasswordLength = 128;
+  static const int _passwordHashIterations = 120000;
+  static final RegExp _usernamePattern = RegExp(r'^[a-z0-9][a-z0-9._-]{2,31}$');
+
+  /// Retorna o userId autenticado, ou null se as credenciais forem inválidas.
+  /// `identifier` pode ser um usuário de AUTH_USERS_JSON, o nome de usuário
+  /// de uma conta registrada ou o userId de uma conta anônima (com o segredo
+  /// do aparelho como senha).
+  Future<String?> _resolveLogin(String identifier, String password) async {
+    final perUserPassword = authUsers[identifier];
     if (perUserPassword != null) {
-      return _secureTextEquals(perUserPassword, password);
+      return _secureTextEquals(perUserPassword, password) ? identifier : null;
     }
-    if (authDefaultPassword.isNotEmpty) {
-      return _secureTextEquals(authDefaultPassword, password);
+
+    final registeredUserId = _userIdByUsername[_normalizeUsername(identifier)];
+    if (registeredUserId != null) {
+      final account = accounts[registeredUserId];
+      if (account != null && await _verifyPassword(account, password)) {
+        return registeredUserId;
+      }
+      return null;
     }
-    return false;
+
+    final anonymous = accounts[identifier];
+    if (anonymous != null) {
+      final expected = '${anonymous['deviceSecretSha256'] ?? ''}';
+      if (anonymous['kind'] == 'anonymous' &&
+          expected.isNotEmpty &&
+          _secureTextEquals(expected, _sha256Hex(password))) {
+        return identifier;
+      }
+      return null;
+    }
+
+    if (authDefaultPassword.isNotEmpty &&
+        _secureTextEquals(authDefaultPassword, password)) {
+      return identifier;
+    }
+    return null;
+  }
+
+  Map<String, dynamic> _authSessionPayload(String userId) {
+    final token = _issueJwt(userId);
+    final nowSec = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
+    final effectiveTtl = _normalizedJwtTtlSec();
+    final expiresAt = DateTime.fromMillisecondsSinceEpoch(
+      (nowSec + effectiveTtl) * 1000,
+      isUtc: true,
+    );
+    final account = accounts[userId];
+    return <String, dynamic>{
+      'tokenType': 'Bearer',
+      'accessToken': token,
+      'expiresAt': expiresAt.toIso8601String(),
+      'expiresInSec': effectiveTtl,
+      'userId': userId,
+      'accountKind': '${account?['kind'] ?? 'registered'}',
+      if (account?['username'] != null) 'username': account!['username'],
+    };
+  }
+
+  void _rebuildUsernameIndex() {
+    _userIdByUsername.clear();
+    for (final entry in accounts.entries) {
+      final username = '${entry.value['username'] ?? ''}'.trim();
+      if (username.isNotEmpty) {
+        _userIdByUsername[username] = entry.key;
+      }
+    }
+  }
+
+  String _newAccountId(String prefix) {
+    while (true) {
+      final suffix = List<int>.generate(
+        12,
+        (_) => _secureRandom.nextInt(256),
+      ).map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+      final id = '${prefix}_$suffix';
+      if (!accounts.containsKey(id)) return id;
+    }
+  }
+
+  static String _normalizeUsername(String raw) => raw.trim().toLowerCase();
+
+  String? _validateUsername(String username) {
+    if (!_usernamePattern.hasMatch(username) ||
+        username.startsWith('anon_') ||
+        username.startsWith('usr_')) {
+      return 'invalid_username';
+    }
+    if (_userIdByUsername.containsKey(username) ||
+        authUsers.containsKey(username) ||
+        accounts.containsKey(username)) {
+      return 'username_taken';
+    }
+    return null;
+  }
+
+  static String _sha256Hex(String value) {
+    return sha256.convert(utf8.encode(value)).toString();
+  }
+
+  /// PBKDF2-HMAC-SHA256 em outro isolate para não travar o servidor.
+  static Future<Map<String, dynamic>> _hashPassword(String password) async {
+    final salt = List<int>.generate(
+      16,
+      (_) => math.Random.secure().nextInt(256),
+    );
+    final derived = await Isolate.run(
+      () => _pbkdf2Sha256(
+        utf8.encode(password),
+        salt,
+        _passwordHashIterations,
+      ),
+    );
+    return <String, dynamic>{
+      'passwordHash': base64.encode(derived),
+      'passwordSalt': base64.encode(salt),
+      'passwordIterations': _passwordHashIterations,
+    };
+  }
+
+  Future<bool> _verifyPassword(
+    Map<String, dynamic> account,
+    String password,
+  ) async {
+    final storedHash = '${account['passwordHash'] ?? ''}';
+    final storedSalt = '${account['passwordSalt'] ?? ''}';
+    final iterations =
+        int.tryParse('${account['passwordIterations'] ?? ''}') ?? 0;
+    if (storedHash.isEmpty || storedSalt.isEmpty || iterations <= 0) {
+      return false;
+    }
+    final List<int> salt;
+    final List<int> expected;
+    try {
+      salt = base64.decode(storedSalt);
+      expected = base64.decode(storedHash);
+    } on FormatException {
+      return false;
+    }
+    final derived = await Isolate.run(
+      () => _pbkdf2Sha256(utf8.encode(password), salt, iterations),
+    );
+    return _secureBytesEquals(derived, expected);
+  }
+
+  static List<int> _pbkdf2Sha256(
+    List<int> password,
+    List<int> salt,
+    int iterations,
+  ) {
+    // Um único bloco: a saída do SHA-256 (32 bytes) é o tamanho da chave.
+    final hmac = Hmac(sha256, password);
+    var block = hmac.convert(<int>[...salt, 0, 0, 0, 1]).bytes;
+    final result = List<int>.from(block);
+    for (var i = 1; i < iterations; i++) {
+      block = hmac.convert(block).bytes;
+      for (var j = 0; j < result.length; j++) {
+        result[j] ^= block[j];
+      }
+    }
+    return result;
   }
 
   int _normalizedJwtTtlSec() {
@@ -2510,6 +2754,7 @@ class _PixBillingBackend {
       'processedWebhookEvents': webhookEvents,
       'gymLocations': gymLocations,
       'crowdReports': crowdReports,
+      'accounts': accounts,
     };
     await storeFile.writeAsString(
       const JsonEncoder.withIndent('  ').convert(payload),
@@ -2523,6 +2768,7 @@ class _PixBillingBackend {
     'webhook_event',
     'gym_location',
     'crowd_report',
+    'account',
   ];
 
   Map<String, Map<String, dynamic>> _sourceForDbKind(String kind) {
@@ -2537,6 +2783,8 @@ class _PixBillingBackend {
         return gymLocations;
       case 'crowd_report':
         return crowdReports;
+      case 'account':
+        return accounts;
     }
     throw ArgumentError.value(kind, 'kind');
   }
@@ -2672,6 +2920,7 @@ CREATE TABLE IF NOT EXISTS app_state (
     final webhookEvents = <String, Map<String, dynamic>>{};
     final gymLocations = <String, Map<String, dynamic>>{};
     final crowdReports = <String, Map<String, dynamic>>{};
+    final accounts = <String, Map<String, dynamic>>{};
     final rows = await db.query('SELECT kind,id,payload_json FROM app_state');
     for (final row in rows) {
       if (row.length < 3) continue;
@@ -2687,6 +2936,7 @@ CREATE TABLE IF NOT EXISTS app_state (
       if (kind == 'webhook_event') webhookEvents[id] = payload;
       if (kind == 'gym_location') gymLocations[id] = payload;
       if (kind == 'crowd_report') crowdReports[id] = payload;
+      if (kind == 'account') accounts[id] = payload;
     }
     return _State(
       subscriptions,
@@ -2694,6 +2944,7 @@ CREATE TABLE IF NOT EXISTS app_state (
       webhookEvents,
       gymLocations,
       crowdReports,
+      accounts,
     );
   }
 
@@ -2706,6 +2957,7 @@ CREATE TABLE IF NOT EXISTS app_state (
     final webhookEvents = <String, Map<String, dynamic>>{};
     final gymLocations = <String, Map<String, dynamic>>{};
     final crowdReports = <String, Map<String, dynamic>>{};
+    final accounts = <String, Map<String, dynamic>>{};
     if (!file.existsSync()) {
       return _State(
         subscriptions,
@@ -2713,6 +2965,7 @@ CREATE TABLE IF NOT EXISTS app_state (
         webhookEvents,
         gymLocations,
         crowdReports,
+        accounts,
       );
     }
 
@@ -2769,6 +3022,16 @@ CREATE TABLE IF NOT EXISTS app_state (
             }
           }
         }
+        final rawAccounts = decoded['accounts'];
+        if (rawAccounts is Map) {
+          for (final entry in rawAccounts.entries) {
+            if (entry.value is Map) {
+              accounts[entry.key.toString()] = Map<String, dynamic>.from(
+                entry.value as Map,
+              );
+            }
+          }
+        }
       }
     } catch (_) {}
 
@@ -2778,6 +3041,7 @@ CREATE TABLE IF NOT EXISTS app_state (
       webhookEvents,
       gymLocations,
       crowdReports,
+      accounts,
     );
   }
 
@@ -2923,12 +3187,14 @@ class _State {
     this.webhookEvents,
     this.gymLocations,
     this.crowdReports,
+    this.accounts,
   );
   final Map<String, Map<String, dynamic>> subscriptions;
   final Map<String, Map<String, dynamic>> charges;
   final Map<String, Map<String, dynamic>> webhookEvents;
   final Map<String, Map<String, dynamic>> gymLocations;
   final Map<String, Map<String, dynamic>> crowdReports;
+  final Map<String, Map<String, dynamic>> accounts;
 }
 
 class _SlidingWindowRateLimiter {

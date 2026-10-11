@@ -41,7 +41,9 @@ The repository includes a reference backend in `backend/server.dart` with:
 - `POST /v1/billing/play/validate` to validate Google Play subscription purchase token
 - `POST /v1/billing/pix/reconcile/:chargeId` for admin reconciliation with provider status API
 - `POST /v1/webhooks/pix` for provider webhook confirmation
-- `POST /v1/auth/login` to issue JWT access token
+- `POST /v1/auth/anonymous` to create the device's anonymous account (returns JWT + `deviceSecret`; the app calls this automatically on first run)
+- `POST /v1/auth/register` to create an account with `username`/`password` (with an anonymous session's Bearer token, it upgrades that account and keeps its `userId`)
+- `POST /v1/auth/login` to issue JWT access token (username + password, anonymous `userId` + `deviceSecret`, or `AUTH_USERS_JSON` users)
 - `GET /v1/subscriptions/:userId` to read active subscription
 - `POST /v1/subscriptions/downgrade` to switch back to free
 - `GET /v1/metrics` for production operational metrics (admin token)
@@ -138,7 +140,7 @@ Optional environment variables:
 - `WEBHOOK_RETENTION_DAYS` retention days for processed webhook events (default: `60`)
 - `CROWD_REPORT_RETENTION_DAYS` retention days for crowd reports (default: `45`)
 - `REQUEST_LOG_DISABLED=true` disables structured request logs
-- `AUTH_USERS_JSON` login credentials map (ex: `{"user-001":"senha-123"}`)
+- `AUTH_USERS_JSON` login credentials map for operator accounts (ex: `{"user-001":"senha-123"}`); end users sign up through `/v1/auth/register` and their passwords are stored as PBKDF2-SHA256 hashes
 - `AUTH_DEFAULT_PASSWORD` fallback password for any `userId` not present in `AUTH_USERS_JSON`
 
 When `BACKEND_PRODUCTION_MODE=true`, startup fails if any of these are missing/misconfigured:
