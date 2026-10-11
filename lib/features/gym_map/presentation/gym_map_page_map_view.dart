@@ -108,12 +108,33 @@ extension _GymMapPageMapView on _GymMapPageState {
           ),
           children: [
             TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              urlTemplate: MapServicesConfig.tileUrlTemplate,
               userAgentPackageName: 'com.devia.gymmap',
             ),
             MarkerLayer(
               key: ValueKey<String>('marker-layer-$_mapVisualReloadTick'),
               markers: markers,
+            ),
+            RichAttributionWidget(
+              alignment: AttributionAlignment.bottomLeft,
+              showFlutterMapAttribution: false,
+              attributions: [
+                for (final line in MapServicesConfig.attributionLines)
+                  TextSourceAttribution(
+                    line,
+                    onTap:
+                        line.contains('OpenStreetMap')
+                            ? () => unawaited(
+                              launchUrl(
+                                Uri.parse(
+                                  'https://www.openstreetmap.org/copyright',
+                                ),
+                                mode: LaunchMode.externalApplication,
+                              ),
+                            )
+                            : null,
+                  ),
+              ],
             ),
           ],
         ),

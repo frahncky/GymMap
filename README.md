@@ -50,7 +50,10 @@ The repository includes a reference backend in `backend/server.dart` with:
 
 ### Run backend locally
 
+The backend has its own `backend/pubspec.yaml` (the app no longer ships server-only packages such as `postgres` and `googleapis`):
+
 ```bash
+cd backend && dart pub get && cd ..
 dart run backend/server.dart
 ```
 

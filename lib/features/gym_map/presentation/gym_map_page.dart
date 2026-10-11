@@ -18,6 +18,7 @@ import '../../../core/analytics/app_metrics_service.dart';
 import '../data/collaborative_crowd_service.dart';
 import '../data/contextual_push_notification_service.dart';
 import '../data/crowd_report_remote_service.dart';
+import '../data/map_services_config.dart';
 import '../data/plan_subscription_service.dart';
 import '../domain/gym_models.dart';
 import '../domain/plan_insight_models.dart';

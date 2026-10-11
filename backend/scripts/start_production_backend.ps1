@@ -25,4 +25,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "Starting backend in production mode..."
+Push-Location backend
+dart pub get
+Pop-Location
 dart run backend/server.dart
