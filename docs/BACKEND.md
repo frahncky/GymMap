@@ -222,6 +222,9 @@ Optional app auth variable:
 - `PLAN_AUTH_TOKEN` JWT token sent as `Authorization` on backend requests
 - `PLAN_PRODUCTION_MODE=true` disables local billing fallback and requires backend + authenticated user for paid-plan checkout
 - `PLAN_PLAY_PRODUCT_ID_SMART`, `PLAN_PLAY_PRODUCT_ID_PRO`, `PLAN_PLAY_PRODUCT_ID_ELITE` override Google Play product IDs in app checkout
+- `MAP_TILE_URL_TEMPLATE` / `MAP_TILE_ATTRIBUTION` map tile provider (default: OpenStreetMap)
+- `OVERPASS_API_URL` Overpass instance used to load gyms
+- `NOMINATIM_BASE_URL` Nominatim instance used for address search
 - app path for auth session: `Configuracoes de plano` -> `Entrar`
 - Play Billing subscriptions renew automatically according to Google Play rules
 - app warns when plan is close to expiration (last 3 days)
