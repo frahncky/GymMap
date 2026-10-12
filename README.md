@@ -44,7 +44,7 @@
 | Previsão para as próximas horas | | | | ✅ |
 | Alertas personalizados | | | | ✅ |
 | Cobertura em qualquer lugar do país | | | | ✅ |
-| **Preço** | **R$ 0** | **R$ 4,90/mês** | **R$ 19,90/mês** | **R$ 34,90/mês** |
+
 
 Pagamento pelo Google Play ou Pix.
 
