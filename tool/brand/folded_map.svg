@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 96" width="240" height="96">
+  <!-- Mapa dobrado que fica embaixo do pino no splash. -->
+  <defs>
+    <clipPath id="paper">
+      <path d="M8 22L64 10L120 22L176 10L232 22L224 86L176 74L120 86L64 74L16 86Z"/>
+    </clipPath>
+  </defs>
+  <path d="M8 22L64 10L120 22L176 10L232 22L224 86L176 74L120 86L64 74L16 86Z" fill="#F4EFE2"/>
+  <g clip-path="url(#paper)">
+    <path d="M0 60Q50 40 90 56T180 50T240 40V96H0Z" fill="#9FD3EA"/>
+    <path d="M20 20h40v30H20z" fill="#BFE3A6"/>
+    <path d="M150 14h50v26h-50z" fill="#BFE3A6"/>
+    <path d="M96 66h44v20H96z" fill="#BFE3A6"/>
+    <g stroke="#FFFFFF" stroke-width="4" fill="none">
+      <path d="M0 44L240 34"/><path d="M78 0L92 96"/><path d="M160 0L150 96"/>
+    </g>
+    <g stroke="#F6C76B" stroke-width="2.5" fill="none">
+      <path d="M0 70L240 58"/><path d="M118 0L126 96"/>
+    </g>
+    <!-- Sombras das dobras -->
+    <path d="M64 10L64 74L120 86L120 22Z" fill="#000" fill-opacity="0.08"/>
+    <path d="M176 10L176 74L232 86L232 22Z" fill="#000" fill-opacity="0.08"/>
+  </g>
+</svg>

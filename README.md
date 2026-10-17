@@ -4,7 +4,7 @@
 
 <br><br>
 
-<img src="assets/logo/logoGymMap_splash_icon.png" alt="GymMap" width="104">
+<img src="tool/brand/out/app_icon.png" alt="GymMap" width="104">
 
 # GymMap
 

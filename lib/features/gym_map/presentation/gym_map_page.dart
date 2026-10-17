@@ -113,7 +113,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   static const double _backgroundLocationDistanceFilterMeters = 35;
   static const double _backgroundLocationUiRefreshMinDistanceMeters = 25;
   static const double _dataSaverPoiReloadMinDistanceMeters = 3200;
-  // Distância entre a ponta do `pinGym.png` e a base do `GymMarkerBubble`:
+  // Distância entre a ponta do `assets/brand/pin.png` e a base do `GymMarkerBubble`:
   // 3 de padding + 17 entre a base da imagem (32 px) e a base da área de 66 px.
   static const double _mapMarkerPinTipInset = 20;
   static const int _maxMapPoiMarkers = 90;

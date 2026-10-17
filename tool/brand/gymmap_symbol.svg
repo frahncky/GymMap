@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 256" width="192" height="256">
+  <!-- Símbolo do GymMap: pino com relógio, mochila e halter. Fonte única do
+       ícone, do splash e dos pinos do mapa (veja tool/brand/gerar_marca.ps1). -->
+  <defs>
+    <linearGradient id="ring" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#3FC6F0"/>
+      <stop offset="0.45" stop-color="#22B7A8"/>
+      <stop offset="1" stop-color="#7EDB5A"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.45"/>
+      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="core" cx="0.5" cy="0.35" r="0.7">
+      <stop offset="0" stop-color="#2E3A46"/>
+      <stop offset="1" stop-color="#11161C"/>
+    </radialGradient>
+    <linearGradient id="steel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.55" stop-color="#E3E8EC"/>
+      <stop offset="1" stop-color="#AEB8C0"/>
+    </linearGradient>
+    <linearGradient id="plate" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5B6673"/>
+      <stop offset="1" stop-color="#2A3138"/>
+    </linearGradient>
+    <linearGradient id="bag" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFA25A"/>
+      <stop offset="0.45" stop-color="#EC6A2C"/>
+      <stop offset="1" stop-color="#B4431A"/>
+    </linearGradient>
+    <linearGradient id="bagEnd" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E46A30"/>
+      <stop offset="1" stop-color="#8E3413"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Gota -->
+  <path d="M96 252C86 226 6 168 6 92a90 90 0 0 1 180 0c0 76-80 134-90 160z" fill="url(#ring)"/>
+  <path d="M96 252C86 226 6 168 6 92a90 90 0 0 1 90-90" fill="url(#sheen)"/>
+  <!-- Centro escuro -->
+  <circle cx="96" cy="94" r="82" fill="url(#core)"/>
+
+  <!-- Elementos internos ampliados em volta do centro do círculo. -->
+  <g transform="translate(96 98) scale(1.12) translate(-96 -94)">
+    <g transform="translate(0 8)">
+      <!-- Mochila (bolsa de treino) -->
+      <ellipse cx="96" cy="118" rx="40" ry="4" fill="#000" fill-opacity="0.18"/>
+      <!-- Corpo -->
+      <path d="M54 80Q96 70 138 80L144 112Q96 123 48 112Z" fill="url(#bag)"/>
+      <path d="M58 82Q96 74 134 82" fill="none" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="3" stroke-linecap="round"/>
+      <!-- Zíper -->
+      <path d="M74 85Q96 79 118 85" fill="none" stroke="#20262D" stroke-width="2.6"/>
+      <path d="M74 85Q96 79 118 85" fill="none" stroke="#AEB8C0" stroke-width="1" stroke-dasharray="2 2"/>
+      <rect x="110" y="83" width="5" height="9" rx="1.5" fill="#C9D1D8" stroke="#20262D" stroke-width="1"/>
+      <!-- Bolso frontal -->
+      <path d="M68 94Q96 89 124 94L122 110Q96 114 70 110Z" fill="#C9501F" stroke="#20262D" stroke-width="1.6"/>
+      <path d="M72 98Q96 94 120 98" fill="none" stroke="#20262D" stroke-width="1.4"/>
+      <!-- Laterais com acabamento -->
+      <ellipse cx="52" cy="96" rx="9" ry="17" fill="url(#bagEnd)" stroke="#20262D" stroke-width="2.4"/>
+      <ellipse cx="140" cy="96" rx="9" ry="17" fill="url(#bagEnd)" stroke="#20262D" stroke-width="2.4"/>
+      <!-- Alça única: fixações nas pontas e pegador acolchoado no meio -->
+      <path d="M64 84C64 56 128 56 128 84" fill="none" stroke="#20262D" stroke-width="8" stroke-linecap="round"/>
+      <path d="M64 84C64 56 128 56 128 84" fill="none" stroke="#6B7683" stroke-width="4.5" stroke-linecap="round"/>
+      <rect x="86" y="59" width="20" height="9" rx="4.5" fill="#3A444F" stroke="#20262D" stroke-width="1.5"/>
+      <path d="M91 60v7M96 60v7M101 60v7" stroke="#20262D" stroke-width="1" stroke-opacity="0.6"/>
+      <rect x="59" y="80" width="10" height="9" rx="2" fill="#20262D"/>
+      <rect x="123" y="80" width="10" height="9" rx="2" fill="#20262D"/>
+    </g>
+
+    <!-- Relógio -->
+    <circle cx="96" cy="40" r="18" fill="#F4F7FA" stroke="#2F9BD8" stroke-width="3.5"/>
+    <g stroke="#9AA6B2" stroke-width="2" stroke-linecap="round">
+      <path d="M96 26v3M96 51v3M82 40h3M108 40h3"/>
+    </g>
+    <path d="M96 40V31M96 40l7 4" stroke="#1B222B" stroke-width="3.2" stroke-linecap="round"/>
+    <circle cx="96" cy="40" r="2.3" fill="#D9531E"/>
+  
+    <!-- Halter (menor, para a mochila e o relógio aparecerem mais) -->
+    <g transform="translate(96 139) scale(0.7) translate(-96 -134)">
+      <rect x="50" y="130" width="92" height="8" rx="4" fill="url(#steel)"/>
+      <g fill="url(#plate)" stroke="#11161C" stroke-width="1.2">
+        <rect x="58" y="117" width="16" height="34" rx="6"/>
+        <rect x="118" y="117" width="16" height="34" rx="6"/>
+        <rect x="49" y="123" width="10" height="22" rx="4"/>
+        <rect x="133" y="123" width="10" height="22" rx="4"/>
+      </g>
+      <rect x="61" y="120" width="4" height="28" rx="2" fill="#FFFFFF" fill-opacity="0.25"/>
+      <rect x="121" y="120" width="4" height="28" rx="2" fill="#FFFFFF" fill-opacity="0.25"/>
+    </g>
+  </g>
+</svg>

@@ -299,7 +299,7 @@ extension _GymMapPageInteractions on _GymMapPageState {
     try {
       final config = createLocalImageConfiguration(context);
       await const AssetImage(
-        'assets/logo/pinGym.png',
+        'assets/brand/pin.png',
       ).evict(configuration: config);
     } catch (_) {
       // Ignora falhas de cache; o rebuild abaixo ainda forca novo carregamento.

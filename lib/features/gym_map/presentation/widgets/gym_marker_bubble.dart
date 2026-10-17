@@ -303,7 +303,7 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(8),
                         child: Image.asset(
-                          'assets/logo/pinGym.png',
+                          'assets/brand/pin.png',
                           width: 32,
                           height: 32,
                           fit: BoxFit.contain,

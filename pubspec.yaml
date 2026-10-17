@@ -75,7 +75,7 @@ flutter:
   # the material Icons class.
   uses-material-design: true
   assets:
-    - assets/logo/
+    - assets/brand/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
@@ -111,20 +111,20 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: assets/logo/logoGymMap_app_tight_white2.png
-  adaptive_icon_background: "#8E949C"
-  adaptive_icon_foreground: assets/logo/logoGymMap_adaptive_foreground.png
+  image_path: tool/brand/out/app_icon.png
+  adaptive_icon_background: "#1B222B"
+  adaptive_icon_foreground: tool/brand/out/app_icon_foreground.png
   min_sdk_android: 21
   remove_alpha_ios: true
 
 flutter_native_splash:
-  color: "#8E949C"
-  image: assets/logo/logoGymMap_android12_with_name.png
+  color: "#1B222B"
+  image: tool/brand/out/splash_logo.png
   android_gravity: center
   ios_content_mode: center
   android: true
   ios: true
   web: false
   android_12:
-    color: "#8E949C"
-    image: assets/logo/logoGymMap_android12_with_name.png
+    color: "#1B222B"
+    image: tool/brand/out/splash_android12.png
