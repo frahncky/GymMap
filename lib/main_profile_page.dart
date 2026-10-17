@@ -54,9 +54,12 @@ class _ProfilePreferences {
 }
 
 class _ProfilePage extends StatefulWidget {
-  const _ProfilePage({required this.onOpenMap});
+  const _ProfilePage({required this.onOpenMap, required this.activePlan});
 
   final VoidCallback onOpenMap;
+
+  /// Plano ativo, exibido no cartão do perfil.
+  final AppPlanTier activePlan;
 
   @override
   State<_ProfilePage> createState() => _ProfilePageState();
@@ -535,7 +538,10 @@ class _ProfilePageState extends State<_ProfilePage> {
                                             ),
                                             const SizedBox(height: 3),
                                             Text(
-                                              _t.profileCurrentPlanFree,
+                                              _t.profileCurrentPlan(
+                                                kPlanCatalog[widget.activePlan]!
+                                                    .label,
+                                              ),
                                               style: TextStyle(
                                                 color: onSurface.withValues(
                                                   alpha: 0.72,

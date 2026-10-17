@@ -70,5 +70,11 @@ $splashPin = (Symbol 520) -replace '<svg ', '<svg style="position:relative;z-ind
 $splashBody = '<div style="display:flex;flex-direction:column;align-items:center">' + $splashPin + $splashMap + '</div><div class="word">Gym<b>Map</b></div>'
 Render $genDir 'splash_logo' 1152 1152 $splashBody
 
-# Splash do Android 12+: o ícone é recortado em círculo; só o símbolo.
-Render $genDir 'splash_android12' 1152 1152 (Symbol 600)
+# Splash do Android 12+: o sistema recorta o ícone num círculo (2/3 da
+# imagem). Pino sobre o mapa, dimensionado para caber inteiro no círculo.
+$a12Pin = (Symbol 400) -replace '<svg ', '<svg style="position:relative;z-index:2" '
+$a12Map = $mapSvg -replace '<svg ', '<svg width="460" height="184" style="margin-top:-112px" '
+Render $genDir 'splash_android12' 1152 1152 ('<div style="display:flex;flex-direction:column;align-items:center;margin-top:-30px">' + $a12Pin + $a12Map + '</div>')
+
+# Nome do app embaixo do ícone no splash do Android 12+ ("branding").
+Render $genDir 'splash_branding' 800 320 '<div class="word" style="margin-top:0;font-size:150px">Gym<b>Map</b></div>'

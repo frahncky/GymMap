@@ -413,7 +413,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         onContributeTap: _goToMapTab,
         isActive: _selectedIndex == 2,
       ),
-      _ProfilePage(onOpenMap: _goToMapTab),
+      _ProfilePage(onOpenMap: _goToMapTab, activePlan: _activePlanThemeTier),
     ];
 
     // A aba do mapa tem cabeçalho escuro atrás da barra de status; as demais

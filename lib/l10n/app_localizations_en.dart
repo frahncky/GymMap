@@ -639,7 +639,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileTitle => 'Profile';
 
   @override
-  String get profileCurrentPlanFree => 'Current plan: Free';
+  String profileCurrentPlan(String plan) {
+    return 'Current plan: $plan';
+  }
 
   @override
   String get profileVisible => 'Public profile';

@@ -1142,11 +1142,11 @@ abstract class AppLocalizations {
   /// **'Perfil'**
   String get profileTitle;
 
-  /// No description provided for @profileCurrentPlanFree.
+  /// No description provided for @profileCurrentPlan.
   ///
   /// In pt, this message translates to:
-  /// **'Plano atual: Grátis'**
-  String get profileCurrentPlanFree;
+  /// **'Plano atual: {plan}'**
+  String profileCurrentPlan(String plan);
 
   /// No description provided for @profileVisible.
   ///

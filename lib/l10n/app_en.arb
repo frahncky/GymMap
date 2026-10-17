@@ -174,7 +174,7 @@
   "actionSave": "Save",
   "profileUpdated": "Profile updated.",
   "profileTitle": "Profile",
-  "profileCurrentPlanFree": "Current plan: Free",
+  "profileCurrentPlan": "Current plan: {plan}",
   "profileVisible": "Public profile",
   "profilePrivate": "Private profile",
   "actionOpenMap": "Open map",

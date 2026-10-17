@@ -641,7 +641,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get profileTitle => 'Perfil';
 
   @override
-  String get profileCurrentPlanFree => 'Plano atual: Grátis';
+  String profileCurrentPlan(String plan) {
+    return 'Plano atual: $plan';
+  }
 
   @override
   String get profileVisible => 'Perfil visível';

@@ -376,7 +376,14 @@
   "actionSave": "Salvar",
   "profileUpdated": "Perfil atualizado.",
   "profileTitle": "Perfil",
-  "profileCurrentPlanFree": "Plano atual: Grátis",
+  "profileCurrentPlan": "Plano atual: {plan}",
+  "@profileCurrentPlan": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
   "profileVisible": "Perfil visível",
   "profilePrivate": "Perfil privado",
   "actionOpenMap": "Abrir mapa",
