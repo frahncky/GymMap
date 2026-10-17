@@ -180,8 +180,10 @@ extension _GymMapPageMapView on _GymMapPageState {
             duration: const Duration(milliseconds: 180),
             switchInCurve: Curves.easeOutCubic,
             switchOutCurve: Curves.easeInCubic,
+            // Só avisa quando ainda não há academia na tela; com pinos visíveis
+            // a busca continua em segundo plano, sem distrair.
             child:
-                _isLoadingMapPois
+                _isLoadingMapPois && gyms.isEmpty && mapPois.isEmpty
                     ? const MapPoiLoadingBadge(
                       key: ValueKey<String>('map-poi-loading'),
                     )

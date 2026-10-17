@@ -89,7 +89,13 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   static const bool _autoShowMapTutorialOnStartup = false;
   static const double _defaultCoverageRadiusMeters = 50000;
   static const double _eliteCoverageRadiusMeters = 6000000;
-  static const double _mapPoiReloadMinDistanceMeters = 1800;
+  // Cada busca cobre 25 km em volta do centro; só busca de novo depois de
+  // andar boa parte disso.
+  static const double _mapPoiReloadMinDistanceMeters = 8000;
+  // Academias já carregadas ficam na memória até este raio do centro, para
+  // não sumirem quando uma nova busca chega.
+  static const double _mapPoiRetentionRadiusMeters = 40000;
+  static const int _maxRetainedMapPois = 400;
   static const double _mapBrowseAnchorUpdateMinDistanceMeters = 220;
   static const Duration _mapPoiReloadDebounceDelay = Duration(
     milliseconds: 450,

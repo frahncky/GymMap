@@ -180,7 +180,9 @@ class GymMapLogic {
       return filtered;
     }
 
-    final rankingCenter = anchorPoint ?? mapCenter;
+    // O centro do mapa acompanha o que a pessoa está vendo; a âncora só muda
+    // em saltos e fazia os pinos das bordas entrarem e saírem.
+    final rankingCenter = mapCenter;
     filtered.sort(
       (a, b) => distanceSquaredMeters(
         rankingCenter,

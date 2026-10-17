@@ -68,6 +68,39 @@ extension _GymMapPageStateCache on _GymMapPageState {
     return GymMapLogic.samePoiList(left, right);
   }
 
+  /// Soma [incoming] às academias já carregadas em vez de substituí-las, para
+  /// os pinos não sumirem e voltarem a cada busca. Descarta só as que ficaram
+  /// longe de [center] e limita o total, mantendo as mais próximas.
+  void _mergeMapPois(List<MapGymPoi> incoming, LatLng center) {
+    final byId = <String, MapGymPoi>{
+      for (final poi in _mapPois) poi.id: poi,
+      for (final poi in incoming) poi.id: poi,
+    };
+    final retained =
+        byId.values
+            .where(
+              (poi) => _isWithinDistanceMeters(
+                center,
+                poi.position,
+                _GymMapPageState._mapPoiRetentionRadiusMeters,
+              ),
+            )
+            .toList();
+    if (retained.length > _GymMapPageState._maxRetainedMapPois) {
+      retained.sort(
+        (a, b) => _distanceSquaredMeters(
+          center,
+          a.position,
+        ).compareTo(_distanceSquaredMeters(center, b.position)),
+      );
+      retained.removeRange(
+        _GymMapPageState._maxRetainedMapPois,
+        retained.length,
+      );
+    }
+    _setMapPoisIfChanged(retained);
+  }
+
   void _setMapPoisIfChanged(List<MapGymPoi> nextPois) {
     if (!mounted || _samePoiList(_mapPois, nextPois)) {
       return;

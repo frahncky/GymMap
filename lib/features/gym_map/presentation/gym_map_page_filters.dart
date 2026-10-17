@@ -357,7 +357,7 @@ extension _GymMapPageFilters on _GymMapPageState {
     if (visibleNearby.isEmpty || !mounted) {
       return;
     }
-    _setMapPoisIfChanged(visibleNearby);
+    _mergeMapPois(visibleNearby, center);
   }
 
   Future<void> _loadMapPoisAround(
@@ -393,7 +393,7 @@ extension _GymMapPageFilters on _GymMapPageState {
               return false;
             }
             final visiblePois = _filterPoisByCurrentPlan(poiList);
-            _setMapPoisIfChanged(visiblePois);
+            _mergeMapPois(visiblePois, targetCenter);
             unawaited(_persistMapPoisToCache(poiList));
             if (visiblePois.isNotEmpty) {
               unawaited(
