@@ -8,7 +8,9 @@ extension _GymMapPageLocation on _GymMapPageState {
 
     _setStateIfMapVisible(() {
       _userLocation = userPoint;
-      _mapSearchState.clearAnchors();
+      if (moveMap) {
+        _mapSearchState.clearAnchors();
+      }
       final selectedGym = _selectedGym;
       if (selectedGym != null &&
           !_isWithinLocalRadius(selectedGym, userPoint)) {
@@ -141,6 +143,12 @@ extension _GymMapPageLocation on _GymMapPageState {
       return;
     }
 
+    // A posição do GPS pode chegar segundos depois; se a pessoa mexer no
+    // mapa nesse meio-tempo, a resposta não deve puxar a câmera de volta.
+    final requestedAt = DateTime.now();
+    bool userMovedMapSinceRequest() =>
+        _lastMapGestureAt?.isAfter(requestedAt) ?? false;
+
     final cachedPoint = _userLocation;
     var hasImmediateCenter = cachedPoint != null;
     if (cachedPoint != null) {
@@ -202,7 +210,10 @@ extension _GymMapPageLocation on _GymMapPageState {
             lastKnown.latitude,
             lastKnown.longitude,
           );
-          _applyResolvedUserLocation(lastKnownPoint, moveMap: true);
+          _applyResolvedUserLocation(
+            lastKnownPoint,
+            moveMap: !userMovedMapSinceRequest(),
+          );
         }
       }
 
@@ -215,7 +226,10 @@ extension _GymMapPageLocation on _GymMapPageState {
       }
 
       final userPoint = LatLng(position.latitude, position.longitude);
-      _applyResolvedUserLocation(userPoint, moveMap: true);
+      _applyResolvedUserLocation(
+        userPoint,
+        moveMap: !userMovedMapSinceRequest(),
+      );
     } on TimeoutException {
       if (!hasImmediateCenter && showDeniedSnack) {
         _showMapSnack(_t.locationTimeout);

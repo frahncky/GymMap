@@ -192,6 +192,9 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   // Estado de carregamento da geolocalização para bloquear clique repetido.
   bool _isLocating = false;
   bool _isMapReady = false;
+  // Último gesto da pessoa no mapa; movimentos automáticos (GPS) que
+  // chegarem depois dele não puxam a câmera de volta.
+  DateTime? _lastMapGestureAt;
   bool _hasCompletedInitialLocationAttempt = false;
   bool _hasRunOpeningSearchIntro = false;
   bool _showMarkerDetails = true;

@@ -492,6 +492,7 @@ extension _GymMapPageFilters on _GymMapPageState {
     if (!hasGesture) {
       return;
     }
+    _lastMapGestureAt = DateTime.now();
     final center = camera.center;
     final allowWithoutUserLocation =
         !_hasNationwideCoverage &&
