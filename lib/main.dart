@@ -135,7 +135,7 @@ class _MyAppState extends State<MyApp> {
                 basePlanPrimary.withValues(alpha: 0.08),
                 Colors.white,
               ),
-              fontFamily: 'Trebuchet MS',
+              fontFamily: 'PlusJakartaSans',
               textTheme: const TextTheme(
                 titleLarge: TextStyle(
                   fontWeight: FontWeight.w800,

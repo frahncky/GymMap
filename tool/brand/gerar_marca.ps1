@@ -22,6 +22,8 @@ $edge = @(
 if (-not $edge) { throw 'Microsoft Edge não encontrado.' }
 
 $svg = Get-Content $symbol -Raw
+# Mesma fonte do app (Plus Jakarta Sans) no nome do splash.
+$fontUrl = 'file:///' + ((Join-Path $root 'assets\fonts\PlusJakartaSans-ExtraBold.ttf') -replace '\\', '/')
 $mapSvg = Get-Content (Join-Path $PSScriptRoot 'folded_map.svg') -Raw
 $work = Join-Path ([IO.Path]::GetTempPath()) 'gymmap-brand'
 New-Item -ItemType Directory -Force -Path $work | Out-Null
@@ -32,7 +34,8 @@ function Render([string]$dir, [string]$name, [int]$width, [int]$height, [string]
 html,body{margin:0;width:${width}px;height:${height}px;overflow:hidden;background:$background}
 body{display:flex;flex-direction:column;align-items:center;justify-content:center}
 svg{display:block}
-.word{font:800 150px 'Segoe UI',Roboto,Arial,sans-serif;letter-spacing:-3px;color:#fff;margin-top:40px}
+@font-face{font-family:Jakarta;font-weight:800;src:url('$fontUrl')}
+.word{font:800 150px Jakarta,'Segoe UI',Roboto,Arial,sans-serif;letter-spacing:-3px;color:#fff;margin-top:40px}
 .word b{background:linear-gradient(90deg,#3FC6F0,#22B7A8,#7EDB5A);-webkit-background-clip:text;color:transparent}
 </style></head><body>$body</body></html>
 "@
