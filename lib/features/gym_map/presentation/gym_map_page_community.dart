@@ -571,6 +571,7 @@ extension _GymMapPageCommunity on _GymMapPageState {
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
+      useSafeArea: true,
       builder: (sheetContext) {
         final primary = Theme.of(sheetContext).colorScheme.primary;
         return FutureBuilder<_CommunityLeaderboardSheetData>(

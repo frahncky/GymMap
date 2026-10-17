@@ -305,6 +305,7 @@ extension _GymMapPageMapView on _GymMapPageState {
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
+      useSafeArea: true,
       builder: (sheetContext) {
         return StatefulBuilder(
           builder: (context, setSheetState) {

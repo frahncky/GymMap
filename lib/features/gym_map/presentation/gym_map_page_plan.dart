@@ -1515,6 +1515,7 @@ extension _GymMapPagePlan on _GymMapPageState {
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
+      useSafeArea: true,
       builder: (context) {
         final current = _activePlan;
         final service = _planSubscriptionService;
