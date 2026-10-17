@@ -131,6 +131,13 @@ class PlanSubscriptionService {
   static const String _expiresAtUtcKey = 'subscription.expires_at_utc';
   static const String _authUserIdKey = 'subscription.auth.user_id';
   static const String _authTokenKey = 'subscription.auth.token';
+  static const String _authAccountKindKey = 'subscription.auth.account_kind';
+  static const String _authUsernameKey = 'subscription.auth.username';
+  // Credencial da conta anônima deste aparelho; continua guardada quando o
+  // usuário entra em outra conta, para que "Sair" volte para ela.
+  static const String _deviceUserIdKey = 'subscription.auth.device_user_id';
+  static const String _deviceSecretKey = 'subscription.auth.device_secret';
+  static const Duration _sessionRefreshMargin = Duration(days: 3);
   static const Duration _requestTimeout = Duration(seconds: 12);
   static const Duration _productionConfirmPollInterval = Duration(seconds: 3);
   static const Duration _productionConfirmMaxWait = Duration(seconds: 30);
@@ -148,6 +155,14 @@ class PlanSubscriptionService {
 
   bool get hasRemoteBackend => _backendBaseUri != null;
   bool get hasAuthSession => _authToken.trim().isNotEmpty;
+
+  /// Sessão criada automaticamente para o aparelho, sem usuário e senha.
+  bool get isAnonymousSession =>
+      hasAuthSession && _prefs.getString(_authAccountKindKey) == 'anonymous';
+  String? get username {
+    final value = (_prefs.getString(_authUsernameKey) ?? '').trim();
+    return value.isEmpty ? null : value;
+  }
   String get userId => _userId;
   bool get isProductionMode => _productionMode;
   bool get allowsManualPixConfirmation => !_productionMode;
@@ -225,8 +240,115 @@ class PlanSubscriptionService {
     if (response.statusCode != HttpStatus.ok) {
       throw StateError(_parseBackendError(response));
     }
+    return _applyAuthResponse(response.body, fallbackUserId: normalizedUserId);
+  }
 
+  /// Cria a conta com usuário e senha. Se a sessão atual for anônima, o
+  /// backend promove essa conta mantendo o userId (assinatura e relatos
+  /// continuam vinculados).
+  Future<PlanAuthSession> register({
+    required String username,
+    required String password,
+  }) async {
+    if (!hasRemoteBackend) {
+      throw StateError('Backend base URL not configured');
+    }
+    final normalizedUsername = username.trim();
+    if (normalizedUsername.isEmpty || password.isEmpty) {
+      throw StateError('missing_credentials');
+    }
+    final upgradingAnonymous = isAnonymousSession;
+    final response = await _httpClient
+        .post(
+          _buildRemoteUri(<String>['v1', 'auth', 'register']),
+          headers: _remoteHeaders(contentTypeJson: true),
+          body: jsonEncode(<String, dynamic>{
+            'username': normalizedUsername,
+            'password': password,
+          }),
+        )
+        .timeout(_requestTimeout);
+    if (response.statusCode != HttpStatus.ok &&
+        response.statusCode != HttpStatus.created) {
+      throw StateError(_parseBackendError(response));
+    }
+    final session = await _applyAuthResponse(response.body);
+    if (upgradingAnonymous) {
+      // O segredo do aparelho deixa de valer quando a conta ganha senha.
+      await _prefs.remove(_deviceUserIdKey);
+      await _prefs.remove(_deviceSecretKey);
+    }
+    return session;
+  }
+
+  /// Garante uma sessão válida: renova a conta anônima do aparelho ou cria
+  /// uma nova. Sessões de conta registrada expiradas exigem novo login.
+  Future<void> ensureSession() async {
+    if (!hasRemoteBackend) {
+      return;
+    }
+    if (hasAuthSession && !isAnonymousSession) {
+      // Conta registrada: sem a senha não há como renovar; se o token
+      // vencer, o usuário entra de novo pela tela de planos.
+      return;
+    }
+    final expiresAt = _extractJwtExpiry(_authToken);
+    if (hasAuthSession &&
+        (expiresAt == null ||
+            expiresAt.isAfter(
+              DateTime.now().toUtc().add(_sessionRefreshMargin),
+            ))) {
+      return;
+    }
+
+    final deviceUserId = (_prefs.getString(_deviceUserIdKey) ?? '').trim();
+    final deviceSecret = _prefs.getString(_deviceSecretKey) ?? '';
+    if (deviceUserId.isNotEmpty && deviceSecret.isNotEmpty) {
+      try {
+        await signIn(userId: deviceUserId, password: deviceSecret);
+        return;
+      } on StateError catch (error) {
+        if (error.message != 'invalid_credentials') {
+          rethrow;
+        }
+        await _prefs.remove(_deviceUserIdKey);
+        await _prefs.remove(_deviceSecretKey);
+      }
+    }
+    await _createAnonymousAccount();
+  }
+
+  Future<void> _createAnonymousAccount() async {
+    final response = await _httpClient
+        .post(
+          _buildRemoteUri(<String>['v1', 'auth', 'anonymous']),
+          headers: const <String, String>{
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: '{}',
+        )
+        .timeout(_requestTimeout);
+    if (response.statusCode != HttpStatus.created &&
+        response.statusCode != HttpStatus.ok) {
+      throw StateError(_parseBackendError(response));
+    }
+    final session = await _applyAuthResponse(response.body);
     final decoded = jsonDecode(response.body);
+    final deviceSecret =
+        decoded is Map ? '${decoded['deviceSecret'] ?? ''}'.trim() : '';
+    if (deviceSecret.isEmpty) {
+      throw const FormatException('Missing device secret');
+    }
+    await _prefs.setString(_deviceUserIdKey, session.userId);
+    await _prefs.setString(_deviceSecretKey, deviceSecret);
+  }
+
+  Future<PlanAuthSession> _applyAuthResponse(
+    String body, {
+    String? fallbackUserId,
+  }) async {
+    final decoded = jsonDecode(body);
     if (decoded is! Map) {
       throw const FormatException('Invalid backend payload');
     }
@@ -238,7 +360,7 @@ class PlanSubscriptionService {
     }
 
     final backendUserId =
-        '${payload['userId'] ?? payload['sub'] ?? normalizedUserId}'.trim();
+        '${payload['userId'] ?? payload['sub'] ?? fallbackUserId ?? ''}'.trim();
     if (backendUserId.isEmpty) {
       throw const FormatException('Missing userId');
     }
@@ -246,6 +368,18 @@ class PlanSubscriptionService {
     _userId = backendUserId;
     _authToken = accessToken;
     await _persistAuthSession();
+    final accountKind = '${payload['accountKind'] ?? ''}'.trim();
+    if (accountKind.isEmpty) {
+      await _prefs.remove(_authAccountKindKey);
+    } else {
+      await _prefs.setString(_authAccountKindKey, accountKind);
+    }
+    final username = '${payload['username'] ?? ''}'.trim();
+    if (username.isEmpty) {
+      await _prefs.remove(_authUsernameKey);
+    } else {
+      await _prefs.setString(_authUsernameKey, username);
+    }
 
     return PlanAuthSession(
       userId: backendUserId,
@@ -262,6 +396,8 @@ class PlanSubscriptionService {
     _authToken = '';
     await _prefs.remove(_authTokenKey);
     await _prefs.remove(_authUserIdKey);
+    await _prefs.remove(_authAccountKindKey);
+    await _prefs.remove(_authUsernameKey);
     await _prefs.setString(_activePlanKey, freePlanKey);
     await _prefs.remove(_startsAtUtcKey);
     await _prefs.remove(_expiresAtUtcKey);
@@ -724,6 +860,22 @@ int? _parseIntField(dynamic raw) {
 }
 
 String? _extractJwtSubject(String rawToken) {
+  final subject = '${_decodeJwtPayload(rawToken)?['sub'] ?? ''}'.trim();
+  return subject.isEmpty ? null : subject;
+}
+
+DateTime? _extractJwtExpiry(String rawToken) {
+  final exp = _decodeJwtPayload(rawToken)?['exp'];
+  if (exp is! num) {
+    return null;
+  }
+  return DateTime.fromMillisecondsSinceEpoch(
+    exp.toInt() * 1000,
+    isUtc: true,
+  );
+}
+
+Map<dynamic, dynamic>? _decodeJwtPayload(String rawToken) {
   final trimmed = rawToken.trim();
   if (trimmed.isEmpty) {
     return null;
@@ -739,11 +891,7 @@ String? _extractJwtSubject(String rawToken) {
   try {
     final payloadBytes = base64Url.decode(base64Url.normalize(parts[1]));
     final payload = jsonDecode(utf8.decode(payloadBytes));
-    if (payload is! Map) {
-      return null;
-    }
-    final subject = '${payload['sub'] ?? ''}'.trim();
-    return subject.isEmpty ? null : subject;
+    return payload is Map ? payload : null;
   } catch (_) {
     return null;
   }

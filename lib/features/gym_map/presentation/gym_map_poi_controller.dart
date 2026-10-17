@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
 import '../data/gym_location_cache_service.dart';
+import '../data/map_services_config.dart';
 import '../domain/gym_models.dart';
 import 'gym_map_logic.dart';
 
@@ -20,7 +21,7 @@ class GymMapPoiController {
   static const double _nominatimHalfSpanDegrees = 0.1;
   // Servidor principal e espelhos públicos, tentados em ordem.
   static final List<Uri> _overpassUris = <Uri>[
-    Uri.parse('https://overpass-api.de/api/interpreter'),
+    MapServicesConfig.overpassUri,
     Uri.parse('https://overpass.private.coffee/api/interpreter'),
     Uri.parse('https://overpass.kumi.systems/api/interpreter'),
   ];
@@ -262,7 +263,7 @@ class GymMapPoiController {
       if (anySucceeded) {
         await Future<void>.delayed(const Duration(milliseconds: 1100));
       }
-      final uri = Uri.https('nominatim.openstreetmap.org', '/search', {
+      final uri = MapServicesConfig.nominatimSearchUri({
         'q': term,
         'format': 'jsonv2',
         'limit': '50',

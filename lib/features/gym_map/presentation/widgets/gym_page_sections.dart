@@ -457,15 +457,25 @@ class _AdBannerCardState extends State<AdBannerCard> {
     super.dispose();
   }
 
+  // Padrão: IDs de teste do Google. Em produção defina via --dart-define.
+  static const String _androidBannerAdUnitId = String.fromEnvironment(
+    'ADMOB_BANNER_ID_ANDROID',
+    defaultValue: 'ca-app-pub-3940256099942544/6300978111',
+  );
+  static const String _iosBannerAdUnitId = String.fromEnvironment(
+    'ADMOB_BANNER_ID_IOS',
+    defaultValue: 'ca-app-pub-3940256099942544/2934735716',
+  );
+
   String? _resolveBannerAdUnitId() {
     if (kIsWeb) {
       return null;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        return 'ca-app-pub-3940256099942544/6300978111';
+        return _androidBannerAdUnitId;
       case TargetPlatform.iOS:
-        return 'ca-app-pub-3940256099942544/2934735716';
+        return _iosBannerAdUnitId;
       default:
         return null;
     }

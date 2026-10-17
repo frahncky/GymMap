@@ -21,6 +21,7 @@ import '../data/contextual_push_notification_service.dart';
 import '../data/crowd_report_remote_service.dart';
 import '../data/map/map_vector_style_service.dart';
 import '../data/map/vector_map_style_loader.dart';
+import '../data/map_services_config.dart';
 import '../data/plan_subscription_service.dart';
 import '../domain/gym_models.dart';
 import '../domain/plan_insight_models.dart';

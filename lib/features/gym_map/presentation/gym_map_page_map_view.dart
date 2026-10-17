@@ -123,8 +123,26 @@ extension _GymMapPageMapView on _GymMapPageState {
               key: ValueKey<String>('marker-layer-$_mapVisualReloadTick'),
               markers: markers,
             ),
-            const SimpleAttributionWidget(
-              source: Text(MapVectorStyleService.attributionLabel),
+            RichAttributionWidget(
+              alignment: AttributionAlignment.bottomLeft,
+              showFlutterMapAttribution: false,
+              attributions: [
+                for (final line in MapServicesConfig.attributionLines)
+                  TextSourceAttribution(
+                    line,
+                    onTap:
+                        line.contains('OpenStreetMap')
+                            ? () => unawaited(
+                              launchUrl(
+                                Uri.parse(
+                                  'https://www.openstreetmap.org/copyright',
+                                ),
+                                mode: LaunchMode.externalApplication,
+                              ),
+                            )
+                            : null,
+                  ),
+              ],
             ),
           ],
         ),

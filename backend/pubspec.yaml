@@ -1,0 +1,12 @@
+name: gymmap_backend
+description: "Backend de assinaturas, contas e lotação colaborativa do GymMap."
+publish_to: 'none'
+
+environment:
+  sdk: ^3.7.2
+
+dependencies:
+  crypto: ^3.0.6
+  postgres: ^2.6.4
+  googleapis: ^13.2.0
+  googleapis_auth: ^2.0.0
