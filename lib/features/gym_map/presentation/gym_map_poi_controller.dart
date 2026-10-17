@@ -14,10 +14,16 @@ class GymMapPoiController {
   }) : _cacheService = cacheService,
        _httpClient = httpClient ?? http.Client();
 
-  static const Duration _overpassTimeout = Duration(seconds: 16);
-  static final Uri _overpassUri = Uri.parse(
-    'https://overpass-api.de/api/interpreter',
-  );
+  static const Duration _overpassTimeout = Duration(seconds: 30);
+  static const Duration _nominatimTimeout = Duration(seconds: 10);
+  // Meia-largura da caixa de busca do Nominatim (~11 km).
+  static const double _nominatimHalfSpanDegrees = 0.1;
+  // Servidor principal e espelhos públicos, tentados em ordem.
+  static final List<Uri> _overpassUris = <Uri>[
+    Uri.parse('https://overpass-api.de/api/interpreter'),
+    Uri.parse('https://overpass.private.coffee/api/interpreter'),
+    Uri.parse('https://overpass.kumi.systems/api/interpreter'),
+  ];
   static const String _overpassUserAgent = 'gymmap/1.0';
 
   GymLocationCacheService? _cacheService;
@@ -95,24 +101,68 @@ class GymMapPoiController {
     return nearby.take(limit).toList(growable: false);
   }
 
+  /// Academias perto de [center]: tenta o Overpass e, se ele falhar ou
+  /// estiver sobrecarregado (o servidor público vive no limite), usa a busca
+  /// do Nominatim como alternativa. `null` só quando as duas falham.
   Future<List<MapGymPoi>?> fetchOverpassPoisAround({
     required LatLng center,
     required List<Gym> knownGyms,
     double knownGymExclusionMeters = 120,
   }) async {
+    List<MapGymPoi>? pois;
+    try {
+      pois = await _fetchOverpassPois(
+        center: center,
+        knownGyms: knownGyms,
+        knownGymExclusionMeters: knownGymExclusionMeters,
+      );
+    } catch (_) {
+      pois = null;
+    }
+    if (pois != null) {
+      return pois;
+    }
+    try {
+      return await _fetchNominatimPois(
+        center: center,
+        knownGyms: knownGyms,
+        knownGymExclusionMeters: knownGymExclusionMeters,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<List<MapGymPoi>?> _fetchOverpassPois({
+    required LatLng center,
+    required List<Gym> knownGyms,
+    required double knownGymExclusionMeters,
+  }) async {
     final query = _buildOverpassQuery(center);
-    final response = await _httpClient
-        .post(
-          _overpassUri,
-          headers: const {
-            'Accept': 'application/json',
-            'Content-Type': 'text/plain; charset=utf-8',
-            'User-Agent': _overpassUserAgent,
-          },
-          body: query,
-        )
-        .timeout(_overpassTimeout);
-    if (response.statusCode != 200) {
+    http.Response? response;
+    for (final uri in _overpassUris) {
+      try {
+        // A consulta vai como formulário (`data=`): o Overpass público
+        // recusa o corpo em texto puro com 502 ("at capacity").
+        final attempt = await _httpClient
+            .post(
+              uri,
+              headers: const {
+                'Accept': 'application/json',
+                'User-Agent': _overpassUserAgent,
+              },
+              body: <String, String>{'data': query},
+            )
+            .timeout(_overpassTimeout);
+        if (attempt.statusCode == 200) {
+          response = attempt;
+          break;
+        }
+      } catch (_) {
+        // Tenta o próximo espelho.
+      }
+    }
+    if (response == null) {
       return null;
     }
 
@@ -189,6 +239,105 @@ class GymMapPoiController {
     return List<MapGymPoi>.unmodifiable(poiList);
   }
 
+  /// Busca "academia" e "gym" na caixa em volta de [center] e mantém só os
+  /// resultados que o OpenStreetMap classifica como academia. As duas buscas
+  /// são sequenciais, respeitando o limite de 1 req/s do Nominatim público.
+  Future<List<MapGymPoi>?> _fetchNominatimPois({
+    required LatLng center,
+    required List<Gym> knownGyms,
+    required double knownGymExclusionMeters,
+  }) async {
+    const span = _nominatimHalfSpanDegrees;
+    final viewbox = [
+      center.longitude - span,
+      center.latitude + span,
+      center.longitude + span,
+      center.latitude - span,
+    ].map((value) => value.toStringAsFixed(5)).join(',');
+
+    final poiList = <MapGymPoi>[];
+    final seenIds = <String>{};
+    var anySucceeded = false;
+    for (final term in const <String>['academia', 'gym']) {
+      if (anySucceeded) {
+        await Future<void>.delayed(const Duration(milliseconds: 1100));
+      }
+      final uri = Uri.https('nominatim.openstreetmap.org', '/search', {
+        'q': term,
+        'format': 'jsonv2',
+        'limit': '50',
+        'bounded': '1',
+        'viewbox': viewbox,
+      });
+      final http.Response response;
+      try {
+        response = await _httpClient
+            .get(
+              uri,
+              headers: const {
+                'Accept': 'application/json',
+                'User-Agent': _overpassUserAgent,
+              },
+            )
+            .timeout(_nominatimTimeout);
+      } catch (_) {
+        continue;
+      }
+      if (response.statusCode != 200) {
+        continue;
+      }
+      final decoded = jsonDecode(response.body);
+      if (decoded is! List) {
+        continue;
+      }
+      anySucceeded = true;
+
+      for (final item in decoded) {
+        if (item is! Map) {
+          continue;
+        }
+        final category = '${item['category'] ?? ''}';
+        final type = '${item['type'] ?? ''}';
+        final isGym =
+            (category == 'leisure' && type == 'fitness_centre') ||
+            (category == 'amenity' && type == 'gym');
+        if (!isGym) {
+          continue;
+        }
+        final lat = double.tryParse('${item['lat']}');
+        final lon = double.tryParse('${item['lon']}');
+        final osmType = item['osm_type'];
+        final osmId = item['osm_id'];
+        if (lat == null || lon == null || osmType is! String || osmId == null) {
+          continue;
+        }
+        // Mesmo formato de id do Overpass (`node-123`), para o cache e os
+        // relatos de lotação reconhecerem a mesma academia.
+        final key = '$osmType-$osmId';
+        if (!seenIds.add(key)) {
+          continue;
+        }
+        final position = LatLng(lat, lon);
+        if (GymMapLogic.isNearAnyKnownGym(
+          point: position,
+          gyms: knownGyms,
+          maxMeters: knownGymExclusionMeters,
+        )) {
+          continue;
+        }
+        var name = '${item['name'] ?? ''}'.trim();
+        if (name.isEmpty) {
+          name = 'Academia';
+        }
+        poiList.add(MapGymPoi(id: key, position: position, name: name));
+      }
+    }
+    if (!anySucceeded) {
+      return null;
+    }
+    return List<MapGymPoi>.unmodifiable(poiList);
+  }
+
   bool _looksLikeGym(Map tags) {
     final amenity = '${tags['amenity'] ?? ''}'.toLowerCase();
     final leisure = '${tags['leisure'] ?? ''}'.toLowerCase();
@@ -221,7 +370,6 @@ class GymMapPoiController {
   nwr["amenity"="gym"](around:25000,${center.latitude},${center.longitude});
   nwr["leisure"="fitness_centre"](around:25000,${center.latitude},${center.longitude});
   nwr["sport"~"^(fitness|bodybuilding)\$",i](around:25000,${center.latitude},${center.longitude});
-  nwr["name"~"(academia|fitness|gym|crossfit)",i](around:12000,${center.latitude},${center.longitude});
 );
 out body center;
 ''';

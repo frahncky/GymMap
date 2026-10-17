@@ -14,9 +14,10 @@ void main() {
         httpClient: MockClient((request) async {
           expect(request.method, 'POST');
           expect(request.headers['User-Agent'], 'gymmap/1.0');
-          expect(request.body, contains('nwr["leisure"="fitness_centre"]'));
-          expect(request.body, contains('nwr["sport"~'));
-          expect(request.body, contains('out body center;'));
+          final query = Uri.splitQueryString(request.body)['data'];
+          expect(query, contains('nwr["leisure"="fitness_centre"]'));
+          expect(query, contains('nwr["sport"~'));
+          expect(query, contains('out body center;'));
 
           return http.Response(
             jsonEncode(<String, Object?>{
@@ -64,6 +65,51 @@ void main() {
         containsAll(<String>['node-1', 'way-2']),
       );
       expect(pois.map((poi) => poi.id), isNot(contains('node-3')));
+    });
+
+    test('falls back to Nominatim when Overpass is overloaded', () async {
+      final controller = GymMapPoiController(
+        httpClient: MockClient((request) async {
+          if (request.url.host == 'overpass-api.de') {
+            return http.Response('at capacity', 502);
+          }
+          expect(request.url.host, 'nominatim.openstreetmap.org');
+          return http.Response(
+            jsonEncode(<Map<String, Object?>>[
+              <String, Object?>{
+                'osm_type': 'node',
+                'osm_id': 10,
+                'lat': '-10.01',
+                'lon': '-50.01',
+                'category': 'leisure',
+                'type': 'fitness_centre',
+                'name': 'Academia Boa Forma',
+              },
+              <String, Object?>{
+                'osm_type': 'way',
+                'osm_id': 11,
+                'lat': '-10.02',
+                'lon': '-50.02',
+                'category': 'amenity',
+                'type': 'school',
+                'name': 'Academia de Polícia',
+              },
+            ]),
+            200,
+            headers: <String, String>{'content-type': 'application/json'},
+          );
+        }),
+      );
+      addTearDown(controller.dispose);
+
+      final pois = await controller.fetchOverpassPoisAround(
+        center: const LatLng(-10.0, -50.0),
+        knownGyms: const <Gym>[],
+      );
+
+      expect(pois, isNotNull);
+      expect(pois!.map((poi) => poi.id), <String>['node-10']);
+      expect(pois.single.name, 'Academia Boa Forma');
     });
   });
 }

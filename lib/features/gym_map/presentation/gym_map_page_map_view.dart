@@ -32,8 +32,9 @@ extension _GymMapPageMapView on _GymMapPageState {
             point: gym.position,
             width: markerBaseWidth * markerScale,
             height: markerBaseHeight * markerScale,
+            alignment: Alignment.topCenter,
             child: Transform.translate(
-              offset: Offset(0, _markerBodyAnchorOffset(markerScale)),
+              offset: Offset(0, _markerPinTipOffset(markerScale)),
               child: Transform.scale(
                 scale: markerScale,
                 alignment: Alignment.bottomCenter,
@@ -107,16 +108,47 @@ extension _GymMapPageMapView on _GymMapPageState {
             ),
           ),
           children: [
-            TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'com.example.gymmap',
-            ),
+            if (_vectorMapStyle case final vmt.Style style)
+              vmt.VectorTileLayer(
+                key: const ValueKey<String>(
+                  'vector-map:${MapVectorStyleService.styleUrl}',
+                ),
+                theme: style.theme,
+                sprites: style.sprites,
+                tileProviders: style.providers,
+              )
+            else
+              _buildOfflineFallbackLayer(),
             MarkerLayer(
               key: ValueKey<String>('marker-layer-$_mapVisualReloadTick'),
               markers: markers,
             ),
+            const SimpleAttributionWidget(
+              source: Text(MapVectorStyleService.attributionLabel),
+            ),
           ],
         ),
+        if (_vectorMapStyle == null)
+          Positioned(
+            left: 12,
+            right: 12,
+            bottom: 24,
+            child: Center(
+              child:
+                  _vectorMapFailed
+                      ? FilledButton.icon(
+                        onPressed: () => unawaited(_initializeVectorMap()),
+                        icon: const Icon(Icons.refresh),
+                        label: const Text(
+                          'Mapa indisponível. Tentar novamente',
+                        ),
+                      )
+                      : const MapStatusCard(
+                        message: 'Carregando mapa...',
+                        loading: true,
+                      ),
+            ),
+          ),
 
         Positioned(
           right: controlsRight,
@@ -158,6 +190,42 @@ extension _GymMapPageMapView on _GymMapPageState {
     );
   }
 
+  /// Carrega o estilo vetorial (mesma infraestrutura do PYT). Enquanto não
+  /// chega, o mapa mostra um fundo neutro; se falhar, oferece nova tentativa.
+  Future<void> _initializeVectorMap() async {
+    if (_vectorMapFailed) {
+      _setStateIfMapVisible(() => _vectorMapFailed = false);
+    }
+    final style = await _vectorMapStyleLoader.load(
+      MapVectorStyleService.styleUrl,
+    );
+    if (!mounted) return;
+    // ignore: invalid_use_of_protected_member
+    setState(() {
+      _vectorMapStyle = style;
+      _vectorMapFailed = style == null;
+    });
+  }
+
+  Widget _buildOfflineFallbackLayer() {
+    final colorScheme = Theme.of(context).colorScheme;
+    return PolygonLayer(
+      polygons: <Polygon>[
+        Polygon(
+          points: const <LatLng>[
+            LatLng(-84.8, -180),
+            LatLng(-84.8, 180),
+            LatLng(84.8, 180),
+            LatLng(84.8, -180),
+          ],
+          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.98),
+          borderStrokeWidth: 1.0,
+          borderColor: colorScheme.outline.withValues(alpha: 0.55),
+        ),
+      ],
+    );
+  }
+
   double _markerScaleForPosition(LatLng position) {
     final userPoint = _userLocation;
     if (userPoint == null) {
@@ -177,8 +245,11 @@ extension _GymMapPageMapView on _GymMapPageState {
     );
   }
 
-  double _markerBodyAnchorOffset(double markerScale) {
-    return _GymMapPageState._mapMarkerBodyAnchorOffset * markerScale;
+  /// O marcador fica acima do ponto (`Alignment.topCenter`) e desce o
+  /// espaço entre a ponta do pino e a base do balão, para a ponta cair
+  /// exatamente na coordenada da academia.
+  double _markerPinTipOffset(double markerScale) {
+    return _GymMapPageState._mapMarkerPinTipInset * markerScale;
   }
 
   double _mapControlsTopOffset(BuildContext context) {
@@ -234,8 +305,9 @@ extension _GymMapPageMapView on _GymMapPageState {
       point: poi.position,
       width: markerBaseWidth * markerScale,
       height: markerBaseHeight * markerScale,
+      alignment: Alignment.topCenter,
       child: Transform.translate(
-        offset: Offset(0, _markerBodyAnchorOffset(markerScale)),
+        offset: Offset(0, _markerPinTipOffset(markerScale)),
         child: Transform.scale(
           scale: markerScale,
           alignment: Alignment.bottomCenter,

@@ -13,11 +13,14 @@ import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:vector_map_tiles/vector_map_tiles.dart' as vmt;
 
 import '../../../core/analytics/app_metrics_service.dart';
 import '../data/collaborative_crowd_service.dart';
 import '../data/contextual_push_notification_service.dart';
 import '../data/crowd_report_remote_service.dart';
+import '../data/map/map_vector_style_service.dart';
+import '../data/map/vector_map_style_loader.dart';
 import '../data/plan_subscription_service.dart';
 import '../domain/gym_models.dart';
 import '../domain/plan_insight_models.dart';
@@ -95,7 +98,9 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   static const double _backgroundLocationDistanceFilterMeters = 35;
   static const double _backgroundLocationUiRefreshMinDistanceMeters = 25;
   static const double _dataSaverPoiReloadMinDistanceMeters = 3200;
-  static const double _mapMarkerBodyAnchorOffset = -6;
+  // Distância entre a ponta do `pinGym.png` e a base do `GymMarkerBubble`:
+  // 3 de padding + 17 entre a base da imagem (32 px) e a base da área de 66 px.
+  static const double _mapMarkerPinTipInset = 20;
   static const int _maxMapPoiMarkers = 90;
   static const int _maxMapPoiMarkersZoomedOut = 48;
   static const int _layoutTotalFlex = 100;
@@ -133,8 +138,11 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   final TextEditingController _searchController = TextEditingController();
   final Set<MapQuickFilter> _activeQuickFilters = <MapQuickFilter>{};
 
-  // Controlador do mapa raster (flutter_map).
+  // Controlador do mapa vetorial (flutter_map + vector_map_tiles).
   final MapController _mapController = MapController();
+  final VectorMapStyleLoader _vectorMapStyleLoader = VectorMapStyleLoader();
+  vmt.Style? _vectorMapStyle;
+  bool _vectorMapFailed = false;
   final InAppPurchase _inAppPurchase = InAppPurchase.instance;
 
   // Serviço que agrega relatos colaborativos de lotação.
@@ -244,6 +252,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    unawaited(_initializeVectorMap());
     unawaited(_loadMapTutorialState());
     unawaited(_loadFavoriteGymIds());
     unawaited(_loadCommunityPoints());

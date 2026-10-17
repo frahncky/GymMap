@@ -103,6 +103,10 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeOutCubic,
+          // Encosta o conteúdo na base: a ponta do pino fica sempre à mesma
+          // distância da base, qualquer que seja o tamanho do nome.
+          alignment: Alignment.bottomCenter,
+          transformAlignment: Alignment.bottomCenter,
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
           transform:
               Matrix4.identity()..scaleByDouble(
