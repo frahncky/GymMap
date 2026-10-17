@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="360" viewBox="0 0 1280 360" font-family="'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="fundo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1B222B"/>
+      <stop offset="0.6" stop-color="#2E3A46"/>
+      <stop offset="1" stop-color="#3C4A58"/>
+    </linearGradient>
+    <linearGradient id="marca" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2F9BD8"/>
+      <stop offset="0.5" stop-color="#1FB5A3"/>
+      <stop offset="1" stop-color="#7ED957"/>
+    </linearGradient>
+    <clipPath id="cantos"><rect width="1280" height="360" rx="28"/></clipPath>
+    <clipPath id="mapa"><rect x="720" y="40" width="500" height="280" rx="22"/></clipPath>
+  </defs>
+  <g clip-path="url(#cantos)">
+    <rect width="1280" height="360" fill="url(#fundo)"/>
+    <circle cx="1180" cy="-40" r="260" fill="#FFFFFF" fill-opacity="0.03"/>
+    <circle cx="120" cy="420" r="220" fill="#1FB5A3" fill-opacity="0.06"/>
+
+    <!-- Texto -->
+    <text x="80" y="150" font-size="76" font-weight="800" fill="#FFFFFF" letter-spacing="-1">Gym<tspan fill="url(#marca)">Map</tspan></text>
+    <rect x="84" y="174" width="96" height="6" rx="3" fill="url(#marca)"/>
+    <text x="80" y="226" font-size="27" font-weight="600" fill="#E8EDF2">Academias perto de você,</text>
+    <text x="80" y="262" font-size="27" font-weight="600" fill="#E8EDF2">com a lotação em tempo real.</text>
+    <text x="80" y="306" font-size="17" fill="#AEB9C5">Mapa colaborativo · Horários de pico · Previsão</text>
+
+    <!-- Mapa ilustrativo -->
+    <g clip-path="url(#mapa)">
+      <rect x="720" y="40" width="500" height="280" fill="#EEF2F5"/>
+      <path d="M700 250 Q820 210 900 230 T1100 190 T1240 160 L1240 340 L700 340 Z" fill="#D8E3E8"/>
+      <g stroke="#FFFFFF" stroke-width="14" fill="none" stroke-linecap="round">
+        <path d="M700 120 L1240 150"/>
+        <path d="M860 20 L900 340"/>
+        <path d="M1080 20 L1040 340"/>
+      </g>
+      <g stroke="#FFFFFF" stroke-width="6" fill="none" stroke-linecap="round">
+        <path d="M700 200 L1240 230"/>
+        <path d="M760 20 L800 340"/>
+        <path d="M970 20 L960 340"/>
+        <path d="M1170 20 L1150 340"/>
+      </g>
+    </g>
+    <rect x="720" y="40" width="500" height="280" rx="22" fill="none" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="2"/>
+
+    <!-- Pinos com lotação -->
+    <g transform="translate(830 90)">
+      <rect x="-30" y="-4" width="60" height="24" rx="12" fill="#4A7DBA"/>
+      <text x="0" y="13" font-size="14" font-weight="800" fill="#FFFFFF" text-anchor="middle">22%</text>
+      <path d="M0 78 C-6 66 -22 56 -22 42 A22 22 0 0 1 22 42 C22 56 6 66 0 78 Z" fill="url(#marca)"/>
+      <circle cx="0" cy="42" r="11" fill="#1B222B"/>
+    </g>
+    <g transform="translate(1010 150)">
+      <rect x="-30" y="-4" width="60" height="24" rx="12" fill="#E09F3E"/>
+      <text x="0" y="13" font-size="14" font-weight="800" fill="#FFFFFF" text-anchor="middle">71%</text>
+      <path d="M0 78 C-6 66 -22 56 -22 42 A22 22 0 0 1 22 42 C22 56 6 66 0 78 Z" fill="url(#marca)"/>
+      <circle cx="0" cy="42" r="11" fill="#1B222B"/>
+    </g>
+    <g transform="translate(1130 70)">
+      <rect x="-30" y="-4" width="60" height="24" rx="12" fill="#CC4A37"/>
+      <text x="0" y="13" font-size="14" font-weight="800" fill="#FFFFFF" text-anchor="middle">93%</text>
+      <path d="M0 78 C-6 66 -22 56 -22 42 A22 22 0 0 1 22 42 C22 56 6 66 0 78 Z" fill="url(#marca)"/>
+      <circle cx="0" cy="42" r="11" fill="#1B222B"/>
+    </g>
+    <g transform="translate(905 255)">
+      <circle r="18" fill="#1E90FF" fill-opacity="0.25"/>
+      <circle r="9" fill="#1E90FF" stroke="#FFFFFF" stroke-width="3"/>
+    </g>
+  </g>
+</svg>
