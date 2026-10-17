@@ -36,7 +36,7 @@ class HttpVectorMapStyleReader {
     try {
       final response = await client.get(uri).timeout(_timeout);
       if (response.statusCode != 200) {
-        throw StateError('Não foi possível ler o estilo do mapa.');
+        throw StateError('map_style_read_failed');
       }
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       try {

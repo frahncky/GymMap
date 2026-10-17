@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/l10n/l10n.dart';
 import '../gym_map_colors.dart';
 import '../gym_map_helpers.dart';
 
@@ -90,14 +91,14 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
     final showLowCrowdTag = widget.revealDetails && _isLowCrowd;
     final occupancySemantics =
         widget.isOpenNow
-            ? 'lotação de ${widget.percent} por cento'
-            : 'fechada agora';
+            ? _t.markerOccupancySemantics('${widget.percent}')
+            : _t.markerClosedNow;
 
     return Semantics(
       button: true,
       label:
-          '${widget.label}, $occupancySemantics${widget.isFavorite ? ', favorita' : ''}',
-      hint: 'Toque para abrir os detalhes da academia',
+          '${widget.label}, $occupancySemantics${widget.isFavorite ? _t.markerFavoriteSuffix : ''}',
+      hint: _t.markerTapHint,
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedContainer(
@@ -164,7 +165,7 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
                               Text(
                                 widget.isOpenNow
                                     ? '${widget.percent}%'
-                                    : 'Fechada',
+                                    : _t.gymClosed,
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w900,
@@ -368,8 +369,8 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
                                 ),
                               ),
                             ),
-                            child: const Text(
-                              'Bom momento',
+                            child: Text(
+                              _t.markerGoodMoment,
                               style: TextStyle(
                                 fontSize: 9,
                                 fontWeight: FontWeight.w800,
@@ -389,3 +390,6 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
     );
   }
 }
+
+/// Traduções do idioma em uso.
+AppLocalizations get _t => AppL10n.current;

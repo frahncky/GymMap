@@ -17,11 +17,11 @@ extension _GymMapPageMapView on _GymMapPageState {
     );
 
     if (!widget.showMap) {
-      return const MapStatusCard(message: 'Mapa desativado no modo de teste');
+      return MapStatusCard(message: _t.mapDisabledInTest);
     }
 
     if (!_hasCompletedInitialLocationAttempt) {
-      return const MapStatusCard(message: 'Localizando você...', loading: true);
+      return MapStatusCard(message: _t.mapLocatingYou, loading: true);
     }
 
     final markers = <Marker>[
@@ -157,14 +157,9 @@ extension _GymMapPageMapView on _GymMapPageState {
                       ? FilledButton.icon(
                         onPressed: () => unawaited(_initializeVectorMap()),
                         icon: const Icon(Icons.refresh),
-                        label: const Text(
-                          'Mapa indisponível. Tentar novamente',
-                        ),
+                        label: Text(_t.mapUnavailableRetry),
                       )
-                      : const MapStatusCard(
-                        message: 'Carregando mapa...',
-                        loading: true,
-                      ),
+                      : MapStatusCard(message: _t.mapLoading, loading: true),
             ),
           ),
 
@@ -355,9 +350,9 @@ extension _GymMapPageMapView on _GymMapPageState {
       _distanceSquaredMeters(userPoint, gym.position),
     );
     if (distanceMeters < 1000) {
-      return '${distanceMeters.round()} m de você';
+      return _t.distanceMetersFromYou('${distanceMeters.round()}');
     }
-    return '${(distanceMeters / 1000).toStringAsFixed(1)} km de você';
+    return _t.distanceKmFromYou((distanceMeters / 1000).toStringAsFixed(1));
   }
 
   Future<void> _openRouteForGym(Gym gym) async {
@@ -401,10 +396,10 @@ extension _GymMapPageMapView on _GymMapPageState {
         );
       }
       if (!launched) {
-        _showMapSnack('Nao foi possivel abrir o Google Maps agora.');
+        _showMapSnack(_t.mapOpenGoogleMapsFailed);
       }
     } catch (_) {
-      _showMapSnack('Nao foi possivel abrir o Google Maps agora.');
+      _showMapSnack(_t.mapOpenGoogleMapsFailed);
     }
   }
 

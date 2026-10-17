@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:image_picker/image_picker.dart';
@@ -11,6 +11,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/analytics/app_metrics_service.dart';
+import 'core/l10n/l10n.dart';
 import 'features/gym_map/data/crowd_report_remote_service.dart';
 import 'features/gym_map/data/gym_location_cache_service.dart';
 import 'features/gym_map/domain/gym_models.dart';
@@ -21,6 +22,9 @@ part 'main_favorites_page.dart';
 part 'main_profile_page.dart';
 part 'main_community_page.dart';
 
+/// Traduções do idioma em uso (válido também depois de `await`).
+AppLocalizations get _t => AppL10n.current;
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
@@ -28,6 +32,7 @@ Future<void> main() async {
   } catch (_) {
     // Falha na inicialização de anúncios não bloqueia o app.
   }
+  await AppL10n.loadPreference();
   final initialPlanThemeTier = await _readCachedPlanTier();
   runApp(MyApp(initialPlanThemeTier: initialPlanThemeTier));
 }
@@ -109,87 +114,104 @@ class _MyAppState extends State<MyApp> {
       onSurface: const Color(0xFF1F2730),
     );
 
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'GymMap',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: lightColorScheme,
-        scaffoldBackgroundColor: Color.alphaBlend(
-          basePlanPrimary.withValues(alpha: 0.08),
-          Colors.white,
-        ),
-        fontFamily: 'Trebuchet MS',
-        textTheme: const TextTheme(
-          titleLarge: TextStyle(
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.2,
-          ),
-          titleMedium: TextStyle(
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.1,
-          ),
-          bodyMedium: TextStyle(height: 1.28),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: 14,
-          ),
-          hintStyle: TextStyle(
-            color: lightColorScheme.onSurface.withValues(alpha: 0.56),
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(
-              color: lightColorScheme.primary.withValues(alpha: 0.18),
+    return ValueListenableBuilder<AppLanguagePreference>(
+      valueListenable: AppL10n.preference,
+      builder:
+          (context, _, __) => MaterialApp(
+            debugShowCheckedModeBanner: false,
+            title: 'GymMap',
+            locale: AppL10n.forcedLocale,
+            supportedLocales: AppL10n.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            localeListResolutionCallback:
+                (deviceLocales, _) => AppL10n.resolve(deviceLocales),
+            builder:
+                (context, child) =>
+                    AppL10nScope(child: child ?? const SizedBox.shrink()),
+            theme: ThemeData(
+              useMaterial3: true,
+              colorScheme: lightColorScheme,
+              scaffoldBackgroundColor: Color.alphaBlend(
+                basePlanPrimary.withValues(alpha: 0.08),
+                Colors.white,
+              ),
+              fontFamily: 'Trebuchet MS',
+              textTheme: const TextTheme(
+                titleLarge: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.2,
+                ),
+                titleMedium: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.1,
+                ),
+                bodyMedium: TextStyle(height: 1.28),
+              ),
+              inputDecorationTheme: InputDecorationTheme(
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 14,
+                ),
+                hintStyle: TextStyle(
+                  color: lightColorScheme.onSurface.withValues(alpha: 0.56),
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: lightColorScheme.primary.withValues(alpha: 0.18),
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: lightColorScheme.primary.withValues(alpha: 0.18),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: lightColorScheme.primary,
+                    width: 1.4,
+                  ),
+                ),
+              ),
+              elevatedButtonTheme: ElevatedButtonThemeData(
+                style: ElevatedButton.styleFrom(
+                  elevation: 0,
+                  foregroundColor: Colors.white,
+                  backgroundColor: lightColorScheme.primary,
+                  padding: EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  textStyle: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.1,
+                  ),
+                ),
+              ),
+              sliderTheme: SliderThemeData(
+                trackHeight: 4.5,
+                activeTrackColor: lightColorScheme.primary,
+                inactiveTrackColor: lightColorScheme.primary.withValues(
+                  alpha: 0.20,
+                ),
+                thumbColor: lightColorScheme.primary,
+                overlayColor: lightColorScheme.primary.withValues(alpha: 0.18),
+                valueIndicatorColor: lightColorScheme.primary,
+                valueIndicatorTextStyle: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            home: AppShell(
+              showMap: widget.showMap,
+              initialPlanThemeTier: widget.initialPlanThemeTier,
             ),
           ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(
-              color: lightColorScheme.primary.withValues(alpha: 0.18),
-            ),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: lightColorScheme.primary, width: 1.4),
-          ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            elevation: 0,
-            foregroundColor: Colors.white,
-            backgroundColor: lightColorScheme.primary,
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-            textStyle: const TextStyle(
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.1,
-            ),
-          ),
-        ),
-        sliderTheme: SliderThemeData(
-          trackHeight: 4.5,
-          activeTrackColor: lightColorScheme.primary,
-          inactiveTrackColor: lightColorScheme.primary.withValues(alpha: 0.20),
-          thumbColor: lightColorScheme.primary,
-          overlayColor: lightColorScheme.primary.withValues(alpha: 0.18),
-          valueIndicatorColor: lightColorScheme.primary,
-          valueIndicatorTextStyle: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-      home: AppShell(
-        showMap: widget.showMap,
-        initialPlanThemeTier: widget.initialPlanThemeTier,
-      ),
     );
   }
 }
@@ -339,14 +361,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
           elevation: 0,
           foregroundColor: onPrimary,
           backgroundColor: primary,
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          padding: EdgeInsets.symmetric(horizontal: 18, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
-          textStyle: const TextStyle(
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.1,
-          ),
+          textStyle: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.1),
         ),
       ),
       sliderTheme: baseTheme.sliderTheme.copyWith(
@@ -397,45 +416,57 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       _ProfilePage(onOpenMap: _goToMapTab),
     ];
 
+    // A aba do mapa tem cabeçalho escuro atrás da barra de status; as demais
+    // têm fundo quase branco. Os ícones da barra acompanham o fundo.
+    final isDarkTop = _selectedIndex == 0;
+    final statusBarStyle = SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: isDarkTop ? Brightness.light : Brightness.dark,
+      statusBarBrightness: isDarkTop ? Brightness.dark : Brightness.light,
+    );
+
     return Theme(
       data: themedData,
-      child: Scaffold(
-        body: IndexedStack(index: _selectedIndex, children: pages),
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: _selectedIndex,
-          onDestinationSelected: (index) {
-            setState(() {
-              _selectedIndex = index;
-              if (index == 1) {
-                _favoritesRefreshToken++;
-              }
-            });
-            unawaited(
-              _trackTabSelection(index: index, origin: 'navigation_bar'),
-            );
-          },
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.map_outlined),
-              selectedIcon: Icon(Icons.map_rounded),
-              label: 'Mapa',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.favorite_border_rounded),
-              selectedIcon: Icon(Icons.favorite_rounded),
-              label: 'Favoritos',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.groups_2_outlined),
-              selectedIcon: Icon(Icons.groups_2_rounded),
-              label: 'Comunidade',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline_rounded),
-              selectedIcon: Icon(Icons.person_rounded),
-              label: 'Perfil',
-            ),
-          ],
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: statusBarStyle,
+        child: Scaffold(
+          body: IndexedStack(index: _selectedIndex, children: pages),
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: _selectedIndex,
+            onDestinationSelected: (index) {
+              setState(() {
+                _selectedIndex = index;
+                if (index == 1) {
+                  _favoritesRefreshToken++;
+                }
+              });
+              unawaited(
+                _trackTabSelection(index: index, origin: 'navigation_bar'),
+              );
+            },
+            destinations: [
+              NavigationDestination(
+                icon: Icon(Icons.map_outlined),
+                selectedIcon: Icon(Icons.map_rounded),
+                label: _t.navMap,
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.favorite_border_rounded),
+                selectedIcon: Icon(Icons.favorite_rounded),
+                label: _t.navFavorites,
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.groups_2_outlined),
+                selectedIcon: Icon(Icons.groups_2_rounded),
+                label: _t.navCommunity,
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.person_outline_rounded),
+                selectedIcon: Icon(Icons.person_rounded),
+                label: _t.navProfile,
+              ),
+            ],
+          ),
         ),
       ),
     );

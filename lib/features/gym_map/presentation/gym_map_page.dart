@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,6 +17,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart' as vmt;
 
 import '../../../core/analytics/app_metrics_service.dart';
+import '../../../core/l10n/l10n.dart';
 import '../data/collaborative_crowd_service.dart';
 import '../data/contextual_push_notification_service.dart';
 import '../data/crowd_report_remote_service.dart';
@@ -47,6 +49,9 @@ part 'gym_map_page_interactions.dart';
 part 'gym_map_page_state_cache.dart';
 part 'gym_map_page_community.dart';
 part 'gym_map_page_plan.dart';
+
+/// Traduções do idioma em uso (válido também depois de `await`).
+AppLocalizations get _t => AppL10n.current;
 
 class GymMapPage extends StatefulWidget {
   const GymMapPage({

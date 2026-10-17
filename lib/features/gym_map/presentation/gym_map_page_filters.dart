@@ -73,13 +73,11 @@ extension _GymMapPageFilters on _GymMapPageState {
     _lastCoverageLockSnackAt = now;
 
     if (_userLocation == null && !_hasNationwideCoverage) {
-      _showMapSnack(
-        'Ative a localização para ver academias da sua região no plano atual.',
-      );
+      _showMapSnack(_t.coverageEnableLocation);
       return;
     }
 
-    _showMapSnack('Outras regiões são exclusivas do plano Elite.');
+    _showMapSnack(_t.coverageEliteOnly);
     if (offerEliteUpgrade) {
       _openPlanSettings();
     }
@@ -705,37 +703,37 @@ extension _GymMapPageFilters on _GymMapPageState {
     return <QuickFilterChipData>[
       QuickFilterChipData(
         id: 'open',
-        label: 'Abertas agora',
+        label: _t.filterOpenNow,
         icon: Icons.schedule_rounded,
         selected: _activeQuickFilters.contains(MapQuickFilter.openNow),
       ),
       QuickFilterChipData(
         id: 'low',
-        label: 'Lotação baixa',
+        label: _t.filterLowCrowd,
         icon: Icons.trending_down_rounded,
         selected: _activeQuickFilters.contains(MapQuickFilter.lowCrowd),
       ),
       QuickFilterChipData(
         id: 'classes',
-        label: 'Aulas',
+        label: _t.filterClasses,
         icon: Icons.groups_2_outlined,
         selected: _activeQuickFilters.contains(MapQuickFilter.withClasses),
       ),
       QuickFilterChipData(
         id: 'cardio',
-        label: 'Cardio',
+        label: _t.filterCardio,
         icon: Icons.directions_run_outlined,
         selected: _activeQuickFilters.contains(MapQuickFilter.withCardio),
       ),
       QuickFilterChipData(
         id: 'pool',
-        label: 'Com piscina',
+        label: _t.filterPool,
         icon: Icons.pool_outlined,
         selected: _activeQuickFilters.contains(MapQuickFilter.withPool),
       ),
       QuickFilterChipData(
         id: 'favorites',
-        label: 'Favoritas',
+        label: _t.filterFavorites,
         icon: Icons.favorite_outline_rounded,
         selected: _activeQuickFilters.contains(MapQuickFilter.favorites),
       ),
@@ -764,20 +762,20 @@ extension _GymMapPageFilters on _GymMapPageState {
     final (openHour, closeHour) = _heuristicOpenWindowForWeekday(now.weekday);
     final isOpen = _isGymOpenNow(gym);
     if (isOpen) {
-      return 'Aberta até ${_hourTag24(closeHour)}';
+      return _t.hoursOpenUntil(_hourTag24(closeHour));
     }
     if (now.hour < openHour) {
-      return 'Abre às ${_hourTag24(openHour)}';
+      return _t.hoursOpensAt(_hourTag24(openHour));
     }
     final nextWeekday =
         now.weekday == DateTime.sunday ? DateTime.monday : now.weekday + 1;
     final (nextOpenHour, _) = _heuristicOpenWindowForWeekday(nextWeekday);
-    return 'Abre amanhã as ${_hourTag24(nextOpenHour)}';
+    return _t.hoursOpensTomorrow(_hourTag24(nextOpenHour));
   }
 
   String _gymOpenHoursLabel(Gym gym) {
     final now = DateTime.now();
     final (openHour, closeHour) = _heuristicOpenWindowForWeekday(now.weekday);
-    return 'Hoje: ${_hourTag24(openHour)} - ${_hourTag24(closeHour)}';
+    return _t.hoursToday(_hourTag24(openHour), _hourTag24(closeHour));
   }
 }

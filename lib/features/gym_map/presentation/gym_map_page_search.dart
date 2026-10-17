@@ -75,7 +75,7 @@ extension _GymMapPageSearch on _GymMapPageState {
         'q': query,
         'format': 'jsonv2',
         'limit': '1',
-        'accept-language': 'pt-BR',
+        'accept-language': _t.localeName == 'en' ? 'en' : 'pt-BR',
       });
       final response = await http
           .get(
@@ -87,15 +87,13 @@ extension _GymMapPageSearch on _GymMapPageState {
           )
           .timeout(const Duration(seconds: 10));
       if (response.statusCode != 200) {
-        _showMapSnack('Não foi possível buscar esta localização agora.');
+        _showMapSnack(_t.searchFailed);
         return;
       }
 
       final decoded = jsonDecode(response.body);
       if (decoded is! List || decoded.isEmpty || decoded.first is! Map) {
-        _showMapSnack(
-          'Local não encontrado. Tente bairro, cidade ou endereço.',
-        );
+        _showMapSnack(_t.searchNotFound);
         return;
       }
 
@@ -103,7 +101,7 @@ extension _GymMapPageSearch on _GymMapPageState {
       final latitude = double.tryParse('${firstResult['lat'] ?? ''}');
       final longitude = double.tryParse('${firstResult['lon'] ?? ''}');
       if (latitude == null || longitude == null) {
-        _showMapSnack('Não foi possível interpretar essa localização.');
+        _showMapSnack(_t.searchParseFailed);
         return;
       }
 
@@ -147,9 +145,9 @@ extension _GymMapPageSearch on _GymMapPageState {
         ),
       );
     } on TimeoutException {
-      _showMapSnack('Tempo esgotado ao buscar essa localização.');
+      _showMapSnack(_t.searchTimeout);
     } catch (_) {
-      _showMapSnack('Não foi possível buscar essa localização.');
+      _showMapSnack(_t.searchError);
     } finally {
       if (mounted) {
         _setStateIfMapVisible(() {

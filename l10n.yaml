@@ -1,0 +1,10 @@
+# Traduções do app (pt-BR é o idioma base; en é a tradução).
+# Edite lib/l10n/app_pt.arb e lib/l10n/app_en.arb; o código é gerado em
+# lib/l10n/ por `flutter pub get` / `flutter gen-l10n`.
+arb-dir: lib/l10n
+template-arb-file: app_pt.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+output-dir: lib/l10n
+nullable-getter: true
+untranslated-messages-file: build/l10n_untranslated.json

@@ -83,7 +83,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
   int _leaderboardUserRank = 0;
   bool _isLoadingLeaderboard = false;
   bool _hasRealLeaderboard = false;
-  String _leaderboardRegionLabel = 'Sua região';
+  String _leaderboardRegionLabel = _t.communityYourRegion;
   DateTime? _lastLeaderboardLoadAt;
 
   @override
@@ -269,8 +269,8 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                 1000;
             final distanceLabel =
                 distanceKm < 1
-                    ? '${(distanceKm * 1000).round()} m de você'
-                    : '${distanceKm.toStringAsFixed(1)} km de você';
+                    ? _t.distanceMetersFromYou('${(distanceKm * 1000).round()}')
+                    : _t.distanceKmFromYou(distanceKm.toStringAsFixed(1));
             return CachedGymLocation(
               id: poi.id,
               name: poi.name,
@@ -405,10 +405,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
           confirmCount: confirmCount,
           disagreeCount: disagreeCount,
           hasPhoto: seed % 4 == 0,
-          photoCaption:
-              seed % 4 == 0
-                  ? 'Foto recente enviada por quem treinou na unidade.'
-                  : null,
+          photoCaption: seed % 4 == 0 ? _t.communityPhotoCaptionRecent : null,
         ),
       );
     }
@@ -490,10 +487,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
           confirmCount: confirmCount,
           disagreeCount: disagreeCount,
           hasPhoto: seed % 5 == 0,
-          photoCaption:
-              seed % 5 == 0
-                  ? 'Registro recente da comunidade nessa academia.'
-                  : null,
+          photoCaption: seed % 5 == 0 ? _t.communityPhotoCaptionRecord : null,
         ),
       );
     }
@@ -508,7 +502,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
   String _communityRegionLabel(String rawAddress) {
     final normalized = rawAddress.trim();
     if (normalized.isEmpty || normalized == 'Academia encontrada no mapa') {
-      return 'Distância não informada';
+      return _t.distanceUnknown;
     }
     final tokens = normalized
         .split(',')
@@ -528,12 +522,12 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
       return 'agora';
     }
     if (delta.inMinutes < 60) {
-      return 'há ${delta.inMinutes} min';
+      return _t.timeAgoMinutes('${delta.inMinutes}');
     }
     if (delta.inHours < 24) {
-      return 'há ${delta.inHours} h';
+      return _t.timeAgoHours('${delta.inHours}');
     }
-    return 'há ${delta.inDays} d';
+    return _t.timeAgoDays('${delta.inDays}');
   }
 
   int _minutesFromTimeAgoLabel(String label) {
@@ -585,12 +579,12 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
 
   String _occupancyLabel(int percent) {
     if (percent <= 45) {
-      return 'Baixa';
+      return _t.occupancyLevelLow;
     }
     if (percent <= 70) {
-      return 'Moderada';
+      return _t.occupancyLevelModerate;
     }
-    return 'Alta';
+    return _t.occupancyLevelHigh;
   }
 
   Future<void> _loadCommunityPoints() async {
@@ -665,8 +659,8 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
   Future<({String displayName, bool isVisible})> _loadProfilePreview() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final displayName = (prefs.getString(_profileDisplayNamePrefKey) ?? '')
-          .trim();
+      final displayName =
+          (prefs.getString(_profileDisplayNamePrefKey) ?? '').trim();
       final isVisible = prefs.getBool(_profileVisiblePrefKey) ?? true;
       return (displayName: displayName, isVisible: isVisible);
     } catch (_) {
@@ -679,7 +673,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     required ({String displayName, bool isVisible}) profile,
   }) {
     if (!profile.isVisible) {
-      return 'Usuário anônimo';
+      return _t.communityAnonymousUser;
     }
     final profileName = profile.displayName.trim();
     if (profileName.isNotEmpty) {
@@ -689,7 +683,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     if (normalizedFallback.isNotEmpty) {
       return normalizedFallback;
     }
-    return 'Voce';
+    return _t.communityYou;
   }
 
   Future<void> _refreshRegionalLeaderboard({
@@ -701,7 +695,8 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     final hasRegion = userPoint != null;
     final regionKey =
         userPoint == null ? '' : _leaderboardRegionKeyForPoint(userPoint);
-    final regionLabel = hasRegion ? 'Sua região' : 'Região indisponível';
+    final regionLabel =
+        hasRegion ? _t.communityYourRegion : _t.communityRegionUnavailable;
 
     final isCacheFresh =
         _lastLeaderboardLoadAt != null &&
@@ -931,9 +926,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     if (pointsDelta != 0) {
       unawaited(_persistCommunityPoints());
       if (pointsDelta > 0) {
-        _showCommunitySnack(
-          'Obrigado por validar! +$pointsDelta pontos na comunidade.',
-        );
+        _showCommunitySnack(_t.communityThanksValidation('$pointsDelta'));
       }
     }
   }
@@ -963,8 +956,8 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Comunidade',
+                      Text(
+                        _t.communityTitle,
                         style: TextStyle(
                           fontSize: 26,
                           fontWeight: FontWeight.w900,
@@ -974,12 +967,12 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                       const SizedBox(height: 6),
                       Text(
                         _isLoadingLocalizedReports
-                            ? 'Carregando relatos da sua região...'
+                            ? _t.communityLoadingReports
                             : _hasLocationContext && _reports.isEmpty
-                            ? 'Ainda não há relatos recentes das academias da sua região.'
+                            ? _t.communityNoReportsYet
                             : _isLocationScopedReports
-                            ? 'Relatos recentes das academias da sua região.'
-                            : 'Feed de relatos recentes com validação colaborativa.',
+                            ? _t.communityRecentRegionReports
+                            : _t.communityFeedDescription,
                         style: const TextStyle(
                           color: Colors.black54,
                           fontWeight: FontWeight.w600,
@@ -999,8 +992,8 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Top contribuidores da semana',
+                            Text(
+                              _t.communityTopContributors,
                               style: TextStyle(
                                 fontWeight: FontWeight.w900,
                                 color: Colors.black87,
@@ -1008,7 +1001,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Sua posição: $rankLabel',
+                              _t.communityYourPosition(rankLabel),
                               style: const TextStyle(
                                 fontWeight: FontWeight.w700,
                                 color: Colors.black54,
@@ -1017,7 +1010,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Região: $_leaderboardRegionLabel',
+                              _t.communityRegion(_leaderboardRegionLabel),
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                                 color: Colors.black54,
@@ -1034,8 +1027,8 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                                 leaderboardEntries.isEmpty)
                               Text(
                                 _hasLocationContext
-                                    ? 'Ainda não há ranking suficiente.'
-                                    : 'Ative a localização para carregar ranking real.',
+                                    ? _t.communityNotEnoughRanking
+                                    : _t.communityEnableLocationRanking,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w700,
                                   color: Colors.black54,
@@ -1045,8 +1038,8 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                             if (_hasRealLeaderboard &&
                                 leaderboardEntries.isNotEmpty) ...[
                               const SizedBox(height: 2),
-                              const Text(
-                                'Dados reais dos últimos 7 dias',
+                              Text(
+                                _t.communityRealDataWeek,
                                 style: TextStyle(
                                   fontWeight: FontWeight.w700,
                                   color: Colors.black54,
@@ -1107,7 +1100,9 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                                         ),
                                       ),
                                       Text(
-                                        '${person.points} pts',
+                                        _t.communityPointsShort(
+                                          '${person.points}',
+                                        ),
                                         style: TextStyle(
                                           fontWeight: FontWeight.w800,
                                           color:
@@ -1144,15 +1139,15 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
-                                    'Seus pontos: $_communityPoints',
+                                    _t.communityYourPoints('$_communityPoints'),
                                     style: const TextStyle(
                                       fontWeight: FontWeight.w900,
                                       color: Colors.black87,
                                     ),
                                   ),
                                   const Spacer(),
-                                  const Text(
-                                    '+2 por validação',
+                                  Text(
+                                    _t.communityPointsPerValidation,
                                     style: TextStyle(
                                       fontWeight: FontWeight.w700,
                                       color: Colors.black54,
@@ -1168,7 +1163,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                               child: ElevatedButton.icon(
                                 onPressed: widget.onContributeTap,
                                 icon: const Icon(Icons.add_chart_rounded),
-                                label: const Text('Contribuir no mapa'),
+                                label: Text(_t.communityContributeOnMap),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: primary,
                                   foregroundColor: Colors.white,
@@ -1185,8 +1180,8 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                           Expanded(
                             child: Text(
                               _hasLocationContext
-                                  ? 'Relatos recentes da sua região'
-                                  : 'Relatos recentes',
+                                  ? _t.communityRecentRegionTitle
+                                  : _t.communityRecentTitle,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w900,
                                 color: Colors.black87,
@@ -1194,7 +1189,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                             ),
                           ),
                           IconButton(
-                            tooltip: 'Atualizar relatos',
+                            tooltip: _t.communityRefreshReports,
                             onPressed:
                                 _isLoadingLocalizedReports
                                     ? null
@@ -1242,8 +1237,8 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                       ),
                       child: Text(
                         _hasLocationContext
-                            ? 'Sem relatos recentes na sua região agora. Abra o mapa e contribua para aparecer aqui.'
-                            : 'Ative sua localização para ver relatos recentes da sua região.',
+                            ? _t.communityEmptyRegion
+                            : _t.communityEnableLocationReports,
                         style: const TextStyle(
                           color: Colors.black54,
                           fontWeight: FontWeight.w700,
@@ -1354,7 +1349,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                                     Expanded(
                                       child: Text(
                                         report.photoCaption ??
-                                            'Foto enviada pela comunidade.',
+                                            _t.communityPhotoByCommunity,
                                         style: const TextStyle(
                                           fontWeight: FontWeight.w700,
                                           color: Colors.black87,
@@ -1382,7 +1377,9 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                                           isConfirm ? primary : Colors.black54,
                                     ),
                                     label: Text(
-                                      'Confirmo (${report.confirmCount})',
+                                      _t.communityConfirm(
+                                        '${report.confirmCount}',
+                                      ),
                                       style: TextStyle(
                                         color:
                                             isConfirm
@@ -1424,7 +1421,9 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                                               : Colors.black54,
                                     ),
                                     label: Text(
-                                      'Discordo (${report.disagreeCount})',
+                                      _t.communityDisagree(
+                                        '${report.disagreeCount}',
+                                      ),
                                       style: TextStyle(
                                         color:
                                             isDisagree

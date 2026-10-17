@@ -202,7 +202,10 @@ extension _GymMapPageInteractions on _GymMapPageState {
     if (deltaY.abs() < 2) {
       return 0;
     }
-    return math.max(1, (deltaY.abs() * _GymMapPageState._panelFlexDragSensitivity).round());
+    return math.max(
+      1,
+      (deltaY.abs() * _GymMapPageState._panelFlexDragSensitivity).round(),
+    );
   }
 
   void _onPanelDismissDragUpdate(DragUpdateDetails details) {
@@ -214,7 +217,10 @@ extension _GymMapPageInteractions on _GymMapPageState {
         return;
       }
       _setStateIfMapVisible(() {
-        _panelFlex = (_panelFlex + step).clamp(_GymMapPageState._panelMinFlex, _GymMapPageState._panelMaxFlex);
+        _panelFlex = (_panelFlex + step).clamp(
+          _GymMapPageState._panelMinFlex,
+          _GymMapPageState._panelMaxFlex,
+        );
         _panelDragOffset = 0;
       });
       return;
@@ -226,13 +232,17 @@ extension _GymMapPageInteractions on _GymMapPageState {
         return;
       }
       _setStateIfMapVisible(() {
-        _panelFlex = (_panelFlex - step).clamp(_GymMapPageState._panelMinFlex, _GymMapPageState._panelMaxFlex);
+        _panelFlex = (_panelFlex - step).clamp(
+          _GymMapPageState._panelMinFlex,
+          _GymMapPageState._panelMaxFlex,
+        );
       });
       return;
     }
 
     final next = (_panelDragOffset + deltaY).clamp(0, 280).toDouble();
-    if ((next - _panelDragOffset).abs() < _GymMapPageState._panelDragPixelThreshold) {
+    if ((next - _panelDragOffset).abs() <
+        _GymMapPageState._panelDragPixelThreshold) {
       return;
     }
     _setStateIfMapVisible(() {
@@ -324,7 +334,7 @@ extension _GymMapPageInteractions on _GymMapPageState {
     _maybeStartOpeningSearchIntro();
     _maybeShowMapTutorialOverlay();
   }
-
+
   bool _isFavoriteGymId(String gymId) => _favoriteGymIds.contains(gymId.trim());
 
   void _toggleFavoriteGym(Gym gym) {
@@ -356,9 +366,7 @@ extension _GymMapPageInteractions on _GymMapPageState {
     });
     HapticFeedback.lightImpact();
     _showMapSnack(
-      added
-          ? '${gym.name} adicionada aos favoritos.'
-          : '${gym.name} removida dos favoritos.',
+      added ? _t.favoriteAdded(gym.name) : _t.favoriteRemoved(gym.name),
     );
     unawaited(
       _metrics.trackEvent(
@@ -392,7 +400,7 @@ extension _GymMapPageInteractions on _GymMapPageState {
     final origin = _userLocation ?? _GymMapPageState._fallbackMapCenter;
     final nearest = _nearestGymTo(origin, gyms);
     if (nearest == null) {
-      _showMapSnack('Nenhuma academia disponível para destacar agora.');
+      _showMapSnack(_t.tutorialNoGymToHighlight);
       return;
     }
     unawaited(_dismissMapTutorialOverlay());
@@ -483,4 +491,3 @@ extension _GymMapPageInteractions on _GymMapPageState {
     _maybeShowMapTutorialOverlay();
   }
 }
-

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/l10n/l10n.dart';
 import '../gym_map_colors.dart';
 import '../gym_map_helpers.dart';
 
@@ -14,10 +15,10 @@ class NorthResetButton extends StatelessWidget {
     final primary = Theme.of(context).colorScheme.primary;
     return Semantics(
       button: true,
-      label: 'Reorientar mapa para norte',
-      hint: 'Toque para voltar a orientação para zero grau',
+      label: _t.controlsNorthLabel,
+      hint: _t.controlsNorthHint,
       child: Tooltip(
-        message: 'Reorientar para norte',
+        message: _t.controlsNorthTooltip,
         child: Material(
           color: Colors.transparent,
           child: InkWell(
@@ -29,10 +30,7 @@ class NorthResetButton extends StatelessWidget {
               decoration: BoxDecoration(
                 color: withUiOpacity(Colors.white, 0.96),
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: primary,
-                  width: 1.6,
-                ),
+                border: Border.all(color: primary, width: 1.6),
                 boxShadow: const [
                   BoxShadow(
                     blurRadius: 8,
@@ -70,10 +68,10 @@ class MyLocationButton extends StatelessWidget {
     final primary = Theme.of(context).colorScheme.primary;
     return Semantics(
       button: true,
-      label: 'Centralizar no meu local',
-      hint: 'Toque para mover o mapa para a sua posição atual',
+      label: _t.controlsMyLocationLabel,
+      hint: _t.controlsMyLocationHint,
       child: Tooltip(
-        message: 'Minha localização',
+        message: _t.controlsMyLocationTooltip,
         child: Material(
           color: Colors.transparent,
           child: InkWell(
@@ -85,10 +83,7 @@ class MyLocationButton extends StatelessWidget {
               decoration: BoxDecoration(
                 color: withUiOpacity(Colors.white, 0.96),
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: primary,
-                  width: 1.6,
-                ),
+                border: Border.all(color: primary, width: 1.6),
                 boxShadow: const [
                   BoxShadow(
                     blurRadius: 8,
@@ -98,11 +93,7 @@ class MyLocationButton extends StatelessWidget {
                 ],
               ),
               child: Center(
-                child: Icon(
-                  Icons.my_location,
-                  size: 20,
-                  color: primary,
-                ),
+                child: Icon(Icons.my_location, size: 20, color: primary),
               ),
             ),
           ),
@@ -123,15 +114,13 @@ class MapPoiLoadingBadge extends StatelessWidget {
       child: Semantics(
         container: true,
         liveRegion: true,
-        label: 'Atualizando academias no mapa',
+        label: _t.controlsUpdatingGymsLabel,
         readOnly: true,
         child: DecoratedBox(
           decoration: BoxDecoration(
             color: withUiOpacity(Colors.white, 0.95),
             borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: withUiOpacity(primary, 0.18),
-            ),
+            border: Border.all(color: withUiOpacity(primary, 0.18)),
             boxShadow: const [
               BoxShadow(
                 blurRadius: 10,
@@ -155,7 +144,7 @@ class MapPoiLoadingBadge extends StatelessWidget {
                 ),
                 SizedBox(width: 8),
                 Text(
-                  'Atualizando academias...',
+                  _t.controlsUpdatingGyms,
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -179,7 +168,7 @@ class UserLocationMarkerDot extends StatelessWidget {
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
     return Semantics(
-      label: 'Sua localização no mapa',
+      label: _t.controlsYourLocation,
       readOnly: true,
       child: Stack(
         alignment: Alignment.center,
@@ -207,11 +196,7 @@ class UserLocationMarkerDot extends StatelessWidget {
               ],
             ),
             child: Center(
-              child: Icon(
-                Icons.location_on_rounded,
-                size: 16,
-                color: primary,
-              ),
+              child: Icon(Icons.location_on_rounded, size: 16, color: primary),
             ),
           ),
         ],
@@ -219,3 +204,6 @@ class UserLocationMarkerDot extends StatelessWidget {
     );
   }
 }
+
+/// Traduções do idioma em uso.
+AppLocalizations get _t => AppL10n.current;

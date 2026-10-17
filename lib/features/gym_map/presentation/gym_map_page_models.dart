@@ -63,38 +63,39 @@ class _MapDerivedData {
   final List<MapGymPoi> filteredMapPois;
 }
 
-const Map<AppPlanTier, PlanInfo> kPlanCatalog = {
+/// Catálogo de planos no idioma em uso.
+Map<AppPlanTier, PlanInfo> get kPlanCatalog => {
   AppPlanTier.free: PlanInfo(
-    label: 'Grátis',
-    monthlyPrice: 'R\$ 0/mês',
-    insights: ['Lotação atual'],
+    label: _t.planNameFree,
+    monthlyPrice: _t.priceFreeMonthly,
+    insights: [_t.insightCurrentOccupancy],
   ),
   AppPlanTier.smart: PlanInfo(
-    label: 'Essencial',
-    monthlyPrice: 'R\$ 4,90/mês',
-    insights: ['Lotação atual', 'Histórico das últimas 24h'],
+    label: _t.planNameSmart,
+    monthlyPrice: _t.pricePerMonth('R\$ 4,90'),
+    insights: [_t.insightCurrentOccupancy, _t.insightHistory24h],
   ),
   AppPlanTier.pro: PlanInfo(
     label: 'Pro',
-    monthlyPrice: 'R\$ 19,90/mês',
+    monthlyPrice: _t.pricePerMonth('R\$ 19,90'),
     insights: [
-      'Lotação atual',
-      'Histórico das últimas 24h',
-      'Horários de pico por dia',
-      'Comparativo entre academias',
+      _t.insightCurrentOccupancy,
+      _t.insightHistory24h,
+      _t.insightPeakHours,
+      _t.insightCompareGyms,
     ],
   ),
   AppPlanTier.elite: PlanInfo(
     label: 'Elite',
-    monthlyPrice: 'R\$ 34,90/mês',
+    monthlyPrice: _t.pricePerMonth('R\$ 34,90'),
     insights: [
-      'Lotação atual',
-      'Histórico das últimas 24h',
-      'Horários de pico por dia',
-      'Comparativo entre academias',
-      'Previsão de lotação para próximas horas',
-      'Cobertura em qualquer lugar do país',
-      'Alertas personalizados',
+      _t.insightCurrentOccupancy,
+      _t.insightHistory24h,
+      _t.insightPeakHours,
+      _t.insightCompareGyms,
+      _t.insightForecast,
+      _t.insightNationwide,
+      _t.insightAlerts,
     ],
   ),
 };

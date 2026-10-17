@@ -31,12 +31,12 @@ extension _GymMapPageLocation on _GymMapPageState {
     if (defaultTargetPlatform == TargetPlatform.android) {
       return AndroidSettings(
         accuracy: LocationAccuracy.high,
-        distanceFilter: _GymMapPageState._backgroundLocationDistanceFilterMeters.round(),
+        distanceFilter:
+            _GymMapPageState._backgroundLocationDistanceFilterMeters.round(),
         intervalDuration: _GymMapPageState._backgroundLocationInterval,
-        foregroundNotificationConfig: const ForegroundNotificationConfig(
-          notificationTitle: 'GymMap localização ativa',
-          notificationText:
-              'GymMap está atualizando sua localização em segundo plano.',
+        foregroundNotificationConfig: ForegroundNotificationConfig(
+          notificationTitle: _t.locationNotificationTitle,
+          notificationText: _t.locationNotificationText,
           enableWakeLock: true,
         ),
       );
@@ -46,7 +46,8 @@ extension _GymMapPageLocation on _GymMapPageState {
         defaultTargetPlatform == TargetPlatform.macOS) {
       return AppleSettings(
         accuracy: LocationAccuracy.best,
-        distanceFilter: _GymMapPageState._backgroundLocationDistanceFilterMeters.round(),
+        distanceFilter:
+            _GymMapPageState._backgroundLocationDistanceFilterMeters.round(),
         pauseLocationUpdatesAutomatically: false,
         allowBackgroundLocationUpdates: true,
         showBackgroundLocationIndicator: true,
@@ -56,7 +57,8 @@ extension _GymMapPageLocation on _GymMapPageState {
 
     return LocationSettings(
       accuracy: LocationAccuracy.high,
-      distanceFilter: _GymMapPageState._backgroundLocationDistanceFilterMeters.round(),
+      distanceFilter:
+          _GymMapPageState._backgroundLocationDistanceFilterMeters.round(),
     );
   }
 
@@ -158,7 +160,7 @@ extension _GymMapPageLocation on _GymMapPageState {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         if (!hasImmediateCenter && showDeniedSnack) {
-          _showMapSnack('Ative o GPS para centralizar sua localização.');
+          _showMapSnack(_t.locationEnableGps);
         }
         return;
       }
@@ -171,9 +173,7 @@ extension _GymMapPageLocation on _GymMapPageState {
         final shouldRequest = await _confirmLocationPermissionRequest();
         if (!shouldRequest) {
           if (!hasImmediateCenter && showDeniedSnack) {
-            _showMapSnack(
-              'Sem permissão de localização. Você pode ativar isso depois nas configurações.',
-            );
+            _showMapSnack(_t.locationNoPermission);
           }
           return;
         }
@@ -184,11 +184,9 @@ extension _GymMapPageLocation on _GymMapPageState {
           permission == LocationPermission.deniedForever) {
         if (!hasImmediateCenter && showDeniedSnack) {
           if (permission == LocationPermission.deniedForever) {
-            _showMapSnack(
-              'Permissão de localização negada permanentemente. Ajuste nas configurações do aparelho.',
-            );
+            _showMapSnack(_t.locationDeniedForever);
           } else {
-            _showMapSnack('Permissão de localização negada.');
+            _showMapSnack(_t.locationDenied);
           }
         }
         return;
@@ -220,13 +218,11 @@ extension _GymMapPageLocation on _GymMapPageState {
       _applyResolvedUserLocation(userPoint, moveMap: true);
     } on TimeoutException {
       if (!hasImmediateCenter && showDeniedSnack) {
-        _showMapSnack(
-          'Tempo esgotado ao obter localização. Tente novamente em instantes.',
-        );
+        _showMapSnack(_t.locationTimeout);
       }
     } catch (_) {
       if (!hasImmediateCenter && showDeniedSnack) {
-        _showMapSnack('Não foi possível obter sua localização no momento.');
+        _showMapSnack(_t.locationUnavailable);
       }
     } finally {
       if (mounted) {
@@ -249,18 +245,16 @@ extension _GymMapPageLocation on _GymMapPageState {
       builder: (context) {
         return AlertDialog(
           icon: const Icon(Icons.location_on_outlined),
-          title: const Text('Permitir localização?'),
-          content: const Text(
-            'Com a localização ativa, o GymMap encontra academias próximas automaticamente e calcula distância em tempo real.',
-          ),
+          title: Text(_t.locationPromptTitle),
+          content: Text(_t.locationPromptBody),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Agora não'),
+              child: Text(_t.locationPromptLater),
             ),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Permitir'),
+              child: Text(_t.locationPromptAllow),
             ),
           ],
         );

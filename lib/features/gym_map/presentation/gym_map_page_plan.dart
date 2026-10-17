@@ -13,20 +13,14 @@ extension _GymMapPagePlan on _GymMapPageState {
   }
 
   String _formatDateTimeLabel(DateTime dateUtc) {
-    final local = dateUtc.toLocal();
-    final day = local.day.toString().padLeft(2, '0');
-    final month = local.month.toString().padLeft(2, '0');
-    final year = local.year.toString().padLeft(4, '0');
-    final hour = local.hour.toString().padLeft(2, '0');
-    final minute = local.minute.toString().padLeft(2, '0');
-    return '$day/$month/$year $hour:$minute';
+    return DateFormat.yMd(_t.localeName).add_Hm().format(dateUtc.toLocal());
   }
 
   String _activePlanStatusLabel() {
     if (_activePlan == AppPlanTier.free || _activePlanExpiresAtUtc == null) {
-      return 'Plano gratuito ativo';
+      return _t.planFreeActive;
     }
-    return 'Válido até ${_formatDateTimeLabel(_activePlanExpiresAtUtc!)}';
+    return _t.planValidUntil(_formatDateTimeLabel(_activePlanExpiresAtUtc!));
   }
 
   void _maybeWarnPlanNearExpiry(AppPlanTier plan, DateTime? expiresAtUtc) {
@@ -49,50 +43,47 @@ extension _GymMapPagePlan on _GymMapPageState {
     final planLabel = kPlanCatalog[plan]!.label;
     final windowLabel =
         days >= 1
-            ? '$days dia${days == 1 ? '' : 's'}'
+            ? _t.durationDays(days)
             : hours >= 1
-            ? '$hours hora${hours == 1 ? '' : 's'}'
-            : 'menos de 1 hora';
-    _showMapSnack(
-      'Seu plano $planLabel expira em $windowLabel. Renovação somente manual, quando você decidir.',
-    );
+            ? _t.durationHours(hours)
+            : _t.durationUnderOneHour;
+    _showMapSnack(_t.planExpiresSoon(planLabel, windowLabel));
   }
 
   String _planAuthStatusLabel() {
     final service = _planSubscriptionService;
     if (service == null) {
-      return 'Autenticação ainda inicializando';
+      return _t.authInitializing;
     }
     if (service.isProductionMode && !service.hasRemoteBackend) {
-      return 'Modo produção ativo sem backend remoto configurado';
+      return _t.authProductionNoBackend;
     }
     if (!service.hasRemoteBackend) {
-      return 'Backend remoto não configurado no app';
+      return _t.authNoBackend;
     }
     if (service.isProductionMode && !service.hasAuthSession) {
-      return 'Modo produção exige sessão autenticada';
+      return _t.authProductionNeedsSession;
     }
     if (service.isAnonymousSession) {
-      return 'Conta anônima neste aparelho. Crie uma conta para não perder '
-          'sua assinatura ao trocar de celular.';
+      return _t.authAnonymousAccount;
     }
     if (service.hasAuthSession) {
-      return 'Sessão ativa para ${service.username ?? service.userId}';
+      return _t.authSessionActive(service.username ?? service.userId);
     }
-    return 'Sessão não autenticada';
+    return _t.authNotSignedIn;
   }
 
   String _playBillingStatusLabel() {
     if (_isLoadingPlayProducts) {
-      return 'Google Play: carregando produtos...';
+      return _t.playLoadingProducts;
     }
     if (!_isPlayStoreAvailable) {
-      return 'Google Play indisponível neste aparelho.';
+      return _t.playUnavailable;
     }
     if (_playProducts.length < _GymMapPageState._planProductIds.length) {
-      return 'Google Play: um ou mais produtos ainda não encontrados.';
+      return _t.playProductsMissing;
     }
-    return 'Google Play pronto para checkout.';
+    return _t.playReady;
   }
 
   Future<void> _initializePlayStoreBilling() async {
@@ -116,7 +107,7 @@ extension _GymMapPagePlan on _GymMapPageState {
           if (!mounted) {
             return;
           }
-          _showMapSnack('Falha ao escutar compras do Google Play.');
+          _showMapSnack(_t.playListenFailed);
         },
       );
       await _loadPlayProducts(forceRefresh: true);
@@ -153,17 +144,15 @@ extension _GymMapPagePlan on _GymMapPageState {
         _playProducts = response.productDetails;
       });
       if (response.error != null) {
-        _showMapSnack('Não foi possível carregar produtos do Google Play.');
+        _showMapSnack(_t.playLoadProductsFailed);
       } else if (response.notFoundIDs.isNotEmpty) {
-        _showMapSnack(
-          'Produtos não encontrados no Google Play: ${response.notFoundIDs.join(', ')}',
-        );
+        _showMapSnack(_t.playProductsNotFound(response.notFoundIDs.join(', ')));
       }
     } catch (_) {
       if (!mounted) {
         return;
       }
-      _showMapSnack('Falha ao carregar produtos do Google Play.');
+      _showMapSnack(_t.playLoadProductsError);
     } finally {
       if (mounted) {
         _setStateIfMapVisible(() {
@@ -182,28 +171,27 @@ extension _GymMapPagePlan on _GymMapPageState {
     if (normalized.startsWith('rate_limited')) {
       final retryAfter = _retryAfterSecondsFromRateLimitError(normalized);
       if (retryAfter != null) {
-        return 'Muitas tentativas de login. Aguarde ${_formatRetryAfterLabel(retryAfter)}.';
+        return _t.authTooManyAttemptsWait(_formatRetryAfterLabel(retryAfter));
       }
-      return 'Muitas tentativas de login. Aguarde um pouco e tente novamente.';
+      return _t.authTooManyAttempts;
     }
     switch (normalized) {
       case 'invalid_credentials':
-        return 'Usuário ou senha inválidos.';
+        return _t.authInvalidCredentials;
       case 'missing_credentials':
-        return 'Informe usuário e senha.';
+        return _t.authMissingCredentials;
       case 'invalid_username':
-        return 'Usuário deve ter de 3 a 32 caracteres: letras minúsculas, '
-            'números, ponto, hífen ou sublinhado.';
+        return _t.authInvalidUsername;
       case 'username_taken':
-        return 'Este usuário já está em uso.';
+        return _t.authUsernameTaken;
       case 'invalid_password_length':
-        return 'A senha precisa ter pelo menos 8 caracteres.';
+        return _t.authPasswordTooShort;
       case 'already_registered':
-        return 'Esta sessão já pertence a uma conta registrada.';
+        return _t.authAlreadyRegistered;
       case 'unauthorized':
-        return 'Sessão não autorizada.';
+        return _t.authUnauthorized;
       case '':
-        return 'Falha de autenticação';
+        return _t.authFailed;
       default:
         return normalized;
     }
@@ -247,58 +235,58 @@ extension _GymMapPagePlan on _GymMapPageState {
     if (normalized.startsWith('rate_limited')) {
       final retryAfter = _retryAfterSecondsFromRateLimitError(normalized);
       if (retryAfter != null) {
-        return 'Limite de tentativas atingido. Aguarde ${_formatRetryAfterLabel(retryAfter)}.';
+        return _t.billingRateLimitedWait(_formatRetryAfterLabel(retryAfter));
       }
-      return 'Limite de tentativas atingido. Aguarde um pouco e tente novamente.';
+      return _t.billingRateLimited;
     }
     switch (normalized) {
       case 'backend_required_in_production':
-        return 'Modo produção exige backend remoto configurado.';
+        return _t.billingProductionNeedsBackend;
       case 'backend_required_for_play_billing':
-        return 'Checkout no Google Play exige backend remoto configurado.';
+        return _t.billingPlayNeedsBackend;
       case 'user_identity_required_in_production':
-        return 'Modo produção exige usuário autenticado.';
+        return _t.billingProductionNeedsUser;
       case 'play_store_unavailable':
-        return 'Google Play indisponível neste aparelho.';
+        return _t.playUnavailable;
       case 'play_product_not_found':
-        return 'Produto de assinatura não encontrado no Google Play.';
+        return _t.billingProductNotFound;
       case 'play_checkout_not_started':
-        return 'Não foi possível iniciar checkout no Google Play.';
+        return _t.billingCheckoutNotStarted;
       case 'play_product_id_missing':
-        return 'Produto da assinatura não informado.';
+        return _t.billingProductMissing;
       case 'play_purchase_token_missing':
-        return 'Token de compra ausente. Tente novamente.';
+        return _t.billingTokenMissing;
       case 'play_purchase_not_active':
-        return 'Compra ainda não está ativa no Google Play.';
+        return _t.billingPurchaseNotActive;
       case 'play_purchase_not_found':
-        return 'Compra não encontrada no Google Play.';
+        return _t.billingPurchaseNotFound;
       case 'play_product_mismatch':
-        return 'Produto da compra não corresponde ao plano selecionado.';
+        return _t.billingProductMismatch;
       case 'play_package_mismatch':
-        return 'Compra vinculada a outro aplicativo.';
+        return _t.billingPackageMismatch;
       case 'play_api_unauthorized':
-        return 'Backend sem permissão para validar Google Play. Verifique credenciais.';
+        return _t.billingPlayUnauthorized;
       case 'play_validation_unavailable':
       case 'play_api_unavailable':
-        return 'Não foi possível validar a compra no Google Play agora.';
+        return _t.billingValidationUnavailable;
       case 'payment_pending_webhook':
-        return 'Pagamento ainda não confirmado pelo webhook. Aguarde alguns segundos e tente novamente.';
+        return _t.billingPendingWebhook;
       case 'pix_provider_unavailable':
-        return 'Gateway Pix indisponível no momento. Tente novamente em instantes.';
+        return _t.billingPixUnavailable;
       case 'invalid_webhook_signature':
-        return 'Webhook do pagamento inválido. Contate o suporte.';
+        return _t.billingInvalidWebhook;
       case 'unauthorized':
       case 'forbidden':
-        return 'Sessão expirada ou sem permissão. Faça login novamente.';
+        return _t.billingSessionExpiredOrForbidden;
       default:
         if (normalized == 'Backend HTTP 401') {
-          return 'Sessão expirada. Faça login novamente.';
+          return _t.billingSessionExpired;
         }
         if (normalized == 'Backend HTTP 429') {
-          return 'Limite de tentativas atingido. Aguarde um pouco e tente novamente.';
+          return _t.billingRateLimited;
         }
         if (normalized.isEmpty) {
-          return 'Não foi possível processar a assinatura agora.';
+          return _t.billingGenericFailure;
         }
         return normalized;
     }
@@ -392,19 +380,19 @@ extension _GymMapPagePlan on _GymMapPageState {
     if (showExpiryNotice &&
         previousPlan != AppPlanTier.free &&
         nextPlan == AppPlanTier.free) {
-      _showMapSnack('Assinatura expirada. O app voltou para o plano gratuito.');
+      _showMapSnack(_t.planExpiredBackToFree);
     }
   }
 
   Future<void> _activateFreePlan() async {
     final service = _planSubscriptionService;
     if (service == null) {
-      _showMapSnack('Assinatura ainda está inicializando. Tente novamente.');
+      _showMapSnack(_t.subscriptionInitializing);
       return;
     }
     await service.downgradeToFree();
     await _syncPlanFromStorage(showExpiryNotice: false);
-    _showMapSnack('Plano gratuito ativado.');
+    _showMapSnack(_t.planFreeActivated);
   }
 
   Future<void> _startPlanLoginFlow(
@@ -413,11 +401,11 @@ extension _GymMapPagePlan on _GymMapPageState {
   }) async {
     final service = _planSubscriptionService;
     if (service == null) {
-      _showMapSnack('Assinatura ainda está inicializando. Tente novamente.');
+      _showMapSnack(_t.subscriptionInitializing);
       return;
     }
     if (!service.hasRemoteBackend) {
-      _showMapSnack('Backend remoto não configurado para login.');
+      _showMapSnack(_t.authNoBackendForLogin);
       return;
     }
 
@@ -439,7 +427,7 @@ extension _GymMapPagePlan on _GymMapPageState {
                 final password = passwordController.text;
                 if (userId.isEmpty || password.isEmpty) {
                   setDialogState(() {
-                    errorMessage = 'Informe usuário e senha';
+                    errorMessage = _t.authMissingCredentials;
                   });
                   return;
                 }
@@ -478,8 +466,10 @@ extension _GymMapPagePlan on _GymMapPageState {
                   }
                   _showMapSnack(
                     register
-                        ? 'Conta criada para ${service.username ?? session.userId}.'
-                        : 'Login concluído para ${service.username ?? session.userId}.',
+                        ? _t.authAccountCreated(
+                          service.username ?? session.userId,
+                        )
+                        : _t.authSignedIn(service.username ?? session.userId),
                   );
                 } catch (error) {
                   if (dialogContext.mounted) {
@@ -503,7 +493,7 @@ extension _GymMapPagePlan on _GymMapPageState {
 
               return AlertDialog(
                 title: Text(
-                  register ? 'Criar conta' : 'Entrar no plano mensal',
+                  register ? _t.authCreateAccount : _t.authSignInMonthly,
                 ),
                 content: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -513,12 +503,9 @@ extension _GymMapPagePlan on _GymMapPageState {
                       enabled: !isSubmitting,
                       textInputAction: TextInputAction.next,
                       decoration: InputDecoration(
-                        labelText: 'Usuário',
+                        labelText: _t.authUsernameLabel,
                         hintText: 'user-001',
-                        helperText:
-                            register
-                                ? '3 a 32 caracteres: a-z, 0-9, ponto, hífen ou _'
-                                : null,
+                        helperText: register ? _t.authUsernameHelper : null,
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -530,8 +517,8 @@ extension _GymMapPagePlan on _GymMapPageState {
                         unawaited(submitLogin());
                       },
                       decoration: InputDecoration(
-                        labelText: 'Senha',
-                        helperText: register ? 'Mínimo de 8 caracteres' : null,
+                        labelText: _t.authPasswordLabel,
+                        helperText: register ? _t.authPasswordHelper : null,
                         suffixIcon: IconButton(
                           onPressed:
                               isSubmitting
@@ -570,7 +557,7 @@ extension _GymMapPagePlan on _GymMapPageState {
                             : () {
                               Navigator.of(dialogContext).pop();
                             },
-                    child: const Text('Cancelar'),
+                    child: Text(_t.actionCancel),
                   ),
                   FilledButton.icon(
                     onPressed:
@@ -589,8 +576,10 @@ extension _GymMapPagePlan on _GymMapPageState {
                             : Icon(register ? Icons.person_add : Icons.login),
                     label: Text(
                       register
-                          ? (isSubmitting ? 'Criando...' : 'Criar conta')
-                          : (isSubmitting ? 'Entrando...' : 'Entrar'),
+                          ? (isSubmitting
+                              ? _t.authCreating
+                              : _t.authCreateAccount)
+                          : (isSubmitting ? _t.authSigningIn : _t.authSignIn),
                     ),
                   ),
                 ],
@@ -608,11 +597,11 @@ extension _GymMapPagePlan on _GymMapPageState {
   Future<void> _logoutPlanSession(BuildContext sheetContext) async {
     final service = _planSubscriptionService;
     if (service == null) {
-      _showMapSnack('Assinatura ainda está inicializando. Tente novamente.');
+      _showMapSnack(_t.subscriptionInitializing);
       return;
     }
     if (!service.hasAuthSession || service.isAnonymousSession) {
-      _showMapSnack('Não existe sessão autenticada.');
+      _showMapSnack(_t.authNoSession);
       return;
     }
     if (_isPlanAuthBusy) {
@@ -631,9 +620,9 @@ extension _GymMapPagePlan on _GymMapPageState {
       if (sheetContext.mounted) {
         Navigator.of(sheetContext).pop();
       }
-      _showMapSnack('Sessão encerrada.');
+      _showMapSnack(_t.authSignedOut);
     } catch (_) {
-      _showMapSnack('Não foi possível encerrar sessão agora.');
+      _showMapSnack(_t.authSignOutFailed);
     } finally {
       if (mounted) {
         _setStateIfMapVisible(() {
@@ -676,7 +665,7 @@ extension _GymMapPagePlan on _GymMapPageState {
           },
         ),
       );
-      _showMapSnack('Assinatura ainda está inicializando. Tente novamente.');
+      _showMapSnack(_t.subscriptionInitializing);
       return;
     }
     if (_isStartingStoreCheckout) {
@@ -789,7 +778,7 @@ extension _GymMapPagePlan on _GymMapPageState {
       if (!mounted) {
         return;
       }
-      _showMapSnack('Finalize o pagamento no Google Play para ativar o plano.');
+      _showMapSnack(_t.playFinishPayment);
     } catch (error) {
       unawaited(
         _metrics.trackEvent(
@@ -841,7 +830,7 @@ extension _GymMapPagePlan on _GymMapPageState {
           if (errorMessage != null && errorMessage.isNotEmpty) {
             _showMapSnack(errorMessage);
           } else {
-            _showMapSnack('Falha ao processar compra no Google Play.');
+            _showMapSnack(_t.playPurchaseFailed);
           }
           continue;
         case PurchaseStatus.canceled:
@@ -851,7 +840,7 @@ extension _GymMapPagePlan on _GymMapPageState {
               params: <String, Object?>{'productId': purchase.productID.trim()},
             ),
           );
-          _showMapSnack('Pagamento cancelado no Google Play.');
+          _showMapSnack(_t.playPaymentCanceled);
           continue;
       }
     }
@@ -869,7 +858,7 @@ extension _GymMapPagePlan on _GymMapPageState {
           },
         ),
       );
-      _showMapSnack('Assinatura ainda está inicializando. Tente novamente.');
+      _showMapSnack(_t.subscriptionInitializing);
       return;
     }
     final token = purchase.verificationData.serverVerificationData.trim();
@@ -900,7 +889,7 @@ extension _GymMapPagePlan on _GymMapPageState {
           },
         ),
       );
-      _showMapSnack('Produto desconhecido no Google Play: $productId');
+      _showMapSnack(_t.playUnknownProduct(productId));
       return;
     }
     final processingKey = '${purchase.purchaseID ?? 'no-id'}|$productId|$token';
@@ -934,9 +923,7 @@ extension _GymMapPagePlan on _GymMapPageState {
       if (_markPurchaseSuccessNotified(notificationKey)) {
         unawaited(_showPlanActivationSuccessDialog(tier));
       } else {
-        _showMapSnack(
-          'Assinatura ${kPlanCatalog[tier]!.label} ativada com sucesso.',
-        );
+        _showMapSnack(_t.planActivatedSuccess(kPlanCatalog[tier]!.label));
       }
     } catch (error) {
       if (!mounted) {
@@ -968,9 +955,7 @@ extension _GymMapPagePlan on _GymMapPageState {
       if (!mounted) {
         return;
       }
-      _showMapSnack(
-        'Compra validada, mas não foi possível finalizar no Google Play.',
-      );
+      _showMapSnack(_t.playFinalizeFailed);
     }
   }
 
@@ -1036,13 +1021,13 @@ extension _GymMapPagePlan on _GymMapPageState {
 
   String _planPriceLabel(AppPlanTier tier) {
     if (tier == AppPlanTier.free) {
-      return 'R\$ 0/mês';
+      return _t.priceFreeMonthly;
     }
     final playProduct = _playProductForTier(tier);
     if (playProduct != null) {
       final price = playProduct.price.trim();
       if (price.isNotEmpty) {
-        return '$price/mês';
+        return _t.pricePerMonth(price);
       }
     }
     return kPlanCatalog[tier]!.monthlyPrice;
@@ -1050,17 +1035,17 @@ extension _GymMapPagePlan on _GymMapPageState {
 
   String _planActionLabel(AppPlanTier tier, AppPlanTier current) {
     if (tier == current) {
-      return 'Plano atual';
+      return _t.planCurrent;
     }
     if (tier == AppPlanTier.free) {
       return current == AppPlanTier.free
-          ? 'Continuar grátis'
-          : 'Voltar ao gratuito';
+          ? _t.planContinueFree
+          : _t.planBackToFree;
     }
     if (_planTierWeight(tier) > _planTierWeight(current)) {
-      return current == AppPlanTier.free ? 'Assinar' : 'Fazer upgrade';
+      return current == AppPlanTier.free ? _t.planSubscribe : _t.planUpgrade;
     }
-    return 'Trocar plano';
+    return _t.planChange;
   }
 
   Color _planAccentColor(AppPlanTier tier) {
@@ -1093,7 +1078,7 @@ extension _GymMapPagePlan on _GymMapPageState {
     if (deadline.isEmpty) {
       return message;
     }
-    return '$message • até $deadline';
+    return _t.promoUntil(message, deadline);
   }
 
   List<String> _planCardHighlights(AppPlanTier tier) {
@@ -1116,7 +1101,7 @@ extension _GymMapPagePlan on _GymMapPageState {
             .where((feature) => !proInsights.contains(feature))
             .toList(growable: true);
         if (eliteOnly.length < 4) {
-          eliteOnly.add('Inclui tudo do Pro');
+          eliteOnly.add(_t.planIncludesPro);
         }
         return eliteOnly.take(4).toList(growable: false);
     }
@@ -1139,7 +1124,7 @@ extension _GymMapPagePlan on _GymMapPageState {
         current == AppPlanTier.free && tier == AppPlanTier.pro;
     final actionLabel =
         isPrimaryTrialCta
-            ? 'Começar teste grátis'
+            ? _t.planStartFreeTrial
             : _planActionLabel(tier, current);
     final fullPriceLabel = _planPriceLabel(tier);
     final periodSeparatorIndex = fullPriceLabel.indexOf('/');
@@ -1199,7 +1184,7 @@ extension _GymMapPagePlan on _GymMapPageState {
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
-                    'MAIS POPULAR',
+                    _t.planMostPopular,
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w900,
@@ -1302,8 +1287,8 @@ extension _GymMapPagePlan on _GymMapPageState {
           ),
           if (isPrimaryTrialCta) ...[
             const SizedBox(height: 4),
-            const Text(
-              'Acesso imediato e cancelamento quando quiser.',
+            Text(
+              _t.planInstantAccess,
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
@@ -1318,9 +1303,9 @@ extension _GymMapPagePlan on _GymMapPageState {
 
   Widget _buildPlanComparisonMatrix() {
     const unavailableColor = Color(0xFFD64B4B);
-    const rows = <({String feature, Set<AppPlanTier> available})>[
+    final rows = <({String feature, Set<AppPlanTier> available})>[
       (
-        feature: 'Lotação em tempo real',
+        feature: _t.planFeatureLiveOccupancy,
         available: {
           AppPlanTier.free,
           AppPlanTier.smart,
@@ -1329,15 +1314,15 @@ extension _GymMapPagePlan on _GymMapPageState {
         },
       ),
       (
-        feature: 'Histórico 24h',
+        feature: _t.planFeatureHistory,
         available: {AppPlanTier.smart, AppPlanTier.pro, AppPlanTier.elite},
       ),
       (
-        feature: 'Pico e comparativo',
+        feature: _t.planFeaturePeakCompare,
         available: {AppPlanTier.pro, AppPlanTier.elite},
       ),
-      (feature: 'Previsão e alertas', available: {AppPlanTier.elite}),
-      (feature: 'Cobertura nacional', available: {AppPlanTier.elite}),
+      (feature: _t.planFeatureForecast, available: {AppPlanTier.elite}),
+      (feature: _t.planFeatureNationwide, available: {AppPlanTier.elite}),
     ];
 
     return Container(
@@ -1370,8 +1355,8 @@ extension _GymMapPagePlan on _GymMapPageState {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Comparativo rápido',
+              Text(
+                _t.planQuickComparison,
                 style: TextStyle(
                   fontWeight: FontWeight.w800,
                   color: GymMapColors.textPrimary,
@@ -1440,8 +1425,12 @@ extension _GymMapPagePlan on _GymMapPageState {
                             child: Semantics(
                               label:
                                   row.available.contains(tier)
-                                      ? 'Disponível no plano ${kPlanCatalog[tier]!.label}'
-                                      : 'Indisponível no plano ${kPlanCatalog[tier]!.label}',
+                                      ? _t.planAvailableIn(
+                                        kPlanCatalog[tier]!.label,
+                                      )
+                                      : _t.planUnavailableIn(
+                                        kPlanCatalog[tier]!.label,
+                                      ),
                               child: Icon(
                                 row.available.contains(tier)
                                     ? Icons.check_circle_rounded
@@ -1460,7 +1449,7 @@ extension _GymMapPagePlan on _GymMapPageState {
                 );
               }),
               const SizedBox(height: 6),
-              const Wrap(
+              Wrap(
                 spacing: 12,
                 runSpacing: 6,
                 children: [
@@ -1474,7 +1463,7 @@ extension _GymMapPagePlan on _GymMapPageState {
                       ),
                       SizedBox(width: 4),
                       Text(
-                        'Disponível',
+                        _t.planAvailable,
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -1493,7 +1482,7 @@ extension _GymMapPagePlan on _GymMapPageState {
                       ),
                       SizedBox(width: 4),
                       Text(
-                        'Indisponível',
+                        _t.planUnavailable,
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -1541,13 +1530,13 @@ extension _GymMapPagePlan on _GymMapPageState {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Desbloqueie o máximo do GymMap',
+                  Text(
+                    _t.paywallTitle,
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    'Escolha o plano ideal para lotação, previsão e comparativos.',
+                  Text(
+                    _t.paywallSubtitle,
                     style: TextStyle(
                       fontSize: 13,
                       color: GymMapColors.textSecondary,
@@ -1575,9 +1564,9 @@ extension _GymMapPagePlan on _GymMapPageState {
                           children: [
                             const Icon(Icons.auto_awesome, size: 16),
                             const SizedBox(width: 8),
-                            const Expanded(
+                            Expanded(
                               child: Text(
-                                '+10.000 usuários premium ativos',
+                                _t.paywallSocialProof,
                                 style: TextStyle(
                                   fontWeight: FontWeight.w800,
                                   color: GymMapColors.textStrong,
@@ -1613,8 +1602,8 @@ extension _GymMapPagePlan on _GymMapPageState {
                           ],
                         ),
                         const SizedBox(height: 4),
-                        const Text(
-                          'Nota média 4.8/5 em avaliações verificadas.',
+                        Text(
+                          _t.paywallRating,
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -1664,7 +1653,7 @@ extension _GymMapPagePlan on _GymMapPageState {
                   ],
                   Text(
                     _isLoadingPlanSubscription
-                        ? 'Carregando assinatura...'
+                        ? _t.subscriptionLoading
                         : _activePlanStatusLabel(),
                     style: const TextStyle(
                       fontSize: 12,
@@ -1713,7 +1702,7 @@ extension _GymMapPagePlan on _GymMapPageState {
                                     ),
                                   )
                                   : const Icon(Icons.login),
-                          label: const Text('Entrar'),
+                          label: Text(_t.authSignIn),
                         ),
                       ),
                       if (isAnonymousSession) ...[
@@ -1732,7 +1721,7 @@ extension _GymMapPagePlan on _GymMapPageState {
                                       );
                                     },
                             icon: const Icon(Icons.person_add),
-                            label: const Text('Criar conta'),
+                            label: Text(_t.authCreateAccount),
                           ),
                         ),
                       ],
@@ -1747,7 +1736,7 @@ extension _GymMapPagePlan on _GymMapPageState {
                                       unawaited(_logoutPlanSession(context));
                                     },
                             icon: const Icon(Icons.logout),
-                            label: const Text('Sair'),
+                            label: Text(_t.authSignOut),
                           ),
                         ),
                       ],
@@ -1789,7 +1778,7 @@ extension _GymMapPagePlan on _GymMapPageState {
                                   ),
                                 )
                                 : const Icon(Icons.rocket_launch),
-                        label: const Text('Começar teste grátis'),
+                        label: Text(_t.planStartFreeTrial),
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -1802,8 +1791,8 @@ extension _GymMapPagePlan on _GymMapPageState {
                       },
                       child: Text(
                         current == AppPlanTier.free
-                            ? 'Continuar com plano gratuito'
-                            : 'Fechar',
+                            ? _t.planContinueWithFree
+                            : _t.actionClose,
                       ),
                     ),
                   ),

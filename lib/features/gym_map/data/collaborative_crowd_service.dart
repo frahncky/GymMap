@@ -1,3 +1,4 @@
+import '../../../core/l10n/l10n.dart';
 import '../domain/gym_models.dart';
 import '../domain/plan_insight_models.dart';
 
@@ -267,9 +268,7 @@ class CollaborativeCrowdService {
     final alerts = <String>[];
 
     if (current >= 85) {
-      alerts.add(
-        'Lotação muito alta agora. Considere treinar em outro horário.',
-      );
+      alerts.add(AppL10n.current.alertVeryHighNow);
     }
 
     ForecastInsightPoint? bestFuture;
@@ -283,7 +282,7 @@ class CollaborativeCrowdService {
     if (bestFuture != null && bestFuture.occupancyPercent <= current - 12) {
       final hh = bestFuture.time.hour.toString().padLeft(2, '0');
       alerts.add(
-        'Melhor janela prevista perto de ${hh}h (${bestFuture.occupancyPercent}%).',
+        AppL10n.current.alertBestWindow(hh, '${bestFuture.occupancyPercent}'),
       );
     }
 
@@ -291,12 +290,15 @@ class CollaborativeCrowdService {
     if (betterGym.isNotEmpty) {
       final best = betterGym.first;
       alerts.add(
-        '${best.gymName} está ${best.deltaFromSelected.abs()} pp menos lotada agora.',
+        AppL10n.current.alertLessCrowded(
+          best.gymName,
+          '${best.deltaFromSelected.abs()}',
+        ),
       );
     }
 
     if (alerts.isEmpty) {
-      alerts.add('Fluxo estável nas próximas horas para esta academia.');
+      alerts.add(AppL10n.current.alertStableFlow);
     }
 
     return alerts;
@@ -341,15 +343,12 @@ class CollaborativeCrowdService {
       return fallback;
     }
 
-    final weightedTotal = uniqueReports.fold<double>(
-      0,
-      (sum, report) {
-        final boundedVote =
-            report.occupancyPercent.clamp(minAllowed, maxAllowed).toDouble();
-        final boundedWeight = report.reliabilityWeight.clamp(0.2, 1.6);
-        return sum + (boundedVote * boundedWeight.toDouble());
-      },
-    );
+    final weightedTotal = uniqueReports.fold<double>(0, (sum, report) {
+      final boundedVote =
+          report.occupancyPercent.clamp(minAllowed, maxAllowed).toDouble();
+      final boundedWeight = report.reliabilityWeight.clamp(0.2, 1.6);
+      return sum + (boundedVote * boundedWeight.toDouble());
+    });
     return (weightedTotal / totalWeight).round().clamp(0, 100);
   }
 

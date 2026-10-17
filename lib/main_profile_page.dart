@@ -1,4 +1,4 @@
-﻿part of 'main.dart';
+part of 'main.dart';
 
 class _ProfilePreferences {
   const _ProfilePreferences({
@@ -54,9 +54,7 @@ class _ProfilePreferences {
 }
 
 class _ProfilePage extends StatefulWidget {
-  const _ProfilePage({
-    required this.onOpenMap,
-  });
+  const _ProfilePage({required this.onOpenMap});
 
   final VoidCallback onOpenMap;
 
@@ -72,11 +70,11 @@ class _ProfilePageState extends State<_ProfilePage> {
   static const String _locationAlertsPrefKey = 'gymmap_pref_location_alerts_v1';
   static const String _hapticsPrefKey = 'gymmap_pref_haptics_v1';
   static const String _dataSaverPrefKey = 'gymmap_pref_data_saver_v1';
-  static const String _defaultProfileName = 'Usuário GymMap';
+  static String get _defaultProfileName => _t.profileDefaultName;
 
   final ImagePicker _imagePicker = ImagePicker();
 
-  _ProfilePreferences _preferences = const _ProfilePreferences(
+  _ProfilePreferences _preferences = _ProfilePreferences(
     displayName: _defaultProfileName,
     photoBase64: '',
     isProfileVisible: true,
@@ -106,9 +104,9 @@ class _ProfilePageState extends State<_ProfilePage> {
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         behavior: SnackBarBehavior.floating,
-        content: Text('Não foi possível salvar esta preferência agora.'),
+        content: Text(_t.profileSavePreferenceFailed),
       ),
     );
   }
@@ -118,10 +116,7 @@ class _ProfilePageState extends State<_ProfilePage> {
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        content: Text(message),
-      ),
+      SnackBar(behavior: SnackBarBehavior.floating, content: Text(message)),
     );
   }
 
@@ -237,7 +232,9 @@ class _ProfilePageState extends State<_ProfilePage> {
   }
 
   Future<void> _openEditProfileDialog() async {
-    final nameController = TextEditingController(text: _preferences.displayName);
+    final nameController = TextEditingController(
+      text: _preferences.displayName,
+    );
     var draftPhotoBase64 = _preferences.photoBase64;
     var profileUpdated = false;
     await showDialog<void>(
@@ -248,15 +245,16 @@ class _ProfilePageState extends State<_ProfilePage> {
         String? errorMessage;
         return StatefulBuilder(
           builder: (dialogContext, setDialogState) {
-            final previewBytes = _ProfilePreferences(
-              displayName: _preferences.displayName,
-              photoBase64: draftPhotoBase64,
-              isProfileVisible: _preferences.isProfileVisible,
-              pushNotifications: _preferences.pushNotifications,
-              locationAlerts: _preferences.locationAlerts,
-              hapticFeedback: _preferences.hapticFeedback,
-              dataSaverMode: _preferences.dataSaverMode,
-            ).photoBytes;
+            final previewBytes =
+                _ProfilePreferences(
+                  displayName: _preferences.displayName,
+                  photoBase64: draftPhotoBase64,
+                  isProfileVisible: _preferences.isProfileVisible,
+                  pushNotifications: _preferences.pushNotifications,
+                  locationAlerts: _preferences.locationAlerts,
+                  hapticFeedback: _preferences.hapticFeedback,
+                  dataSaverMode: _preferences.dataSaverMode,
+                ).photoBytes;
 
             Future<void> pickPhoto() async {
               if (isSaving || isPickingPhoto) {
@@ -279,7 +277,7 @@ class _ProfilePageState extends State<_ProfilePage> {
                 final bytes = await picked.readAsBytes();
                 if (bytes.isEmpty) {
                   setDialogState(() {
-                    errorMessage = 'Não foi possível carregar a foto.';
+                    errorMessage = _t.profileLoadPhotoFailed;
                   });
                   return;
                 }
@@ -288,7 +286,7 @@ class _ProfilePageState extends State<_ProfilePage> {
                 });
               } catch (_) {
                 setDialogState(() {
-                  errorMessage = 'Não foi possível selecionar a foto.';
+                  errorMessage = _t.profilePickPhotoFailed;
                 });
               } finally {
                 if (dialogContext.mounted) {
@@ -306,7 +304,7 @@ class _ProfilePageState extends State<_ProfilePage> {
               final rawName = nameController.text.trim();
               if (rawName.isEmpty) {
                 setDialogState(() {
-                  errorMessage = 'Informe um nome para o perfil.';
+                  errorMessage = _t.profileNameRequired;
                 });
                 return;
               }
@@ -328,12 +326,12 @@ class _ProfilePageState extends State<_ProfilePage> {
               }
               setDialogState(() {
                 isSaving = false;
-                errorMessage = 'Não foi possível salvar o perfil.';
+                errorMessage = _t.profileSaveFailed;
               });
             }
 
             return AlertDialog(
-              title: const Text('Editar perfil'),
+              title: Text(_t.profileEdit),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -343,17 +341,19 @@ class _ProfilePageState extends State<_ProfilePage> {
                       children: [
                         CircleAvatar(
                           radius: 28,
-                          backgroundColor:
-                              Theme.of(context).colorScheme.primary.withValues(
-                                alpha: 0.14,
-                              ),
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: 0.14),
                           foregroundImage:
-                              previewBytes == null ? null : MemoryImage(previewBytes),
+                              previewBytes == null
+                                  ? null
+                                  : MemoryImage(previewBytes),
                           child:
                               previewBytes == null
                                   ? Icon(
                                     Icons.person_rounded,
-                                    color: Theme.of(context).colorScheme.primary,
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
                                     size: 28,
                                   )
                                   : null,
@@ -366,7 +366,9 @@ class _ProfilePageState extends State<_ProfilePage> {
                             children: [
                               OutlinedButton.icon(
                                 onPressed:
-                                    (isSaving || isPickingPhoto) ? null : pickPhoto,
+                                    (isSaving || isPickingPhoto)
+                                        ? null
+                                        : pickPhoto,
                                 icon:
                                     isPickingPhoto
                                         ? const SizedBox(
@@ -376,8 +378,10 @@ class _ProfilePageState extends State<_ProfilePage> {
                                             strokeWidth: 2,
                                           ),
                                         )
-                                        : const Icon(Icons.photo_library_outlined),
-                                label: const Text('Trocar foto'),
+                                        : const Icon(
+                                          Icons.photo_library_outlined,
+                                        ),
+                                label: Text(_t.profileChangePhoto),
                               ),
                               OutlinedButton.icon(
                                 onPressed:
@@ -390,7 +394,7 @@ class _ProfilePageState extends State<_ProfilePage> {
                                           });
                                         },
                                 icon: const Icon(Icons.delete_outline_rounded),
-                                label: const Text('Remover'),
+                                label: Text(_t.profileRemovePhoto),
                               ),
                             ],
                           ),
@@ -405,9 +409,9 @@ class _ProfilePageState extends State<_ProfilePage> {
                       onSubmitted: (_) {
                         unawaited(submitProfileUpdate());
                       },
-                      decoration: const InputDecoration(
-                        labelText: 'Nome',
-                        hintText: 'Como você quer aparecer',
+                      decoration: InputDecoration(
+                        labelText: _t.profileNameLabel,
+                        hintText: _t.profileNameHint,
                       ),
                     ),
                     if (errorMessage != null) ...[
@@ -432,7 +436,7 @@ class _ProfilePageState extends State<_ProfilePage> {
                           : () {
                             Navigator.of(dialogContext).pop();
                           },
-                  child: const Text('Cancelar'),
+                  child: Text(_t.actionCancel),
                 ),
                 FilledButton(
                   onPressed:
@@ -444,7 +448,7 @@ class _ProfilePageState extends State<_ProfilePage> {
                             height: 18,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                          : const Text('Salvar'),
+                          : Text(_t.actionSave),
                 ),
               ],
             );
@@ -454,7 +458,7 @@ class _ProfilePageState extends State<_ProfilePage> {
     );
     nameController.dispose();
     if (profileUpdated) {
-      _showProfileSnack('Perfil atualizado.');
+      _showProfileSnack(_t.profileUpdated);
     }
   }
 
@@ -466,11 +470,7 @@ class _ProfilePageState extends State<_ProfilePage> {
       foregroundImage: photoBytes == null ? null : MemoryImage(photoBytes),
       child:
           photoBytes == null
-              ? Icon(
-                Icons.person_rounded,
-                color: primary,
-                size: 30,
-              )
+              ? Icon(Icons.person_rounded, color: primary, size: 30)
               : null,
     );
   }
@@ -481,9 +481,7 @@ class _ProfilePageState extends State<_ProfilePage> {
     final onSurface = Theme.of(context).colorScheme.onSurface;
     final isPublicProfile = _preferences.isProfileVisible;
     return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: _buildPlanSurfaceGradient(context),
-      ),
+      decoration: BoxDecoration(gradient: _buildPlanSurfaceGradient(context)),
       child: SafeArea(
         child:
             _isLoading
@@ -497,7 +495,7 @@ class _ProfilePageState extends State<_ProfilePage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Perfil',
+                              _t.profileTitle,
                               style: TextStyle(
                                 fontSize: 26,
                                 fontWeight: FontWeight.w900,
@@ -537,7 +535,7 @@ class _ProfilePageState extends State<_ProfilePage> {
                                             ),
                                             const SizedBox(height: 3),
                                             Text(
-                                              'Plano atual: Grátis',
+                                              _t.profileCurrentPlanFree,
                                               style: TextStyle(
                                                 color: onSurface.withValues(
                                                   alpha: 0.72,
@@ -550,7 +548,7 @@ class _ProfilePageState extends State<_ProfilePage> {
                                       ),
                                       IconButton(
                                         onPressed: _openEditProfileDialog,
-                                        tooltip: 'Editar perfil',
+                                        tooltip: _t.profileEdit,
                                         icon: const Icon(Icons.edit_outlined),
                                       ),
                                     ],
@@ -587,18 +585,23 @@ class _ProfilePageState extends State<_ProfilePage> {
                                               Icon(
                                                 isPublicProfile
                                                     ? Icons.public_rounded
-                                                    : Icons.visibility_off_rounded,
+                                                    : Icons
+                                                        .visibility_off_rounded,
                                                 size: 14,
                                                 color:
                                                     isPublicProfile
-                                                        ? const Color(0xFF2E7D32)
-                                                        : const Color(0xFF8A4B2E),
+                                                        ? const Color(
+                                                          0xFF2E7D32,
+                                                        )
+                                                        : const Color(
+                                                          0xFF8A4B2E,
+                                                        ),
                                               ),
                                               const SizedBox(width: 6),
                                               Text(
                                                 isPublicProfile
-                                                    ? 'Perfil visível'
-                                                    : 'Perfil privado',
+                                                    ? _t.profileVisible
+                                                    : _t.profilePrivate,
                                                 style: TextStyle(
                                                   color:
                                                       isPublicProfile
@@ -619,7 +622,7 @@ class _ProfilePageState extends State<_ProfilePage> {
                                       const Spacer(),
                                       TextButton(
                                         onPressed: widget.onOpenMap,
-                                        child: const Text('Abrir mapa'),
+                                        child: Text(_t.actionOpenMap),
                                       ),
                                     ],
                                   ),
@@ -643,34 +646,32 @@ class _ProfilePageState extends State<_ProfilePage> {
                                 child: Column(
                                   children: [
                                     SwitchListTile.adaptive(
-                                      contentPadding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                      ),
-                                      title: const Text(
-                                        'Permitir visualização pública',
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                          ),
+                                      title: Text(
+                                        _t.profilePublicTitle,
                                         style: TextStyle(
                                           fontWeight: FontWeight.w800,
                                         ),
                                       ),
-                                      subtitle: const Text(
-                                        'Permite que seu nome e foto apareçam na comunidade.',
-                                      ),
+                                      subtitle: Text(_t.profilePublicSubtitle),
                                       value: _preferences.isProfileVisible,
                                       onChanged: _setProfileVisibility,
                                     ),
                                     SwitchListTile.adaptive(
-                                      contentPadding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                      ),
-                                      title: const Text(
-                                        'Notificações push',
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                          ),
+                                      title: Text(
+                                        _t.profilePushTitle,
                                         style: TextStyle(
                                           fontWeight: FontWeight.w800,
                                         ),
                                       ),
-                                      subtitle: const Text(
-                                        'Receber alertas de lotação e atualizações.',
-                                      ),
+                                      subtitle: Text(_t.profilePushSubtitle),
                                       value: _preferences.pushNotifications,
                                       onChanged: (value) {
                                         _updatePreference(
@@ -684,17 +685,18 @@ class _ProfilePageState extends State<_ProfilePage> {
                                       },
                                     ),
                                     SwitchListTile.adaptive(
-                                      contentPadding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                      ),
-                                      title: const Text(
-                                        'Alertas por localização',
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                          ),
+                                      title: Text(
+                                        _t.profileLocationAlertsTitle,
                                         style: TextStyle(
                                           fontWeight: FontWeight.w800,
                                         ),
                                       ),
-                                      subtitle: const Text(
-                                        'Avisar quando houver academia com lotação baixa perto de você.',
+                                      subtitle: Text(
+                                        _t.profileLocationAlertsSubtitle,
                                       ),
                                       value: _preferences.locationAlerts,
                                       onChanged: (value) {
@@ -709,18 +711,17 @@ class _ProfilePageState extends State<_ProfilePage> {
                                       },
                                     ),
                                     SwitchListTile.adaptive(
-                                      contentPadding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                      ),
-                                      title: const Text(
-                                        'Feedback vibratório',
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                          ),
+                                      title: Text(
+                                        _t.profileHapticsTitle,
                                         style: TextStyle(
                                           fontWeight: FontWeight.w800,
                                         ),
                                       ),
-                                      subtitle: const Text(
-                                        'Usar vibração em ações importantes.',
-                                      ),
+                                      subtitle: Text(_t.profileHapticsSubtitle),
                                       value: _preferences.hapticFeedback,
                                       onChanged: (value) {
                                         _updatePreference(
@@ -734,17 +735,18 @@ class _ProfilePageState extends State<_ProfilePage> {
                                       },
                                     ),
                                     SwitchListTile.adaptive(
-                                      contentPadding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                      ),
-                                      title: const Text(
-                                        'Modo economia de dados',
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                          ),
+                                      title: Text(
+                                        _t.profileDataSaverTitle,
                                         style: TextStyle(
                                           fontWeight: FontWeight.w800,
                                         ),
                                       ),
-                                      subtitle: const Text(
-                                        'Reduzir atualizações em segundo plano.',
+                                      subtitle: Text(
+                                        _t.profileDataSaverSubtitle,
                                       ),
                                       value: _preferences.dataSaverMode,
                                       onChanged: (value) {
@@ -758,6 +760,7 @@ class _ProfilePageState extends State<_ProfilePage> {
                                         );
                                       },
                                     ),
+                                    const _LanguagePreferenceTile(),
                                   ],
                                 ),
                               ),
@@ -774,6 +777,52 @@ class _ProfilePageState extends State<_ProfilePage> {
   }
 }
 
+/// Escolha do idioma: o do aparelho (padrão), português ou inglês.
+class _LanguagePreferenceTile extends StatelessWidget {
+  const _LanguagePreferenceTile();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    return ValueListenableBuilder<AppLanguagePreference>(
+      valueListenable: AppL10n.preference,
+      builder: (context, preference, _) {
+        return ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+          leading: const Icon(Icons.language_rounded),
+          title: Text(
+            l10n.settingsLanguageTitle,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+          trailing: DropdownButton<AppLanguagePreference>(
+            value: preference,
+            underline: const SizedBox.shrink(),
+            onChanged: (value) {
+              if (value != null) {
+                unawaited(AppL10n.setPreference(value));
+              }
+            },
+            items: [
+              DropdownMenuItem(
+                value: AppLanguagePreference.system,
+                child: Text(l10n.settingsLanguageSystem),
+              ),
+              DropdownMenuItem(
+                value: AppLanguagePreference.portuguese,
+                child: Text(l10n.settingsLanguagePortuguese),
+              ),
+              DropdownMenuItem(
+                value: AppLanguagePreference.english,
+                child: Text(l10n.settingsLanguageEnglish),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _ProfileLoadingState extends StatelessWidget {
   const _ProfileLoadingState();
 
@@ -781,9 +830,7 @@ class _ProfileLoadingState extends StatelessWidget {
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
     return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: _buildPlanSurfaceGradient(context),
-      ),
+      decoration: BoxDecoration(gradient: _buildPlanSurfaceGradient(context)),
       child: SafeArea(
         child: CustomScrollView(
           slivers: [

@@ -93,7 +93,7 @@ class _FavoritesPageState extends State<_FavoritesPage> {
             .replaceAll(RegExp(r'\s+'), ' ')
             .trim();
     if (normalized.isEmpty) {
-      return 'Academia favorita';
+      return _t.favoritesDefaultName;
     }
     final words = normalized
         .split(' ')
@@ -104,7 +104,7 @@ class _FavoritesPageState extends State<_FavoritesPage> {
           return '${lower[0].toUpperCase()}${lower.substring(1)}';
         })
         .join(' ');
-    return words.isEmpty ? 'Academia favorita' : words;
+    return words.isEmpty ? _t.favoritesDefaultName : words;
   }
 
   @override
@@ -112,9 +112,7 @@ class _FavoritesPageState extends State<_FavoritesPage> {
     final primary = Theme.of(context).colorScheme.primary;
     final onSurface = Theme.of(context).colorScheme.onSurface;
     return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: _buildPlanSurfaceGradient(context),
-      ),
+      decoration: BoxDecoration(gradient: _buildPlanSurfaceGradient(context)),
       child: SafeArea(
         child: FutureBuilder<List<_FavoriteGymEntry>>(
           future: _favoritesFuture,
@@ -129,8 +127,8 @@ class _FavoritesPageState extends State<_FavoritesPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
-                        'Não foi possível carregar seus favoritos.',
+                      Text(
+                        _t.favoritesLoadFailed,
                         style: TextStyle(fontWeight: FontWeight.w800),
                       ),
                       const SizedBox(height: 8),
@@ -141,7 +139,7 @@ class _FavoritesPageState extends State<_FavoritesPage> {
                           });
                         },
                         icon: const Icon(Icons.refresh_rounded),
-                        label: const Text('Tentar novamente'),
+                        label: Text(_t.actionRetry),
                       ),
                     ],
                   ),
@@ -159,7 +157,7 @@ class _FavoritesPageState extends State<_FavoritesPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Favoritos',
+                          _t.favoritesTitle,
                           style: TextStyle(
                             fontSize: 26,
                             fontWeight: FontWeight.w900,
@@ -169,8 +167,8 @@ class _FavoritesPageState extends State<_FavoritesPage> {
                         const SizedBox(height: 6),
                         Text(
                           favorites.isEmpty
-                              ? 'Você ainda não marcou academias favoritas.'
-                              : '${favorites.length} academia(s) salva(s).',
+                              ? _t.favoritesEmpty
+                              : _t.favoritesCount(favorites.length),
                           style: TextStyle(
                             color: onSurface.withValues(alpha: 0.72),
                             fontWeight: FontWeight.w600,
@@ -182,7 +180,7 @@ class _FavoritesPageState extends State<_FavoritesPage> {
                           child: ElevatedButton.icon(
                             onPressed: widget.onOpenMap,
                             icon: const Icon(Icons.map_rounded),
-                            label: const Text('Abrir mapa'),
+                            label: Text(_t.actionOpenMap),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: primary,
                               foregroundColor: Colors.white,
@@ -210,7 +208,7 @@ class _FavoritesPageState extends State<_FavoritesPage> {
                             ),
                           ),
                           child: Text(
-                            'Use o ícone de coração no painel da academia para salvar seus favoritos.',
+                            _t.favoritesHint,
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontWeight: FontWeight.w700,
@@ -273,7 +271,7 @@ class _FavoritesPageState extends State<_FavoritesPage> {
                               ),
                               TextButton(
                                 onPressed: () => widget.onOpenGymOnMap(item.id),
-                                child: const Text('Ver mapa'),
+                                child: Text(_t.favoritesViewMap),
                               ),
                             ],
                           ),
@@ -298,9 +296,7 @@ class _FavoritesLoadingState extends StatelessWidget {
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
     return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: _buildPlanSurfaceGradient(context),
-      ),
+      decoration: BoxDecoration(gradient: _buildPlanSurfaceGradient(context)),
       child: SafeArea(
         child: CustomScrollView(
           slivers: [
@@ -388,4 +384,3 @@ class _FavoritesLoadingState extends StatelessWidget {
     );
   }
 }
-

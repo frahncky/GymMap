@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/l10n/l10n.dart';
 import 'gym_map_colors.dart';
 
 /// Compatibilidade entre versoes do Flutter sem depender de withValues/withOpacity.
@@ -58,34 +59,34 @@ Color occupancyColorForValue(double percent) {
 /// Converte percentual em descricao de status.
 String occupancyLabel(int percent) {
   if (percent <= 35) {
-    return 'Baixa';
+    return AppL10n.current.occupancyLevelLow;
   }
   if (percent <= 65) {
-    return 'Moderada';
+    return AppL10n.current.occupancyLevelModerate;
   }
   if (percent <= 85) {
-    return 'Alta';
+    return AppL10n.current.occupancyLevelHigh;
   }
-  return 'Muito alta';
+  return AppL10n.current.occupancyLevelVeryHigh;
 }
 
 /// Formata tempo relativo do ultimo relato para leitura humana.
 String formatRelativeTime(DateTime? timestamp) {
   if (timestamp == null) {
-    return 'sem informações';
+    return AppL10n.current.timeNoInfo;
   }
 
   final now = DateTime.now();
   final diff = now.difference(timestamp);
 
   if (diff.inMinutes < 1) {
-    return 'agora';
+    return AppL10n.current.timeNow;
   }
   if (diff.inHours < 1) {
-    return '${diff.inMinutes} min atrás';
+    return AppL10n.current.timeMinutesAgo('${diff.inMinutes}');
   }
   if (diff.inDays < 1) {
-    return '${diff.inHours} h atrás';
+    return AppL10n.current.timeHoursAgo('${diff.inHours}');
   }
 
   final day = timestamp.day.toString().padLeft(2, '0');

@@ -66,9 +66,7 @@ extension _GymMapPageCommunity on _GymMapPageState {
                 },
               ),
             );
-            _showMapSnack(
-              'Envio bloqueado temporariamente. Aguarde $waitMinutes min para novo relato.',
-            );
+            _showMapSnack(_t.reportBlockedWait('$waitMinutes'));
             return;
           }
 
@@ -157,9 +155,7 @@ extension _GymMapPageCommunity on _GymMapPageState {
             },
           ),
         );
-        _showMapSnack(
-          'Envio bloqueado temporariamente. Aguarde $waitMinutes min para novo relato.',
-        );
+        _showMapSnack(_t.reportBlockedWait('$waitMinutes'));
         return;
       }
       _markCrowdDataChanged();
@@ -270,9 +266,9 @@ extension _GymMapPageCommunity on _GymMapPageState {
                         ),
                       ),
                       const SizedBox(width: 10),
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'Assinatura ativada!',
+                          _t.subscriptionActivated,
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w900,
@@ -284,7 +280,7 @@ extension _GymMapPageCommunity on _GymMapPageState {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    'Plano ${plan.label} liberado com sucesso.',
+                    _t.planUnlocked(plan.label),
                     style: const TextStyle(
                       fontWeight: FontWeight.w700,
                       color: GymMapColors.textStrong,
@@ -326,7 +322,7 @@ extension _GymMapPageCommunity on _GymMapPageState {
                       ),
                       onPressed: () => Navigator.of(dialogContext).pop(),
                       icon: const Icon(Icons.rocket_launch_rounded),
-                      label: const Text('Continuar'),
+                      label: Text(_t.actionContinue),
                     ),
                   ),
                 ],
@@ -363,7 +359,7 @@ extension _GymMapPageCommunity on _GymMapPageState {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Obrigado por contribuir! +5 pontos\n$gymName atualizado para $report% (conf. $trust%).',
+                _t.reportThanks(gymName, '$report', '$trust'),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
@@ -380,7 +376,7 @@ extension _GymMapPageCommunity on _GymMapPageState {
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
-                '$totalPoints pts',
+                _t.communityPointsShort('$totalPoints'),
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w800,
@@ -471,7 +467,7 @@ extension _GymMapPageCommunity on _GymMapPageState {
       }
     }
     if (_userLocation != null) {
-      return 'Sua localização atual';
+      return _t.communityCurrentLocation;
     }
     final selected = _selectedGym;
     if (selected != null) {
@@ -485,7 +481,7 @@ extension _GymMapPageCommunity on _GymMapPageState {
     if (searchLocation.isNotEmpty) {
       return searchLocation;
     }
-    return 'Região atual';
+    return _t.communityCurrentRegion;
   }
 
   _CommunityLeaderboardSheetData _buildLocalLeaderboardSheetData({
@@ -560,7 +556,9 @@ extension _GymMapPageCommunity on _GymMapPageState {
     final regionKey =
         userPoint == null ? '' : _leaderboardRegionKeyFromPoint(userPoint);
     final regionLabel =
-        userPoint == null ? 'Região indisponível' : 'Sua região';
+        userPoint == null
+            ? _t.communityRegionUnavailable
+            : _t.communityYourRegion;
     final fallbackData = _buildLocalLeaderboardSheetData(
       regionLabel: regionLabel,
     );
@@ -583,7 +581,8 @@ extension _GymMapPageCommunity on _GymMapPageState {
             final entries = data.entries;
             final userRank = data.userRank;
             final userPoints = data.userPoints;
-            final rankLabel = userRank > 0 ? '#$userRank' : 'sem ranking';
+            final rankLabel =
+                userRank > 0 ? '#$userRank' : _t.communityNoRanking;
 
             return SafeArea(
               child: Padding(
@@ -592,8 +591,8 @@ extension _GymMapPageCommunity on _GymMapPageState {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Top 10 contribuidores da semana',
+                      Text(
+                        _t.communityTop10,
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w900,
@@ -601,7 +600,7 @@ extension _GymMapPageCommunity on _GymMapPageState {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Sua posição atual: $rankLabel  .  $userPoints pts',
+                        _t.communityCurrentPosition(rankLabel, '$userPoints'),
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
@@ -610,7 +609,7 @@ extension _GymMapPageCommunity on _GymMapPageState {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Região: ${data.regionLabel}',
+                        _t.communityRegion(data.regionLabel),
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -629,7 +628,7 @@ extension _GymMapPageCommunity on _GymMapPageState {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'Atualizando ranking...',
+                              _t.communityRankingUpdating,
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
@@ -657,8 +656,8 @@ extension _GymMapPageCommunity on _GymMapPageState {
                             Expanded(
                               child: Text(
                                 data.isRegional
-                                    ? 'Pontuação real dos últimos 7 dias. Cada envio válido soma +5 pontos.'
-                                    : 'Cada envio válido soma +5 pontos. Continue contribuindo para subir no ranking.',
+                                    ? _t.communityRankingRealInfo
+                                    : _t.communityRankingInfo,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w700,
                                   color: GymMapColors.textStrong,
@@ -731,7 +730,9 @@ extension _GymMapPageCommunity on _GymMapPageState {
                                   color: withUiOpacity(primary, 0.09),
                                 ),
                                 child: Text(
-                                  '${entries[i].points} pts',
+                                  _t.communityPointsShort(
+                                    '${entries[i].points}',
+                                  ),
                                   style: const TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w800,
@@ -744,10 +745,10 @@ extension _GymMapPageCommunity on _GymMapPageState {
                         ),
                       ],
                       if (entries.isEmpty)
-                        const Padding(
+                        Padding(
                           padding: EdgeInsets.only(bottom: 8),
                           child: Text(
-                            'Ainda não há pontuação suficiente nesta região.',
+                            _t.communityRankingEmpty,
                             style: TextStyle(
                               fontWeight: FontWeight.w700,
                               color: GymMapColors.textSecondary,
@@ -759,7 +760,7 @@ extension _GymMapPageCommunity on _GymMapPageState {
                         width: double.infinity,
                         child: TextButton(
                           onPressed: () => Navigator.of(sheetContext).pop(),
-                          child: const Text('Fechar'),
+                          child: Text(_t.actionClose),
                         ),
                       ),
                     ],

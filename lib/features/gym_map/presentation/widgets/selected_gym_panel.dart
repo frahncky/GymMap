@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../domain/gym_models.dart';
 import '../../domain/plan_insight_models.dart';
+import '../../../../core/l10n/l10n.dart';
 import '../gym_map_colors.dart';
 import '../gym_map_helpers.dart';
 
@@ -78,9 +79,7 @@ class SelectedGymPanel extends StatelessWidget {
           colors: [Colors.white, Color(0xFFF8FCFA)],
         ),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: withUiOpacity(primary, 0.10),
-        ),
+        border: Border.all(color: withUiOpacity(primary, 0.10)),
         boxShadow: const [
           BoxShadow(
             blurRadius: 18,
@@ -136,7 +135,9 @@ class SelectedGymPanel extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        gym.address,
+                        gym.address == 'Academia encontrada no mapa'
+                            ? _t.gymFoundOnMap
+                            : gym.address,
                         style: const TextStyle(
                           fontSize: 13,
                           color: GymMapColors.panelSubtitle,
@@ -255,17 +256,17 @@ class SelectedGymPanel extends StatelessWidget {
                   selected: isFavorite,
                   label:
                       isFavorite
-                          ? 'Academia favorita'
-                          : 'Adicionar academia aos favoritos',
-                  hint: 'Toque para alternar favorito',
+                          ? _t.panelFavoriteGym
+                          : _t.panelAddGymToFavorites,
+                  hint: _t.panelToggleFavoriteHint,
                   child: SizedBox(
                     width: 48,
                     height: 48,
                     child: IconButton(
                       tooltip:
                           isFavorite
-                              ? 'Remover dos favoritos'
-                              : 'Adicionar aos favoritos',
+                              ? _t.panelRemoveFavorite
+                              : _t.panelAddFavorite,
                       onPressed: onToggleFavorite,
                       icon: AnimatedSwitcher(
                         duration: const Duration(milliseconds: 220),
@@ -351,8 +352,8 @@ class SelectedGymPanel extends StatelessWidget {
                         color: withUiOpacity(GymMapColors.textSecondary, 0.22),
                       ),
                     ),
-                    child: const Text(
-                      'Fechada',
+                    child: Text(
+                      _t.gymClosed,
                       style: TextStyle(
                         color: GymMapColors.textSecondary,
                         fontWeight: FontWeight.w800,
@@ -392,7 +393,7 @@ class SelectedGymPanel extends StatelessWidget {
                       AnimatedSwitcher(
                         duration: const Duration(milliseconds: 240),
                         child: Text(
-                          'Status: ${occupancyLabel(occupancyPercent)}',
+                          _t.panelStatus(occupancyLabel(occupancyPercent)),
                           key: ValueKey<String>(
                             'occupancy-status-$occupancyPercent',
                           ),
@@ -417,8 +418,8 @@ class SelectedGymPanel extends StatelessWidget {
                   color: withUiOpacity(GymMapColors.textSecondary, 0.08),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Text(
-                  'Academia fechada agora. Lotacao oculta no mapa.',
+                child: Text(
+                  _t.panelClosedNotice,
                   style: TextStyle(
                     color: GymMapColors.textSecondary,
                     fontWeight: FontWeight.w700,
@@ -427,15 +428,17 @@ class SelectedGymPanel extends StatelessWidget {
               ),
             const SizedBox(height: 4),
             Text(
-              '${snapshot.reportsCount} relatos totais | '
-              '${snapshot.recentReportsCount} relatos recentes',
+              _t.panelReportsSummary(
+                '${snapshot.reportsCount}',
+                '${snapshot.recentReportsCount}',
+              ),
               style: const TextStyle(
                 color: GymMapColors.textSecondary,
                 fontWeight: FontWeight.w600,
               ),
             ),
             Text(
-              'Último relato: ${formatRelativeTime(snapshot.lastReportAt)}',
+              _t.panelLastReport(formatRelativeTime(snapshot.lastReportAt)),
               style: const TextStyle(
                 color: GymMapColors.textSecondary,
                 fontWeight: FontWeight.w600,
@@ -447,10 +450,12 @@ class SelectedGymPanel extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: onOpenRoute,
                 icon: const Icon(Icons.directions_rounded),
-                label: const Text('Ver rota'),
+                label: Text(_t.panelViewRoute),
               ),
             ),
-            if (showOccupancy && hasHistoryInsights && historySampled.isNotEmpty) ...[
+            if (showOccupancy &&
+                hasHistoryInsights &&
+                historySampled.isNotEmpty) ...[
               const SizedBox(height: 12),
               _HistoryInsightsCard(sampled: historySampled),
             ],
@@ -494,7 +499,7 @@ class SelectedGymPanel extends StatelessWidget {
             const SizedBox(height: 10),
             if (showOccupancy)
               Text(
-                'Atualize a lotação desta academia',
+                _t.panelUpdateOccupancy,
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.primary,
                   fontWeight: FontWeight.w800,
@@ -511,7 +516,9 @@ class SelectedGymPanel extends StatelessWidget {
                       divisions: 20,
                       label: '${reportPercent.round()}%',
                       onChanged:
-                          isSubmittingCrowdReport ? null : onReportPercentChanged,
+                          isSubmittingCrowdReport
+                              ? null
+                              : onReportPercentChanged,
                     ),
                   ),
                   Container(
@@ -536,7 +543,8 @@ class SelectedGymPanel extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: isSubmittingCrowdReport ? null : onSubmitCrowdReport,
+                  onPressed:
+                      isSubmittingCrowdReport ? null : onSubmitCrowdReport,
                   icon:
                       isSubmittingCrowdReport
                           ? const SizedBox(
@@ -546,20 +554,25 @@ class SelectedGymPanel extends StatelessWidget {
                           )
                           : const Icon(Icons.send),
                   label: Text(
-                    isSubmittingCrowdReport ? 'Enviando relato...' : 'Contribuir',
+                    isSubmittingCrowdReport
+                        ? _t.panelSendingReport
+                        : _t.panelContribute,
                   ),
                 ),
               ),
             if (!showOccupancy)
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: withUiOpacity(GymMapColors.textSecondary, 0.08),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Text(
-                  'Contribuicao de lotacao disponivel apenas com academia aberta.',
+                child: Text(
+                  _t.panelContributeClosed,
                   style: TextStyle(
                     color: GymMapColors.textSecondary,
                     fontWeight: FontWeight.w700,
@@ -601,8 +614,8 @@ class _HistoryInsightsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Histórico das últimas 24h',
+          Text(
+            _t.insightHistory24h,
             style: TextStyle(
               fontWeight: FontWeight.w800,
               color: GymMapColors.textPrimary,
@@ -614,11 +627,14 @@ class _HistoryInsightsCard extends StatelessWidget {
             runSpacing: 8,
             children: [
               _ChartStatChip(
-                label: 'Pico',
+                label: _t.chartPeak,
                 value:
                     '${peakPoint.occupancyPercent}% ${_hourTag(peakPoint.time)}',
               ),
-              _ChartStatChip(label: 'Média', value: '${average.round()}%'),
+              _ChartStatChip(
+                label: _t.chartAverage,
+                value: '${average.round()}%',
+              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -749,7 +765,10 @@ class _HistoryLineChart extends StatelessWidget {
               painter: _HistoryLineChartPainter(
                 values: values,
                 lineColor: Theme.of(context).colorScheme.primary,
-                gridColor: withUiOpacity(Theme.of(context).colorScheme.primary, 0.10),
+                gridColor: withUiOpacity(
+                  Theme.of(context).colorScheme.primary,
+                  0.10,
+                ),
               ),
               child: const SizedBox.expand(),
             ),
@@ -937,8 +956,8 @@ class _ProInsightsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Pico do dia',
+          Text(
+            _t.panelPeakOfDay,
             style: TextStyle(
               fontWeight: FontWeight.w800,
               color: GymMapColors.textPrimary,
@@ -953,8 +972,8 @@ class _ProInsightsCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          const Text(
-            'Comparativo entre academias',
+          Text(
+            _t.insightCompareGyms,
             style: TextStyle(
               fontWeight: FontWeight.w800,
               color: GymMapColors.textPrimary,
@@ -964,7 +983,9 @@ class _ProInsightsCard extends StatelessWidget {
           ...comparison.map((item) {
             final delta = item.deltaFromSelected;
             final deltaLabel =
-                delta == 0 ? 'referencia' : '${delta > 0 ? '+' : ''}$delta pp';
+                delta == 0
+                    ? _t.panelReference
+                    : '${delta > 0 ? '+' : ''}$delta pp';
             final deltaColor =
                 delta <= -10
                     ? GymMapColors.occupancyLow
@@ -1024,8 +1045,8 @@ class _EliteInsightsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Previsão das próximas horas',
+          Text(
+            _t.panelForecast,
             style: TextStyle(
               fontWeight: FontWeight.w800,
               color: GymMapColors.textPrimary,
@@ -1059,8 +1080,8 @@ class _EliteInsightsCard extends StatelessWidget {
                     .toList(),
           ),
           const SizedBox(height: 10),
-          const Text(
-            'Alertas personalizados',
+          Text(
+            _t.insightAlerts,
             style: TextStyle(
               fontWeight: FontWeight.w800,
               color: GymMapColors.textPrimary,
@@ -1117,3 +1138,6 @@ BoxDecoration _insightCardDecoration(BuildContext context) {
 String _hourTag(DateTime dateTime) {
   return '${dateTime.hour.toString().padLeft(2, '0')}h';
 }
+
+/// Traduções do idioma em uso.
+AppLocalizations get _t => AppL10n.current;

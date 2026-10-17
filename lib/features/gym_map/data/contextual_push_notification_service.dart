@@ -1,6 +1,8 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../core/l10n/l10n.dart';
+
 class ContextualPushNotificationService {
   static const String _pushNotificationsPrefKey = 'gymmap_pref_push_v1';
   static const String _locationAlertsPrefKey = 'gymmap_pref_location_alerts_v1';
@@ -14,9 +16,9 @@ class ContextualPushNotificationService {
   static const Duration _globalCooldown = Duration(minutes: 30);
   static const Duration _sameGymCooldown = Duration(minutes: 90);
   static const String _channelId = 'gymmap_contextual_alerts_v1';
-  static const String _channelName = 'Alertas contextuais';
-  static const String _channelDescription =
-      'Alertas quando houver academia com lotacao baixa proxima.';
+  static String get _channelName => AppL10n.current.pushChannelName;
+  static String get _channelDescription =>
+      AppL10n.current.pushChannelDescription;
 
   final FlutterLocalNotificationsPlugin _notificationsPlugin =
       FlutterLocalNotificationsPlugin();
@@ -27,13 +29,15 @@ class ContextualPushNotificationService {
     if (_isInitialized) {
       return;
     }
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
     const darwinSettings = DarwinInitializationSettings(
       requestAlertPermission: false,
       requestBadgePermission: false,
       requestSoundPermission: false,
     );
-    const settings = InitializationSettings(
+    final settings = InitializationSettings(
       android: androidSettings,
       iOS: darwinSettings,
       macOS: darwinSettings,
@@ -43,26 +47,29 @@ class ContextualPushNotificationService {
   }
 
   Future<void> _requestPermissions() async {
-    final androidImplementation = _notificationsPlugin
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >();
+    final androidImplementation =
+        _notificationsPlugin
+            .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin
+            >();
     await androidImplementation?.requestNotificationsPermission();
 
-    final iosImplementation = _notificationsPlugin
-        .resolvePlatformSpecificImplementation<
-          IOSFlutterLocalNotificationsPlugin
-        >();
+    final iosImplementation =
+        _notificationsPlugin
+            .resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin
+            >();
     await iosImplementation?.requestPermissions(
       alert: true,
       badge: true,
       sound: true,
     );
 
-    final macosImplementation = _notificationsPlugin
-        .resolvePlatformSpecificImplementation<
-          MacOSFlutterLocalNotificationsPlugin
-        >();
+    final macosImplementation =
+        _notificationsPlugin
+            .resolvePlatformSpecificImplementation<
+              MacOSFlutterLocalNotificationsPlugin
+            >();
     await macosImplementation?.requestPermissions(
       alert: true,
       badge: true,
@@ -95,10 +102,12 @@ class ContextualPushNotificationService {
 
     final nowUtc = DateTime.now().toUtc();
     final lastAlertAt = _tryParseDate(prefs.getString(_lastAlertAtPrefKey));
-    if (lastAlertAt != null && nowUtc.difference(lastAlertAt) < _globalCooldown) {
+    if (lastAlertAt != null &&
+        nowUtc.difference(lastAlertAt) < _globalCooldown) {
       return;
     }
-    final lastAlertGymId = (prefs.getString(_lastAlertGymIdPrefKey) ?? '').trim();
+    final lastAlertGymId =
+        (prefs.getString(_lastAlertGymIdPrefKey) ?? '').trim();
     final lastAlertGymAt = _tryParseDate(
       prefs.getString(_lastAlertGymAtPrefKey),
     );
@@ -115,11 +124,14 @@ class ContextualPushNotificationService {
 
     final clampedOccupancy = occupancyPercent.clamp(0, 100);
     final distanceLabel = _distanceLabel(distanceMeters);
-    final title = 'Academia com lotacao baixa perto';
-    final body =
-        '$normalizedGymName com $clampedOccupancy% agora, a $distanceLabel de voce.';
+    final title = AppL10n.current.pushLowCrowdTitle;
+    final body = AppL10n.current.pushLowCrowdBody(
+      normalizedGymName,
+      '$clampedOccupancy',
+      distanceLabel,
+    );
 
-    const details = NotificationDetails(
+    final details = NotificationDetails(
       android: AndroidNotificationDetails(
         _channelId,
         _channelName,

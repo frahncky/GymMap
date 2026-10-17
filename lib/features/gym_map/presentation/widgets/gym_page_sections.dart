@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
+import '../../../../core/l10n/l10n.dart';
 import '../gym_map_colors.dart';
 import '../gym_map_helpers.dart';
 
@@ -88,10 +89,10 @@ class GymPageHeader extends StatelessWidget {
           const SizedBox(width: 8),
           Semantics(
             button: true,
-            label: 'Pontos da comunidade: $communityPoints',
-            hint: 'Toque para abrir o ranking semanal',
+            label: _t.headerCommunityPointsLabel('$communityPoints'),
+            hint: _t.headerCommunityPointsHint,
             child: Tooltip(
-              message: 'Abrir ranking da comunidade',
+              message: _t.headerOpenRanking,
               child: Material(
                 color: Colors.transparent,
                 child: InkWell(
@@ -122,7 +123,9 @@ class GymPageHeader extends StatelessWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              '${communityPoints.clamp(0, 1000000)} pts',
+                              _t.communityPointsShort(
+                                '${communityPoints.clamp(0, 1000000)}',
+                              ),
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w800,
@@ -141,10 +144,10 @@ class GymPageHeader extends StatelessWidget {
           const SizedBox(width: 8),
           Semantics(
             button: true,
-            label: 'Configurações de plano',
-            hint: 'Toque para abrir opções de assinatura',
+            label: _t.headerPlanSettings,
+            hint: _t.headerPlanSettingsHint,
             child: IconButton(
-              tooltip: 'Configurações de plano',
+              tooltip: _t.headerPlanSettings,
               onPressed: onOpenPlanSettings,
               icon: const Icon(Icons.settings, color: Colors.white),
             ),
@@ -179,19 +182,19 @@ class GymSearchField extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       textField: true,
-      label: 'Campo de busca',
-      hint: 'Digite academia, bairro ou cidade',
+      label: _t.searchFieldLabel,
+      hint: _t.searchFieldHint,
       child: TextField(
         controller: controller,
         onChanged: onChanged,
         onSubmitted: onSubmitted,
         textInputAction: TextInputAction.search,
         decoration: InputDecoration(
-          hintText: 'Buscar academia, bairro ou cidade',
+          hintText: _t.searchPlaceholder,
           prefixIcon: IconButton(
             onPressed: onSearchTap,
             icon: const Icon(Icons.search),
-            tooltip: 'Buscar localização',
+            tooltip: _t.searchLocationTooltip,
           ),
           suffixIcon:
               searchTerm.isEmpty
@@ -208,7 +211,7 @@ class GymSearchField extends StatelessWidget {
                   : IconButton(
                     onPressed: onClear,
                     icon: const Icon(Icons.close),
-                    tooltip: 'Limpar busca',
+                    tooltip: _t.searchClearTooltip,
                   ),
           filled: true,
           fillColor: Colors.white,
@@ -322,11 +325,8 @@ class _QuickFilterToggleChip extends StatelessWidget {
     return Semantics(
       button: true,
       selected: filter.selected,
-      label: 'Filtro ${filter.label}',
-      hint:
-          filter.selected
-              ? 'Toque novamente para remover o filtro'
-              : 'Toque para aplicar o filtro',
+      label: _t.filterSemanticsLabel(filter.label),
+      hint: filter.selected ? _t.filterTapToRemove : _t.filterTapToApply,
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
         child: FilterChip(
@@ -398,13 +398,13 @@ class SelectionHintCard extends StatelessWidget {
 
     final message =
         needsLocationForNearbyGyms
-            ? 'Aproxime o mapa para carregar academias automaticamente.'
+            ? _t.emptyZoomIn
             : hasNoResults && hasActiveFilters
-            ? 'Nenhuma academia corresponde aos filtros ativos.'
+            ? _t.emptyNoFilterMatch
             : hasNoResults
-            ? 'Nenhum resultado encontrado para sua busca.'
+            ? _t.emptyNoSearchResults
             : hasNoNearbyGyms
-            ? 'Nenhuma academia cadastrada próxima da sua localização.'
+            ? _t.emptyNoNearbyGyms
             : '';
     return Container(
       width: double.infinity,
@@ -425,7 +425,7 @@ class SelectionHintCard extends StatelessWidget {
             const SizedBox(width: 10),
             TextButton(
               onPressed: onClearFilters,
-              child: const Text('Limpar filtros'),
+              child: Text(_t.filterClearAll),
             ),
           ],
         ],
@@ -526,13 +526,13 @@ class _AdBannerCardState extends State<AdBannerCard> {
           colors: [GymMapColors.adGradientStart, GymMapColors.adGradientEnd],
         ),
       ),
-      child: const Row(
+      child: Row(
         children: [
           Icon(Icons.campaign, color: GymMapColors.adIcon),
           SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Publicidade: faça upgrade para remover anúncios.',
+              _t.adLabel,
               style: TextStyle(
                 color: GymMapColors.adText,
                 fontWeight: FontWeight.w700,
@@ -688,8 +688,8 @@ class MapTutorialOverlay extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Dicas rápidas do mapa',
+                      Text(
+                        _t.tutorialTitle,
                         style: TextStyle(
                           fontWeight: FontWeight.w800,
                           fontSize: 16,
@@ -697,20 +697,19 @@ class MapTutorialOverlay extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      const _TutorialHintRow(
+                      _TutorialHintRow(
                         icon: Icons.search_rounded,
-                        text: 'Use a busca para academia, bairro ou cidade.',
+                        text: _t.tutorialSearch,
                       ),
                       const SizedBox(height: 6),
-                      const _TutorialHintRow(
+                      _TutorialHintRow(
                         icon: Icons.tune_rounded,
-                        text: 'Ative os toggles para filtrar os resultados.',
+                        text: _t.tutorialFilters,
                       ),
                       const SizedBox(height: 6),
-                      const _TutorialHintRow(
+                      _TutorialHintRow(
                         icon: Icons.location_on_rounded,
-                        text:
-                            'Toque no pin para abrir detalhes e enviar relato.',
+                        text: _t.tutorialPin,
                       ),
                       const SizedBox(height: 10),
                       Row(
@@ -718,7 +717,7 @@ class MapTutorialOverlay extends StatelessWidget {
                           Expanded(
                             child: OutlinedButton(
                               onPressed: onDismiss,
-                              child: const Text('Entendi'),
+                              child: Text(_t.tutorialGotIt),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -726,7 +725,7 @@ class MapTutorialOverlay extends StatelessWidget {
                             child: ElevatedButton.icon(
                               onPressed: onFocusNearestGym,
                               icon: const Icon(Icons.near_me_rounded, size: 18),
-                              label: const Text('Ver próxima'),
+                              label: Text(_t.tutorialShowNearest),
                             ),
                           ),
                         ],
@@ -736,10 +735,7 @@ class MapTutorialOverlay extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              TextButton(
-                onPressed: onDismiss,
-                child: const Text('Pular tutorial'),
-              ),
+              TextButton(onPressed: onDismiss, child: Text(_t.tutorialSkip)),
             ],
           ),
         ),
@@ -777,3 +773,6 @@ class _TutorialHintRow extends StatelessWidget {
     );
   }
 }
+
+/// Traduções do idioma em uso.
+AppLocalizations get _t => AppL10n.current;

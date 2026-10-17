@@ -1,0 +1,711 @@
+{
+  "@@locale": "pt",
+  "settingsLanguageTitle": "Idioma",
+  "settingsLanguageSystem": "Idioma do aparelho",
+  "settingsLanguagePortuguese": "Português",
+  "settingsLanguageEnglish": "English",
+  "planFreeActive": "Plano gratuito ativo",
+  "planValidUntil": "Válido até {date}",
+  "@planValidUntil": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "durationDays": "{count, plural, =1{1 dia} other{{count} dias}}",
+  "@durationDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "durationHours": "{count, plural, =1{1 hora} other{{count} horas}}",
+  "@durationHours": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "durationUnderOneHour": "menos de 1 hora",
+  "planExpiresSoon": "Seu plano {plan} expira em {window}. Renovação somente manual, quando você decidir.",
+  "@planExpiresSoon": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      },
+      "window": {
+        "type": "String"
+      }
+    }
+  },
+  "authInitializing": "Autenticação ainda inicializando",
+  "authProductionNoBackend": "Modo produção ativo sem backend remoto configurado",
+  "authNoBackend": "Backend remoto não configurado no app",
+  "authProductionNeedsSession": "Modo produção exige sessão autenticada",
+  "authAnonymousAccount": "Conta anônima neste aparelho. Crie uma conta para não perder sua assinatura ao trocar de celular.",
+  "authSessionActive": "Sessão ativa para {user}",
+  "@authSessionActive": {
+    "placeholders": {
+      "user": {
+        "type": "String"
+      }
+    }
+  },
+  "authNotSignedIn": "Sessão não autenticada",
+  "playLoadingProducts": "Google Play: carregando produtos...",
+  "playUnavailable": "Google Play indisponível neste aparelho.",
+  "playProductsMissing": "Google Play: um ou mais produtos ainda não encontrados.",
+  "playReady": "Google Play pronto para checkout.",
+  "playListenFailed": "Falha ao escutar compras do Google Play.",
+  "playLoadProductsFailed": "Não foi possível carregar produtos do Google Play.",
+  "playProductsNotFound": "Produtos não encontrados no Google Play: {ids}",
+  "@playProductsNotFound": {
+    "placeholders": {
+      "ids": {
+        "type": "String"
+      }
+    }
+  },
+  "playLoadProductsError": "Falha ao carregar produtos do Google Play.",
+  "authTooManyAttemptsWait": "Muitas tentativas de login. Aguarde {wait}.",
+  "@authTooManyAttemptsWait": {
+    "placeholders": {
+      "wait": {
+        "type": "String"
+      }
+    }
+  },
+  "authTooManyAttempts": "Muitas tentativas de login. Aguarde um pouco e tente novamente.",
+  "authInvalidCredentials": "Usuário ou senha inválidos.",
+  "authMissingCredentials": "Informe usuário e senha.",
+  "authInvalidUsername": "Usuário deve ter de 3 a 32 caracteres: letras minúsculas, números, ponto, hífen ou sublinhado.",
+  "authUsernameTaken": "Este usuário já está em uso.",
+  "authPasswordTooShort": "A senha precisa ter pelo menos 8 caracteres.",
+  "authAlreadyRegistered": "Esta sessão já pertence a uma conta registrada.",
+  "authUnauthorized": "Sessão não autorizada.",
+  "authFailed": "Falha de autenticação",
+  "billingRateLimitedWait": "Limite de tentativas atingido. Aguarde {wait}.",
+  "@billingRateLimitedWait": {
+    "placeholders": {
+      "wait": {
+        "type": "String"
+      }
+    }
+  },
+  "billingRateLimited": "Limite de tentativas atingido. Aguarde um pouco e tente novamente.",
+  "billingProductionNeedsBackend": "Modo produção exige backend remoto configurado.",
+  "billingPlayNeedsBackend": "Checkout no Google Play exige backend remoto configurado.",
+  "billingProductionNeedsUser": "Modo produção exige usuário autenticado.",
+  "billingProductNotFound": "Produto de assinatura não encontrado no Google Play.",
+  "billingCheckoutNotStarted": "Não foi possível iniciar checkout no Google Play.",
+  "billingProductMissing": "Produto da assinatura não informado.",
+  "billingTokenMissing": "Token de compra ausente. Tente novamente.",
+  "billingPurchaseNotActive": "Compra ainda não está ativa no Google Play.",
+  "billingPurchaseNotFound": "Compra não encontrada no Google Play.",
+  "billingProductMismatch": "Produto da compra não corresponde ao plano selecionado.",
+  "billingPackageMismatch": "Compra vinculada a outro aplicativo.",
+  "billingPlayUnauthorized": "Backend sem permissão para validar Google Play. Verifique credenciais.",
+  "billingValidationUnavailable": "Não foi possível validar a compra no Google Play agora.",
+  "billingPendingWebhook": "Pagamento ainda não confirmado pelo webhook. Aguarde alguns segundos e tente novamente.",
+  "billingPixUnavailable": "Gateway Pix indisponível no momento. Tente novamente em instantes.",
+  "billingInvalidWebhook": "Webhook do pagamento inválido. Contate o suporte.",
+  "billingSessionExpiredOrForbidden": "Sessão expirada ou sem permissão. Faça login novamente.",
+  "billingSessionExpired": "Sessão expirada. Faça login novamente.",
+  "billingGenericFailure": "Não foi possível processar a assinatura agora.",
+  "planExpiredBackToFree": "Assinatura expirada. O app voltou para o plano gratuito.",
+  "subscriptionInitializing": "Assinatura ainda está inicializando. Tente novamente.",
+  "planFreeActivated": "Plano gratuito ativado.",
+  "authNoBackendForLogin": "Backend remoto não configurado para login.",
+  "authAccountCreated": "Conta criada para {user}.",
+  "@authAccountCreated": {
+    "placeholders": {
+      "user": {
+        "type": "String"
+      }
+    }
+  },
+  "authSignedIn": "Login concluído para {user}.",
+  "@authSignedIn": {
+    "placeholders": {
+      "user": {
+        "type": "String"
+      }
+    }
+  },
+  "authCreateAccount": "Criar conta",
+  "authSignInMonthly": "Entrar no plano mensal",
+  "authUsernameLabel": "Usuário",
+  "authUsernameHelper": "3 a 32 caracteres: a-z, 0-9, ponto, hífen ou _",
+  "authPasswordLabel": "Senha",
+  "authPasswordHelper": "Mínimo de 8 caracteres",
+  "actionCancel": "Cancelar",
+  "authCreating": "Criando...",
+  "authSigningIn": "Entrando...",
+  "authSignIn": "Entrar",
+  "authNoSession": "Não existe sessão autenticada.",
+  "authSignedOut": "Sessão encerrada.",
+  "authSignOutFailed": "Não foi possível encerrar sessão agora.",
+  "playFinishPayment": "Finalize o pagamento no Google Play para ativar o plano.",
+  "playPurchaseFailed": "Falha ao processar compra no Google Play.",
+  "playPaymentCanceled": "Pagamento cancelado no Google Play.",
+  "playUnknownProduct": "Produto desconhecido no Google Play: {id}",
+  "@playUnknownProduct": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "planActivatedSuccess": "Assinatura {plan} ativada com sucesso.",
+  "@planActivatedSuccess": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
+  "playFinalizeFailed": "Compra validada, mas não foi possível finalizar no Google Play.",
+  "priceFreeMonthly": "R$ 0/mês",
+  "pricePerMonth": "{price}/mês",
+  "@pricePerMonth": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "planCurrent": "Plano atual",
+  "planContinueFree": "Continuar grátis",
+  "planBackToFree": "Voltar ao gratuito",
+  "planSubscribe": "Assinar",
+  "planUpgrade": "Fazer upgrade",
+  "planChange": "Trocar plano",
+  "promoUntil": "{message} • até {deadline}",
+  "@promoUntil": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      },
+      "deadline": {
+        "type": "String"
+      }
+    }
+  },
+  "planIncludesPro": "Inclui tudo do Pro",
+  "planStartFreeTrial": "Começar teste grátis",
+  "planMostPopular": "MAIS POPULAR",
+  "planInstantAccess": "Acesso imediato e cancelamento quando quiser.",
+  "planFeatureLiveOccupancy": "Lotação em tempo real",
+  "planFeatureHistory": "Histórico 24h",
+  "planFeaturePeakCompare": "Pico e comparativo",
+  "planFeatureForecast": "Previsão e alertas",
+  "planFeatureNationwide": "Cobertura nacional",
+  "planQuickComparison": "Comparativo rápido",
+  "planAvailableIn": "Disponível no plano {plan}",
+  "@planAvailableIn": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
+  "planUnavailableIn": "Indisponível no plano {plan}",
+  "@planUnavailableIn": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
+  "planAvailable": "Disponível",
+  "planUnavailable": "Indisponível",
+  "paywallTitle": "Desbloqueie o máximo do GymMap",
+  "paywallSubtitle": "Escolha o plano ideal para lotação, previsão e comparativos.",
+  "paywallSocialProof": "+10.000 usuários premium ativos",
+  "paywallRating": "Nota média 4.8/5 em avaliações verificadas.",
+  "subscriptionLoading": "Carregando assinatura...",
+  "authSignOut": "Sair",
+  "planContinueWithFree": "Continuar com plano gratuito",
+  "actionClose": "Fechar",
+  "planNameFree": "Grátis",
+  "planNameSmart": "Essencial",
+  "insightCurrentOccupancy": "Lotação atual",
+  "insightHistory24h": "Histórico das últimas 24h",
+  "insightPeakHours": "Horários de pico por dia",
+  "insightCompareGyms": "Comparativo entre academias",
+  "insightForecast": "Previsão de lotação para próximas horas",
+  "insightNationwide": "Cobertura em qualquer lugar do país",
+  "insightAlerts": "Alertas personalizados",
+  "communityYourRegion": "Sua região",
+  "communityRegionUnavailable": "Região indisponível",
+  "distanceMetersFromYou": "{meters} m de você",
+  "@distanceMetersFromYou": {
+    "placeholders": {
+      "meters": {
+        "type": "String"
+      }
+    }
+  },
+  "distanceKmFromYou": "{km} km de você",
+  "@distanceKmFromYou": {
+    "placeholders": {
+      "km": {
+        "type": "String"
+      }
+    }
+  },
+  "communityPhotoCaptionRecent": "Foto recente enviada por quem treinou na unidade.",
+  "communityPhotoCaptionRecord": "Registro recente da comunidade nessa academia.",
+  "distanceUnknown": "Distância não informada",
+  "timeAgoMinutes": "há {count} min",
+  "@timeAgoMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "timeAgoHours": "há {count} h",
+  "@timeAgoHours": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "timeAgoDays": "há {count} d",
+  "@timeAgoDays": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "occupancyLevelLow": "Baixa",
+  "occupancyLevelModerate": "Moderada",
+  "occupancyLevelHigh": "Alta",
+  "communityAnonymousUser": "Usuário anônimo",
+  "communityYou": "Você",
+  "communityThanksValidation": "Obrigado por validar! +{points} pontos na comunidade.",
+  "@communityThanksValidation": {
+    "placeholders": {
+      "points": {
+        "type": "String"
+      }
+    }
+  },
+  "communityTitle": "Comunidade",
+  "communityLoadingReports": "Carregando relatos da sua região...",
+  "communityNoReportsYet": "Ainda não há relatos recentes das academias da sua região.",
+  "communityRecentRegionReports": "Relatos recentes das academias da sua região.",
+  "communityFeedDescription": "Feed de relatos recentes com validação colaborativa.",
+  "communityTopContributors": "Top contribuidores da semana",
+  "communityYourPosition": "Sua posição: {rank}",
+  "@communityYourPosition": {
+    "placeholders": {
+      "rank": {
+        "type": "String"
+      }
+    }
+  },
+  "communityRegion": "Região: {region}",
+  "@communityRegion": {
+    "placeholders": {
+      "region": {
+        "type": "String"
+      }
+    }
+  },
+  "communityNotEnoughRanking": "Ainda não há ranking suficiente.",
+  "communityEnableLocationRanking": "Ative a localização para carregar ranking real.",
+  "communityRealDataWeek": "Dados reais dos últimos 7 dias",
+  "communityPointsShort": "{points} pts",
+  "@communityPointsShort": {
+    "placeholders": {
+      "points": {
+        "type": "String"
+      }
+    }
+  },
+  "communityYourPoints": "Seus pontos: {points}",
+  "@communityYourPoints": {
+    "placeholders": {
+      "points": {
+        "type": "String"
+      }
+    }
+  },
+  "communityPointsPerValidation": "+2 por validação",
+  "communityContributeOnMap": "Contribuir no mapa",
+  "communityRecentRegionTitle": "Relatos recentes da sua região",
+  "communityRecentTitle": "Relatos recentes",
+  "communityRefreshReports": "Atualizar relatos",
+  "communityEmptyRegion": "Sem relatos recentes na sua região agora. Abra o mapa e contribua para aparecer aqui.",
+  "communityEnableLocationReports": "Ative sua localização para ver relatos recentes da sua região.",
+  "communityPhotoByCommunity": "Foto enviada pela comunidade.",
+  "communityConfirm": "Confirmo ({count})",
+  "@communityConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "communityDisagree": "Discordo ({count})",
+  "@communityDisagree": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "profileDefaultName": "Usuário GymMap",
+  "profileSavePreferenceFailed": "Não foi possível salvar esta preferência agora.",
+  "profileLoadPhotoFailed": "Não foi possível carregar a foto.",
+  "profilePickPhotoFailed": "Não foi possível selecionar a foto.",
+  "profileNameRequired": "Informe um nome para o perfil.",
+  "profileSaveFailed": "Não foi possível salvar o perfil.",
+  "profileEdit": "Editar perfil",
+  "profileChangePhoto": "Trocar foto",
+  "profileRemovePhoto": "Remover",
+  "profileNameLabel": "Nome",
+  "profileNameHint": "Como você quer aparecer",
+  "actionSave": "Salvar",
+  "profileUpdated": "Perfil atualizado.",
+  "profileTitle": "Perfil",
+  "profileCurrentPlanFree": "Plano atual: Grátis",
+  "profileVisible": "Perfil visível",
+  "profilePrivate": "Perfil privado",
+  "actionOpenMap": "Abrir mapa",
+  "profilePublicTitle": "Permitir visualização pública",
+  "profilePublicSubtitle": "Permite que seu nome e foto apareçam na comunidade.",
+  "profilePushTitle": "Notificações push",
+  "profilePushSubtitle": "Receber alertas de lotação e atualizações.",
+  "profileLocationAlertsTitle": "Alertas por localização",
+  "profileLocationAlertsSubtitle": "Avisar quando houver academia com lotação baixa perto de você.",
+  "profileHapticsTitle": "Feedback vibratório",
+  "profileHapticsSubtitle": "Usar vibração em ações importantes.",
+  "profileDataSaverTitle": "Modo economia de dados",
+  "profileDataSaverSubtitle": "Reduzir atualizações em segundo plano.",
+  "favoritesDefaultName": "Academia favorita",
+  "favoritesLoadFailed": "Não foi possível carregar seus favoritos.",
+  "actionRetry": "Tentar novamente",
+  "favoritesTitle": "Favoritos",
+  "favoritesEmpty": "Você ainda não marcou academias favoritas.",
+  "favoritesCount": "{count, plural, =1{1 academia salva.} other{{count} academias salvas.}}",
+  "@favoritesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "favoritesHint": "Use o ícone de coração no painel da academia para salvar seus favoritos.",
+  "favoritesViewMap": "Ver mapa",
+  "navMap": "Mapa",
+  "navFavorites": "Favoritos",
+  "navCommunity": "Comunidade",
+  "navProfile": "Perfil",
+  "headerCommunityPointsLabel": "Pontos da comunidade: {points}",
+  "@headerCommunityPointsLabel": {
+    "placeholders": {
+      "points": {
+        "type": "String"
+      }
+    }
+  },
+  "headerCommunityPointsHint": "Toque para abrir o ranking semanal",
+  "headerOpenRanking": "Abrir ranking da comunidade",
+  "headerPlanSettings": "Configurações de plano",
+  "headerPlanSettingsHint": "Toque para abrir opções de assinatura",
+  "searchFieldLabel": "Campo de busca",
+  "searchFieldHint": "Digite academia, bairro ou cidade",
+  "searchPlaceholder": "Buscar academia, bairro ou cidade",
+  "searchLocationTooltip": "Buscar localização",
+  "searchClearTooltip": "Limpar busca",
+  "filterSemanticsLabel": "Filtro {filter}",
+  "@filterSemanticsLabel": {
+    "placeholders": {
+      "filter": {
+        "type": "String"
+      }
+    }
+  },
+  "filterTapToRemove": "Toque novamente para remover o filtro",
+  "filterTapToApply": "Toque para aplicar o filtro",
+  "emptyZoomIn": "Aproxime o mapa para carregar academias automaticamente.",
+  "emptyNoFilterMatch": "Nenhuma academia corresponde aos filtros ativos.",
+  "emptyNoSearchResults": "Nenhum resultado encontrado para sua busca.",
+  "emptyNoNearbyGyms": "Nenhuma academia cadastrada próxima da sua localização.",
+  "filterClearAll": "Limpar filtros",
+  "adLabel": "Publicidade: faça upgrade para remover anúncios.",
+  "tutorialTitle": "Dicas rápidas do mapa",
+  "tutorialSearch": "Use a busca para academia, bairro ou cidade.",
+  "tutorialFilters": "Ative os toggles para filtrar os resultados.",
+  "tutorialPin": "Toque no pin para abrir detalhes e enviar relato.",
+  "tutorialGotIt": "Entendi",
+  "tutorialShowNearest": "Ver próxima",
+  "tutorialSkip": "Pular tutorial",
+  "panelFavoriteGym": "Academia favorita",
+  "panelAddGymToFavorites": "Adicionar academia aos favoritos",
+  "panelToggleFavoriteHint": "Toque para alternar favorito",
+  "panelRemoveFavorite": "Remover dos favoritos",
+  "panelAddFavorite": "Adicionar aos favoritos",
+  "gymClosed": "Fechada",
+  "panelStatus": "Status: {status}",
+  "@panelStatus": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "panelClosedNotice": "Academia fechada agora. Lotação oculta no mapa.",
+  "panelReportsSummary": "{total} relatos totais | {recent} relatos recentes",
+  "@panelReportsSummary": {
+    "placeholders": {
+      "total": {
+        "type": "String"
+      },
+      "recent": {
+        "type": "String"
+      }
+    }
+  },
+  "panelLastReport": "Último relato: {time}",
+  "@panelLastReport": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "panelViewRoute": "Ver rota",
+  "panelUpdateOccupancy": "Atualize a lotação desta academia",
+  "panelSendingReport": "Enviando relato...",
+  "panelContribute": "Contribuir",
+  "panelContributeClosed": "Contribuição de lotação disponível apenas com academia aberta.",
+  "chartPeak": "Pico",
+  "chartAverage": "Média",
+  "panelPeakOfDay": "Pico do dia",
+  "panelReference": "referência",
+  "panelForecast": "Previsão das próximas horas",
+  "reportBlockedWait": "Envio bloqueado temporariamente. Aguarde {minutes} min para novo relato.",
+  "@reportBlockedWait": {
+    "placeholders": {
+      "minutes": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionActivated": "Assinatura ativada!",
+  "planUnlocked": "Plano {plan} liberado com sucesso.",
+  "@planUnlocked": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
+  "actionContinue": "Continuar",
+  "communityCurrentLocation": "Sua localização atual",
+  "communityCurrentRegion": "Região atual",
+  "communityNoRanking": "sem ranking",
+  "communityTop10": "Top 10 contribuidores da semana",
+  "communityCurrentPosition": "Sua posição atual: {rank}  .  {points} pts",
+  "@communityCurrentPosition": {
+    "placeholders": {
+      "rank": {
+        "type": "String"
+      },
+      "points": {
+        "type": "String"
+      }
+    }
+  },
+  "communityRankingUpdating": "Atualizando ranking...",
+  "communityRankingRealInfo": "Pontuação real dos últimos 7 dias. Cada envio válido soma +5 pontos.",
+  "communityRankingInfo": "Cada envio válido soma +5 pontos. Continue contribuindo para subir no ranking.",
+  "communityRankingEmpty": "Ainda não há pontuação suficiente nesta região.",
+  "locationNotificationTitle": "GymMap localização ativa",
+  "locationNotificationText": "GymMap está atualizando sua localização em segundo plano.",
+  "locationEnableGps": "Ative o GPS para centralizar sua localização.",
+  "locationNoPermission": "Sem permissão de localização. Você pode ativar isso depois nas configurações.",
+  "locationDeniedForever": "Permissão de localização negada permanentemente. Ajuste nas configurações do aparelho.",
+  "locationDenied": "Permissão de localização negada.",
+  "locationTimeout": "Tempo esgotado ao obter localização. Tente novamente em instantes.",
+  "locationUnavailable": "Não foi possível obter sua localização no momento.",
+  "locationPromptTitle": "Permitir localização?",
+  "locationPromptBody": "Com a localização ativa, o GymMap encontra academias próximas automaticamente e calcula distância em tempo real.",
+  "locationPromptLater": "Agora não",
+  "locationPromptAllow": "Permitir",
+  "controlsNorthLabel": "Reorientar mapa para norte",
+  "controlsNorthHint": "Toque para voltar a orientação para zero grau",
+  "controlsNorthTooltip": "Reorientar para norte",
+  "controlsMyLocationLabel": "Centralizar no meu local",
+  "controlsMyLocationHint": "Toque para mover o mapa para a sua posição atual",
+  "controlsMyLocationTooltip": "Minha localização",
+  "controlsUpdatingGymsLabel": "Atualizando academias no mapa",
+  "controlsUpdatingGyms": "Atualizando academias...",
+  "controlsYourLocation": "Sua localização no mapa",
+  "coverageEnableLocation": "Ative a localização para ver academias da sua região no plano atual.",
+  "coverageEliteOnly": "Outras regiões são exclusivas do plano Elite.",
+  "filterOpenNow": "Abertas agora",
+  "filterLowCrowd": "Lotação baixa",
+  "filterClasses": "Aulas",
+  "filterCardio": "Cardio",
+  "filterPool": "Com piscina",
+  "filterFavorites": "Favoritas",
+  "hoursOpenUntil": "Aberta até {time}",
+  "@hoursOpenUntil": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "hoursOpensAt": "Abre às {time}",
+  "@hoursOpensAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "hoursOpensTomorrow": "Abre amanhã às {time}",
+  "@hoursOpensTomorrow": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "hoursToday": "Hoje: {open} - {close}",
+  "@hoursToday": {
+    "placeholders": {
+      "open": {
+        "type": "String"
+      },
+      "close": {
+        "type": "String"
+      }
+    }
+  },
+  "mapDisabledInTest": "Mapa desativado no modo de teste",
+  "mapLocatingYou": "Localizando você...",
+  "mapUnavailableRetry": "Mapa indisponível. Tentar novamente",
+  "mapLoading": "Carregando mapa...",
+  "mapOpenGoogleMapsFailed": "Não foi possível abrir o Google Maps agora.",
+  "favoriteAdded": "{gym} adicionada aos favoritos.",
+  "@favoriteAdded": {
+    "placeholders": {
+      "gym": {
+        "type": "String"
+      }
+    }
+  },
+  "favoriteRemoved": "{gym} removida dos favoritos.",
+  "@favoriteRemoved": {
+    "placeholders": {
+      "gym": {
+        "type": "String"
+      }
+    }
+  },
+  "tutorialNoGymToHighlight": "Nenhuma academia disponível para destacar agora.",
+  "searchFailed": "Não foi possível buscar esta localização agora.",
+  "searchNotFound": "Local não encontrado. Tente bairro, cidade ou endereço.",
+  "searchParseFailed": "Não foi possível interpretar essa localização.",
+  "searchTimeout": "Tempo esgotado ao buscar essa localização.",
+  "searchError": "Não foi possível buscar essa localização.",
+  "occupancyLevelVeryHigh": "Muito alta",
+  "timeNoInfo": "sem informações",
+  "timeNow": "agora",
+  "timeMinutesAgo": "{count} min atrás",
+  "@timeMinutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "timeHoursAgo": "{count} h atrás",
+  "@timeHoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "markerOccupancySemantics": "lotação de {percent} por cento",
+  "@markerOccupancySemantics": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "markerClosedNow": "fechada agora",
+  "markerFavoriteSuffix": ", favorita",
+  "markerTapHint": "Toque para abrir os detalhes da academia",
+  "markerGoodMoment": "Bom momento",
+  "reportThanks": "Obrigado por contribuir! +5 pontos\n{gym} atualizado para {percent}% (conf. {trust}%).",
+  "@reportThanks": {
+    "placeholders": {
+      "gym": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "String"
+      },
+      "trust": {
+        "type": "String"
+      }
+    }
+  },
+  "alertVeryHighNow": "Lotação muito alta agora. Considere treinar em outro horário.",
+  "alertBestWindow": "Melhor janela prevista perto de {hour}h ({percent}%).",
+  "@alertBestWindow": {
+    "placeholders": {
+      "hour": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLessCrowded": "{gym} está {delta} pp menos lotada agora.",
+  "@alertLessCrowded": {
+    "placeholders": {
+      "gym": {
+        "type": "String"
+      },
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "alertStableFlow": "Fluxo estável nas próximas horas para esta academia.",
+  "pushChannelName": "Alertas contextuais",
+  "pushChannelDescription": "Alertas quando houver academia com lotação baixa próxima.",
+  "pushLowCrowdTitle": "Academia com lotação baixa perto",
+  "pushLowCrowdBody": "{gym} com {percent}% agora, a {distance} de você.",
+  "@pushLowCrowdBody": {
+    "placeholders": {
+      "gym": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "String"
+      },
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "gymFoundOnMap": "Academia encontrada no mapa"
+}
