@@ -707,5 +707,19 @@
       }
     }
   },
-  "gymFoundOnMap": "Academia encontrada no mapa"
+  "gymFoundOnMap": "Academia encontrada no mapa",
+  "controlsPlaces": "Escolher locais do mapa",
+  "placesTitle": "Locais no mapa",
+  "placesSubtitle": "Marque o que você quer ver. As academias aparecem sempre.",
+  "placesShowAll": "Mostrar tudo",
+  "placesHideAll": "Ocultar tudo",
+  "placesTransport": "Transporte (paradas de ônibus, estações)",
+  "placesFood": "Alimentação",
+  "placesShops": "Comércio",
+  "placesHealth": "Saúde",
+  "placesEducation": "Educação",
+  "placesServices": "Serviços (bancos, correios...)",
+  "placesLeisure": "Lazer e turismo",
+  "placesReligion": "Templos e igrejas",
+  "placesOther": "Outros"
 }

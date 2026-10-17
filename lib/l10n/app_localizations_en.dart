@@ -1161,4 +1161,47 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get gymFoundOnMap => 'Gym found on the map';
+
+  @override
+  String get controlsPlaces => 'Choose map places';
+
+  @override
+  String get placesTitle => 'Places on the map';
+
+  @override
+  String get placesSubtitle =>
+      'Check what you want to see. Gyms are always shown.';
+
+  @override
+  String get placesShowAll => 'Show all';
+
+  @override
+  String get placesHideAll => 'Hide all';
+
+  @override
+  String get placesTransport => 'Transport (bus stops, stations)';
+
+  @override
+  String get placesFood => 'Food and drink';
+
+  @override
+  String get placesShops => 'Shops';
+
+  @override
+  String get placesHealth => 'Health';
+
+  @override
+  String get placesEducation => 'Education';
+
+  @override
+  String get placesServices => 'Services (banks, post offices...)';
+
+  @override
+  String get placesLeisure => 'Leisure and tourism';
+
+  @override
+  String get placesReligion => 'Places of worship';
+
+  @override
+  String get placesOther => 'Other';
 }

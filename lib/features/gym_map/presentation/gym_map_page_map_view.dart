@@ -108,15 +108,25 @@ extension _GymMapPageMapView on _GymMapPageState {
             ),
           ),
           children: [
-            if (_vectorMapStyle case final vmt.Style style)
-              vmt.VectorTileLayer(
-                key: const ValueKey<String>(
-                  'vector-map:${MapVectorStyleService.styleUrl}',
-                ),
-                theme: style.theme,
-                sprites: style.sprites,
-                tileProviders: style.providers,
-              )
+            if (_vectorMapStyle case final vmt.Style loadedStyle)
+              () {
+                final hidden = _hiddenBasemapPoiCategories;
+                final style = VectorMapStyleLoader.withoutPoiCategories(
+                  MapVectorStyleService.styleUrl,
+                  loadedStyle,
+                  hidden,
+                );
+                final hiddenKey = (hidden.map((c) => c.name).toList()..sort())
+                    .join(',');
+                return vmt.VectorTileLayer(
+                  key: ValueKey<String>(
+                    'vector-map:${MapVectorStyleService.styleUrl}:$hiddenKey',
+                  ),
+                  theme: style.theme,
+                  sprites: style.sprites,
+                  tileProviders: style.providers,
+                );
+              }()
             else
               _buildOfflineFallbackLayer(),
             MarkerLayer(
@@ -174,6 +184,14 @@ extension _GymMapPageMapView on _GymMapPageState {
           child: MyLocationButton(onTap: _centerMapOnDeviceLocation),
         ),
         Positioned(
+          right: controlsRight,
+          top: controlsTop + (controlsGap * 2),
+          child: BasemapPoiToggleButton(
+            hidden: _hiddenBasemapPoiCategories.isNotEmpty,
+            onTap: _openBasemapPoiSheet,
+          ),
+        ),
+        Positioned(
           left: 12,
           top: controlsTop,
           child: AnimatedSwitcher(
@@ -220,6 +238,148 @@ extension _GymMapPageMapView on _GymMapPageState {
       _vectorMapStyle = style;
       _vectorMapFailed = style == null;
     });
+  }
+
+  Future<void> _loadBasemapPoiPreference() async {
+    try {
+      final prefs = await _prefsInstance();
+      final saved = prefs.getStringList(
+        _GymMapPageState._hiddenBasemapPoiCategoriesPrefKey,
+      );
+      if (saved == null || !mounted) return;
+      final hidden = <BasemapPoiCategory>{
+        for (final category in BasemapPoiCategory.values)
+          if (saved.contains(category.name)) category,
+      };
+      _setStateIfMapVisible(() => _hiddenBasemapPoiCategories = hidden);
+    } catch (_) {
+      // Sem preferência salva, vale o padrão.
+    }
+  }
+
+  void _setHiddenBasemapPoiCategories(Set<BasemapPoiCategory> hidden) {
+    _setStateIfMapVisible(() => _hiddenBasemapPoiCategories = hidden);
+    unawaited(() async {
+      try {
+        final prefs = await _prefsInstance();
+        await prefs.setStringList(
+          _GymMapPageState._hiddenBasemapPoiCategoriesPrefKey,
+          hidden.map((category) => category.name).toList(),
+        );
+      } catch (_) {
+        // A escolha vale para a sessão mesmo sem persistir.
+      }
+    }());
+  }
+
+  String _basemapPoiCategoryLabel(BasemapPoiCategory category) =>
+      switch (category) {
+        BasemapPoiCategory.transport => _t.placesTransport,
+        BasemapPoiCategory.food => _t.placesFood,
+        BasemapPoiCategory.shops => _t.placesShops,
+        BasemapPoiCategory.health => _t.placesHealth,
+        BasemapPoiCategory.education => _t.placesEducation,
+        BasemapPoiCategory.services => _t.placesServices,
+        BasemapPoiCategory.leisure => _t.placesLeisure,
+        BasemapPoiCategory.religion => _t.placesReligion,
+        BasemapPoiCategory.other => _t.placesOther,
+      };
+
+  IconData _basemapPoiCategoryIcon(BasemapPoiCategory category) =>
+      switch (category) {
+        BasemapPoiCategory.transport => Icons.directions_bus_rounded,
+        BasemapPoiCategory.food => Icons.restaurant_rounded,
+        BasemapPoiCategory.shops => Icons.storefront_rounded,
+        BasemapPoiCategory.health => Icons.local_hospital_rounded,
+        BasemapPoiCategory.education => Icons.school_rounded,
+        BasemapPoiCategory.services => Icons.account_balance_rounded,
+        BasemapPoiCategory.leisure => Icons.park_rounded,
+        BasemapPoiCategory.religion => Icons.church_rounded,
+        BasemapPoiCategory.other => Icons.place_rounded,
+      };
+
+  /// Lista para marcar quais locais do mapa base aparecem. Cada mudança vale
+  /// na hora; as academias do app aparecem sempre.
+  void _openBasemapPoiSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final hidden = _hiddenBasemapPoiCategories;
+            void apply(Set<BasemapPoiCategory> next) {
+              _setHiddenBasemapPoiCategories(next);
+              setSheetState(() {});
+            }
+
+            return SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _t.placesTitle,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _t.placesSubtitle,
+                      style: const TextStyle(
+                        color: GymMapColors.textSecondary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        TextButton(
+                          onPressed:
+                              hidden.isEmpty
+                                  ? null
+                                  : () => apply(<BasemapPoiCategory>{}),
+                          child: Text(_t.placesShowAll),
+                        ),
+                        TextButton(
+                          onPressed:
+                              hidden.length == BasemapPoiCategory.values.length
+                                  ? null
+                                  : () =>
+                                      apply(BasemapPoiCategory.values.toSet()),
+                          child: Text(_t.placesHideAll),
+                        ),
+                      ],
+                    ),
+                    for (final category in BasemapPoiCategory.values)
+                      CheckboxListTile(
+                        contentPadding: EdgeInsets.zero,
+                        secondary: Icon(_basemapPoiCategoryIcon(category)),
+                        title: Text(_basemapPoiCategoryLabel(category)),
+                        value: !hidden.contains(category),
+                        onChanged: (visible) {
+                          final next = {...hidden};
+                          if (visible ?? false) {
+                            next.remove(category);
+                          } else {
+                            next.add(category);
+                          }
+                          apply(next);
+                        },
+                      ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   Widget _buildOfflineFallbackLayer() {

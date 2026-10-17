@@ -103,6 +103,64 @@ class MyLocationButton extends StatelessWidget {
   }
 }
 
+/// Botão que abre a escolha dos locais do mapa base (paradas de ônibus,
+/// lojas, restaurantes etc.). Fica destacado quando há categorias ocultas.
+class BasemapPoiToggleButton extends StatelessWidget {
+  const BasemapPoiToggleButton({
+    super.key,
+    required this.hidden,
+    required this.onTap,
+  });
+
+  /// `true` quando alguma categoria de locais está oculta.
+  final bool hidden;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    final label = _t.controlsPlaces;
+    return Semantics(
+      button: true,
+      toggled: hidden,
+      label: label,
+      child: Tooltip(
+        message: label,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(24),
+            child: Ink(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: hidden ? primary : withUiOpacity(Colors.white, 0.96),
+                shape: BoxShape.circle,
+                border: Border.all(color: primary, width: 1.6),
+                boxShadow: const [
+                  BoxShadow(
+                    blurRadius: 8,
+                    color: GymMapColors.floatingControlShadow,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Icon(
+                  hidden ? Icons.layers_clear_rounded : Icons.layers_rounded,
+                  size: 20,
+                  color: hidden ? Colors.white : primary,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Badge de carregamento exibido enquanto os POIs do mapa sao atualizados.
 class MapPoiLoadingBadge extends StatelessWidget {
   const MapPoiLoadingBadge({super.key});

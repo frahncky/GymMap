@@ -21,6 +21,7 @@ import '../../../core/l10n/l10n.dart';
 import '../data/collaborative_crowd_service.dart';
 import '../data/contextual_push_notification_service.dart';
 import '../data/crowd_report_remote_service.dart';
+import '../data/map/basemap_style_filter.dart';
 import '../data/map/map_vector_style_service.dart';
 import '../data/map/vector_map_style_loader.dart';
 import '../data/map_services_config.dart';
@@ -86,6 +87,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   static const String _communityPointsPrefKey = 'gymmap_community_points_v1';
   static const String _dataSaverPrefKey = 'gymmap_pref_data_saver_v1';
   static const String _quickFiltersPrefKey = 'gymmap_quick_filters_v1';
+  static const String _hiddenBasemapPoiCategoriesPrefKey =
+      'gymmap_hidden_basemap_poi_categories_v1';
   static const bool _autoShowMapTutorialOnStartup = false;
   static const double _defaultCoverageRadiusMeters = 50000;
   static const double _eliteCoverageRadiusMeters = 6000000;
@@ -155,6 +158,10 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   final VectorMapStyleLoader _vectorMapStyleLoader = VectorMapStyleLoader();
   vmt.Style? _vectorMapStyle;
   bool _vectorMapFailed = false;
+  // Categorias de pontos de interesse do mapa base (paradas de ônibus,
+  // lojas...) escondidas; por padrão o mapa mostra só as academias do app.
+  Set<BasemapPoiCategory> _hiddenBasemapPoiCategories =
+      BasemapPoiCategory.values.toSet();
   final InAppPurchase _inAppPurchase = InAppPurchase.instance;
 
   // Serviço que agrega relatos colaborativos de lotação.
@@ -268,6 +275,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     unawaited(_initializeVectorMap());
+    unawaited(_loadBasemapPoiPreference());
     unawaited(_loadMapTutorialState());
     unawaited(_loadFavoriteGymIds());
     unawaited(_loadCommunityPoints());

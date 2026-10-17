@@ -324,5 +324,19 @@
   "pushChannelDescription": "Alerts when a nearby gym has low occupancy.",
   "pushLowCrowdTitle": "Low-occupancy gym nearby",
   "pushLowCrowdBody": "{gym} at {percent}% now, {distance} from you.",
-  "gymFoundOnMap": "Gym found on the map"
+  "gymFoundOnMap": "Gym found on the map",
+  "controlsPlaces": "Choose map places",
+  "placesTitle": "Places on the map",
+  "placesSubtitle": "Check what you want to see. Gyms are always shown.",
+  "placesShowAll": "Show all",
+  "placesHideAll": "Hide all",
+  "placesTransport": "Transport (bus stops, stations)",
+  "placesFood": "Food and drink",
+  "placesShops": "Shops",
+  "placesHealth": "Health",
+  "placesEducation": "Education",
+  "placesServices": "Services (banks, post offices...)",
+  "placesLeisure": "Leisure and tourism",
+  "placesReligion": "Places of worship",
+  "placesOther": "Other"
 }

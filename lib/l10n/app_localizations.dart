@@ -2047,6 +2047,90 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Academia encontrada no mapa'**
   String get gymFoundOnMap;
+
+  /// No description provided for @controlsPlaces.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escolher locais do mapa'**
+  String get controlsPlaces;
+
+  /// No description provided for @placesTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Locais no mapa'**
+  String get placesTitle;
+
+  /// No description provided for @placesSubtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Marque o que você quer ver. As academias aparecem sempre.'**
+  String get placesSubtitle;
+
+  /// No description provided for @placesShowAll.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mostrar tudo'**
+  String get placesShowAll;
+
+  /// No description provided for @placesHideAll.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ocultar tudo'**
+  String get placesHideAll;
+
+  /// No description provided for @placesTransport.
+  ///
+  /// In pt, this message translates to:
+  /// **'Transporte (paradas de ônibus, estações)'**
+  String get placesTransport;
+
+  /// No description provided for @placesFood.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alimentação'**
+  String get placesFood;
+
+  /// No description provided for @placesShops.
+  ///
+  /// In pt, this message translates to:
+  /// **'Comércio'**
+  String get placesShops;
+
+  /// No description provided for @placesHealth.
+  ///
+  /// In pt, this message translates to:
+  /// **'Saúde'**
+  String get placesHealth;
+
+  /// No description provided for @placesEducation.
+  ///
+  /// In pt, this message translates to:
+  /// **'Educação'**
+  String get placesEducation;
+
+  /// No description provided for @placesServices.
+  ///
+  /// In pt, this message translates to:
+  /// **'Serviços (bancos, correios...)'**
+  String get placesServices;
+
+  /// No description provided for @placesLeisure.
+  ///
+  /// In pt, this message translates to:
+  /// **'Lazer e turismo'**
+  String get placesLeisure;
+
+  /// No description provided for @placesReligion.
+  ///
+  /// In pt, this message translates to:
+  /// **'Templos e igrejas'**
+  String get placesReligion;
+
+  /// No description provided for @placesOther.
+  ///
+  /// In pt, this message translates to:
+  /// **'Outros'**
+  String get placesOther;
 }
 
 class _AppLocalizationsDelegate

@@ -1174,4 +1174,47 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get gymFoundOnMap => 'Academia encontrada no mapa';
+
+  @override
+  String get controlsPlaces => 'Escolher locais do mapa';
+
+  @override
+  String get placesTitle => 'Locais no mapa';
+
+  @override
+  String get placesSubtitle =>
+      'Marque o que você quer ver. As academias aparecem sempre.';
+
+  @override
+  String get placesShowAll => 'Mostrar tudo';
+
+  @override
+  String get placesHideAll => 'Ocultar tudo';
+
+  @override
+  String get placesTransport => 'Transporte (paradas de ônibus, estações)';
+
+  @override
+  String get placesFood => 'Alimentação';
+
+  @override
+  String get placesShops => 'Comércio';
+
+  @override
+  String get placesHealth => 'Saúde';
+
+  @override
+  String get placesEducation => 'Educação';
+
+  @override
+  String get placesServices => 'Serviços (bancos, correios...)';
+
+  @override
+  String get placesLeisure => 'Lazer e turismo';
+
+  @override
+  String get placesReligion => 'Templos e igrejas';
+
+  @override
+  String get placesOther => 'Outros';
 }

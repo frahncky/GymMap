@@ -1,6 +1,9 @@
 import 'dart:async';
-import 'http_vector_map_style_reader.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart' as vmt;
+import 'package:vector_tile_renderer/vector_tile_renderer.dart' as vtr;
+
+import 'basemap_style_filter.dart';
+import 'http_vector_map_style_reader.dart';
 
 /// Lê um estilo de mapa vetorial (Mapbox/MapLibre Style JSON, ex.: o
 /// "liberty" do OpenFreeMap) e o converte no tema e nas fontes de tiles que
@@ -33,6 +36,41 @@ class VectorMapStyleLoader {
     final vmt.Style? cached = _cache[url];
     if (cached != null) return cached;
     return _inFlight.putIfAbsent(url, () => _load(url));
+  }
+
+  static final Map<String, vmt.Style> _filteredCache = <String, vmt.Style>{};
+
+  /// [style] (lido de [styleUrl]) sem as categorias [hidden] de pontos de
+  /// interesse do mapa base (paradas de ônibus, lojas, restaurantes etc.).
+  /// Usa o documento já lido; sem ele, devolve [style] como está.
+  static vmt.Style withoutPoiCategories(
+    String styleUrl,
+    vmt.Style style,
+    Set<BasemapPoiCategory> hidden,
+  ) {
+    if (hidden.isEmpty) return style;
+    final url = styleUrl.trim();
+    final key =
+        '$url|${(hidden.map((category) => category.name).toList()..sort()).join(',')}';
+    final cached = _filteredCache[key];
+    if (cached != null) return cached;
+    final document = HttpVectorMapStyleReader.documents[url];
+    if (document == null) return style;
+    try {
+      final filtered = vmt.Style(
+        name: style.name,
+        theme: vtr.ThemeReader().read(
+          BasemapStyleFilter.withoutPoiCategories(document, hidden),
+        ),
+        providers: style.providers,
+        sprites: style.sprites,
+        center: style.center,
+        zoom: style.zoom,
+      );
+      return _filteredCache[key] = filtered;
+    } catch (_) {
+      return style;
+    }
   }
 
   Future<vmt.Style?> _load(String url) async {

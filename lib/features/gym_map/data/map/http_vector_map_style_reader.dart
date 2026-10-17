@@ -16,6 +16,11 @@ class HttpVectorMapStyleReader {
   static const _timeout = Duration(seconds: 10);
   static const _cacheTtl = Duration(days: 1);
 
+  /// Documento de cada estilo já lido, por URL, para montar variações do
+  /// tema (ex.: sem pontos de interesse) sem buscar de novo.
+  static final Map<String, Map<String, dynamic>> documents =
+      <String, Map<String, dynamic>>{};
+
   Future<Map<String, dynamic>> _document(http.Client client, Uri uri) async {
     final prefs = await SharedPreferences.getInstance();
     final key = 'vector_map_document:$uri';
@@ -70,6 +75,7 @@ class HttpVectorMapStyleReader {
     try {
       final uri = Uri.parse(url);
       final json = await _document(client, uri);
+      documents[url] = json;
       final sources = json['sources'] as Map<String, dynamic>;
       // Preserva a leitura da biblioteca para protocolos específicos,
       // como mapbox://, sem acoplar o domínio a esse fornecedor.
