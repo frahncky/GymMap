@@ -40,6 +40,31 @@ void main() {
       expect(route.mode, GymRouteMode.walking);
     });
 
+    test('picks the fastest route, not the first one OSRM returns', () {
+      // A pé, o servidor põe primeiro o zigue-zague por ruas calmas (caso
+      // real em São Luís); a alternativa pela avenida é mais rápida.
+      Map<String, Object?> route(double distance, double duration) =>
+          <String, Object?>{
+            'distance': distance,
+            'duration': duration,
+            'geometry': <String, Object?>{
+              'type': 'LineString',
+              'coordinates': <List<double>>[
+                <double>[-44.218, -2.581],
+                <double>[-44.213, -2.574],
+              ],
+            },
+          };
+      final parsed = GymRouteService.parseRoute(<String, Object?>{
+        'code': 'Ok',
+        'routes': <Object?>[route(1572, 1258), route(1458, 1167), 'inválida'],
+      }, GymRouteMode.walking);
+
+      expect(parsed, isNotNull);
+      expect(parsed!.distanceMeters, 1458);
+      expect(parsed.durationSeconds, 1167);
+    });
+
     test('returns null when OSRM finds no route', () {
       expect(
         GymRouteService.parseRoute(<String, Object?>{
@@ -73,6 +98,7 @@ void main() {
       expect(requested.path, contains('/routed-car/route/v1/driving/'));
       expect(requested.path, contains('-44.280000,-2.530000;'));
       expect(requested.queryParameters['geometries'], 'geojson');
+      expect(requested.queryParameters['alternatives'], 'true');
     });
 
     test('distanceToRouteMeters is ~0 on the line and grows off it', () {

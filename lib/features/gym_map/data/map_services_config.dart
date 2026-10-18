@@ -51,6 +51,8 @@ class MapServicesConfig {
       queryParameters: const <String, String>{
         'overview': 'full',
         'geometries': 'geojson',
+        // Alternativas para o app escolher a mais rápida.
+        'alternatives': 'true',
       },
     );
   }

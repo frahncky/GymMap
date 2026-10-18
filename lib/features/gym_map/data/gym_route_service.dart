@@ -92,16 +92,31 @@ class GymRouteService {
     }
   }
 
-  /// Lê a resposta do OSRM (`geometries=geojson`). Pública para testes.
+  /// Lê a resposta do OSRM (`geometries=geojson`) e fica com a rota mais
+  /// rápida. O servidor ordena as rotas pelo próprio critério (a pé, evita
+  /// avenidas mesmo quando passar por elas é mais curto), então a primeira
+  /// nem sempre é a melhor. Pública para testes.
   static GymRoute? parseRoute(Object? decoded, GymRouteMode mode) {
     if (decoded is! Map || decoded['code'] != 'Ok') {
       return null;
     }
     final routes = decoded['routes'];
-    if (routes is! List || routes.isEmpty || routes.first is! Map) {
+    if (routes is! List) {
       return null;
     }
-    final route = routes.first as Map;
+    GymRoute? fastest;
+    for (final route in routes) {
+      final parsed = route is Map ? _parseSingleRoute(route, mode) : null;
+      if (parsed != null &&
+          (fastest == null ||
+              parsed.durationSeconds < fastest.durationSeconds)) {
+        fastest = parsed;
+      }
+    }
+    return fastest;
+  }
+
+  static GymRoute? _parseSingleRoute(Map route, GymRouteMode mode) {
     final geometry = route['geometry'];
     final coordinates = geometry is Map ? geometry['coordinates'] : null;
     if (coordinates is! List) {
