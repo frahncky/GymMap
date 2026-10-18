@@ -42,8 +42,13 @@ class ContextualPushNotificationService {
       iOS: darwinSettings,
       macOS: darwinSettings,
     );
-    await _notificationsPlugin.initialize(settings);
-    _isInitialized = true;
+    try {
+      await _notificationsPlugin.initialize(settings: settings);
+      _isInitialized = true;
+    } catch (_) {
+      // Sem o plugin na plataforma (ex.: testes, desktop) não há notificações;
+      // isso não pode afetar o restante do app.
+    }
   }
 
   Future<void> _requestPermissions() async {
@@ -89,6 +94,9 @@ class ContextualPushNotificationService {
     }
     if (!_isInitialized) {
       await initialize();
+      if (!_isInitialized) {
+        return;
+      }
     }
     await _requestPermissions();
 
@@ -154,10 +162,10 @@ class ContextualPushNotificationService {
 
     final notificationId = _notificationIdForGym(gymId);
     await _notificationsPlugin.show(
-      notificationId,
-      title,
-      body,
-      details,
+      id: notificationId,
+      title: title,
+      body: body,
+      notificationDetails: details,
       payload: gymId,
     );
 

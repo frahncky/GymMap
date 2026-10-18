@@ -302,8 +302,10 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
 
       // Prioriza coordenada atual para evitar usar cache antigo de outra cidade.
       final current = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 5),
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 5),
+        ),
       );
       return LatLng(current.latitude, current.longitude);
     } catch (_) {

@@ -218,7 +218,9 @@ extension _GymMapPageLocation on _GymMapPageState {
       }
 
       final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.medium,
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.medium,
+        ),
       ).timeout(const Duration(seconds: 8));
 
       if (!mounted) {
