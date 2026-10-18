@@ -64,18 +64,54 @@ class GymPageHeader extends StatelessWidget {
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: withUiOpacity(planBadgeColor, 0.90),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              planLabel,
-              style: TextStyle(
-                color: planBadgeTextColor,
-                fontWeight: FontWeight.w800,
-                fontSize: 12,
+          // O selo do plano abre planos e assinatura.
+          Semantics(
+            button: true,
+            label: '$planLabel. ${_t.headerPlanSettings}',
+            hint: _t.headerPlanSettingsHint,
+            excludeSemantics: true,
+            child: Tooltip(
+              message: _t.headerPlanSettings,
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: onOpenPlanSettings,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      minHeight: 48,
+                      minWidth: 48,
+                    ),
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.fromLTRB(10, 6, 6, 6),
+                        decoration: BoxDecoration(
+                          color: withUiOpacity(planBadgeColor, 0.90),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              planLabel,
+                              style: TextStyle(
+                                color: planBadgeTextColor,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(width: 2),
+                            Icon(
+                              Icons.expand_more_rounded,
+                              size: 16,
+                              color: planBadgeTextColor,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
@@ -132,17 +168,6 @@ class GymPageHeader extends StatelessWidget {
                   ),
                 ),
               ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Semantics(
-            button: true,
-            label: _t.headerPlanSettings,
-            hint: _t.headerPlanSettingsHint,
-            child: IconButton(
-              tooltip: _t.headerPlanSettings,
-              onPressed: onOpenPlanSettings,
-              icon: const Icon(Icons.settings, color: Colors.white),
             ),
           ),
         ],

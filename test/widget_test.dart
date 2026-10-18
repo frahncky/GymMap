@@ -26,7 +26,8 @@ void main() {
     expect(find.byType(BrandWordmark), findsOneWidget);
     expect(find.text('Mapa desativado no modo de teste'), findsOneWidget);
     expect(find.textContaining('Toque no marcador'), findsNothing);
-    expect(find.byIcon(Icons.settings), findsOneWidget);
+    expect(find.byIcon(Icons.settings), findsNothing);
+    expect(find.byTooltip('Planos e assinatura'), findsOneWidget);
     expect(find.textContaining('Anúncio ·'), findsOneWidget);
     expect(find.text('Enviar relato colaborativo'), findsNothing);
   });

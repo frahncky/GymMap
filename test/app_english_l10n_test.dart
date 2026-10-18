@@ -114,8 +114,8 @@ void main() {
     check('Community ranking');
     await closeOverlay();
 
-    // Painel de planos e a janela de login.
-    await tester.tap(find.byIcon(Icons.settings).first);
+    // Painel de planos (aberto pelo selo do plano) e a janela de login.
+    await tester.tap(find.byTooltip('Plans and subscription').first);
     await _settle(tester);
     check('Plans');
     final signIn = find.widgetWithText(OutlinedButton, 'Sign in');
