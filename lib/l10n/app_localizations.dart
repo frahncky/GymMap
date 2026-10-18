@@ -2150,23 +2150,11 @@ abstract class AppLocalizations {
   /// **'Não foi possível calcular o trajeto agora.'**
   String get routeFailed;
 
-  /// No description provided for @routeClose.
-  ///
-  /// In pt, this message translates to:
-  /// **'Fechar trajeto'**
-  String get routeClose;
-
   /// No description provided for @routeWalking.
   ///
   /// In pt, this message translates to:
   /// **'A pé'**
   String get routeWalking;
-
-  /// No description provided for @routeCycling.
-  ///
-  /// In pt, this message translates to:
-  /// **'Bicicleta'**
-  String get routeCycling;
 
   /// No description provided for @routeDriving.
   ///
@@ -2203,6 +2191,30 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Piscina'**
   String get amenityPool;
+
+  /// No description provided for @routeHideCard.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ocultar cartão (o trajeto continua no mapa)'**
+  String get routeHideCard;
+
+  /// No description provided for @routeEnd.
+  ///
+  /// In pt, this message translates to:
+  /// **'Encerrar trajeto'**
+  String get routeEnd;
+
+  /// No description provided for @routeRecalculating.
+  ///
+  /// In pt, this message translates to:
+  /// **'Recalculando trajeto...'**
+  String get routeRecalculating;
+
+  /// No description provided for @routeArrived.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você chegou à academia.'**
+  String get routeArrived;
 }
 
 class _AppLocalizationsDelegate

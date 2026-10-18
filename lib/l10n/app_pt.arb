@@ -732,13 +732,15 @@
   "gymUnnamed": "Academia",
   "routeCalculating": "Calculando trajeto...",
   "routeFailed": "Não foi possível calcular o trajeto agora.",
-  "routeClose": "Fechar trajeto",
   "routeWalking": "A pé",
-  "routeCycling": "Bicicleta",
   "routeDriving": "Carro",
   "routeOpenInGoogleMaps": "Navegar no Google Maps",
   "amenityWeights": "Musculação",
   "amenityCardio": "Cardio",
   "amenityGroupClasses": "Aulas coletivas",
-  "amenityPool": "Piscina"
+  "amenityPool": "Piscina",
+  "routeHideCard": "Ocultar cartão (o trajeto continua no mapa)",
+  "routeEnd": "Encerrar trajeto",
+  "routeRecalculating": "Recalculando trajeto...",
+  "routeArrived": "Você chegou à academia."
 }

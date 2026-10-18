@@ -342,13 +342,15 @@
   "gymUnnamed": "Gym",
   "routeCalculating": "Calculating route...",
   "routeFailed": "Couldn't calculate the route right now.",
-  "routeClose": "Close route",
   "routeWalking": "Walk",
-  "routeCycling": "Bike",
   "routeDriving": "Car",
   "routeOpenInGoogleMaps": "Navigate in Google Maps",
   "amenityWeights": "Weight training",
   "amenityCardio": "Cardio",
   "amenityGroupClasses": "Group classes",
-  "amenityPool": "Pool"
+  "amenityPool": "Pool",
+  "routeHideCard": "Hide card (the route stays on the map)",
+  "routeEnd": "End route",
+  "routeRecalculating": "Recalculating route...",
+  "routeArrived": "You've arrived at the gym."
 }

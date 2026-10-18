@@ -30,12 +30,22 @@ extension _GymMapPageLocation on _GymMapPageState {
       permission == LocationPermission.always;
 
   LocationSettings _backgroundLocationSettings() {
+    // Durante um trajeto a posição é acompanhada de perto, para detectar
+    // quando a pessoa sai do caminho.
+    final isRouting = _routeGym != null;
+    final distanceFilter =
+        (isRouting
+                ? _GymMapPageState._routeTrackingDistanceFilterMeters
+                : _GymMapPageState._backgroundLocationDistanceFilterMeters)
+            .round();
     if (defaultTargetPlatform == TargetPlatform.android) {
       return AndroidSettings(
         accuracy: LocationAccuracy.high,
-        distanceFilter:
-            _GymMapPageState._backgroundLocationDistanceFilterMeters.round(),
-        intervalDuration: _GymMapPageState._backgroundLocationInterval,
+        distanceFilter: distanceFilter,
+        intervalDuration:
+            isRouting
+                ? _GymMapPageState._routeTrackingInterval
+                : _GymMapPageState._backgroundLocationInterval,
         foregroundNotificationConfig: ForegroundNotificationConfig(
           notificationTitle: _t.locationNotificationTitle,
           notificationText: _t.locationNotificationText,
@@ -48,8 +58,7 @@ extension _GymMapPageLocation on _GymMapPageState {
         defaultTargetPlatform == TargetPlatform.macOS) {
       return AppleSettings(
         accuracy: LocationAccuracy.best,
-        distanceFilter:
-            _GymMapPageState._backgroundLocationDistanceFilterMeters.round(),
+        distanceFilter: distanceFilter,
         pauseLocationUpdatesAutomatically: false,
         allowBackgroundLocationUpdates: true,
         showBackgroundLocationIndicator: true,
@@ -59,13 +68,28 @@ extension _GymMapPageLocation on _GymMapPageState {
 
     return LocationSettings(
       accuracy: LocationAccuracy.high,
-      distanceFilter:
-          _GymMapPageState._backgroundLocationDistanceFilterMeters.round(),
+      distanceFilter: distanceFilter,
     );
+  }
+
+  /// Reinicia o rastreamento com o ritmo atual (normal ou de trajeto).
+  Future<void> _restartPositionStream() async {
+    await _stopBackgroundLocationStream();
+    if (!mounted) {
+      return;
+    }
+    await _startBackgroundLocationStream();
   }
 
   void _onBackgroundLocationUpdate(Position position) {
     final userPoint = LatLng(position.latitude, position.longitude);
+    if (_routeGym != null && mounted) {
+      _setStateIfMapVisible(() {
+        _userLocation = userPoint;
+      });
+      _checkRouteProgress(userPoint);
+      return;
+    }
     final previousLocation = _userLocation;
     if (previousLocation != null &&
         _isWithinDistanceMeters(

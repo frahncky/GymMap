@@ -64,15 +64,44 @@ void main() {
       Future<GymRoute?> fetch() => service.fetchRoute(
         origin: const LatLng(-2.53, -44.28),
         destination: const LatLng(-2.515, -44.265),
-        mode: GymRouteMode.cycling,
+        mode: GymRouteMode.driving,
       );
 
       expect(await fetch(), isNotNull);
       expect(await fetch(), isNotNull);
       expect(calls, 1);
-      expect(requested.path, contains('/routed-bike/route/v1/driving/'));
+      expect(requested.path, contains('/routed-car/route/v1/driving/'));
       expect(requested.path, contains('-44.280000,-2.530000;'));
       expect(requested.queryParameters['geometries'], 'geojson');
+    });
+
+    test('distanceToRouteMeters is ~0 on the line and grows off it', () {
+      // Rua reta de leste a oeste, ~1,1 km.
+      const route = <LatLng>[LatLng(-2.53, -44.29), LatLng(-2.53, -44.28)];
+
+      expect(
+        GymRouteService.distanceToRouteMeters(
+          const LatLng(-2.53, -44.285),
+          route,
+        ),
+        lessThan(1),
+      );
+      // 0,0005° de latitude ≈ 55 m ao lado da rua: fora da tolerância a pé.
+      expect(
+        GymRouteService.distanceToRouteMeters(
+          const LatLng(-2.5295, -44.285),
+          route,
+        ),
+        closeTo(55, 3),
+      );
+      // Além da ponta, mede até a ponta (e não até a reta infinita).
+      expect(
+        GymRouteService.distanceToRouteMeters(
+          const LatLng(-2.53, -44.275),
+          route,
+        ),
+        closeTo(556, 10),
+      );
     });
 
     test('returns null when the server fails', () async {

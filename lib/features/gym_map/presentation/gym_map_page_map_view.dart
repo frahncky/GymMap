@@ -172,8 +172,18 @@ extension _GymMapPageMapView on _GymMapPageState {
             ),
           ],
         ),
-        if (_routeGymId != null)
-          Positioned(left: 12, right: 12, bottom: 28, child: _buildRouteCard()),
+        if (_routeGym != null && _isRouteCardOpen)
+          Positioned(left: 12, right: 12, bottom: 28, child: _buildRouteCard())
+        else if (_routeGym != null)
+          Positioned(
+            left: 12,
+            right: 76,
+            bottom: 28,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: _buildRoutePill(),
+            ),
+          ),
         if (_vectorMapStyle == null)
           Positioned(
             left: 12,
@@ -539,10 +549,17 @@ extension _GymMapPageMapView on _GymMapPageState {
   /// Desenha no mapa o trajeto da posição atual até [gym]. Sem localização,
   /// abre o Google Maps, como antes. Sem [mode], escolhe a pé para academias
   /// a até 1,5 km em linha reta e carro para as mais distantes.
-  Future<void> _showRouteToGym(Gym gym, {GymRouteMode? mode}) async {
+  ///
+  /// [isReroute] recalcula a partir de onde a pessoa está, sem mexer na
+  /// câmera nem reabrir o cartão (ela saiu do caminho durante o trajeto).
+  Future<void> _showRouteToGym(
+    Gym gym, {
+    GymRouteMode? mode,
+    bool isReroute = false,
+  }) async {
     final origin = _userLocation;
     if (origin == null) {
-      await _openGymInGoogleMaps(gym);
+      await _openGymInGoogleMaps(gym, mode: mode ?? GymRouteMode.driving);
       return;
     }
     final selectedMode =
@@ -550,28 +567,44 @@ extension _GymMapPageMapView on _GymMapPageState {
         (_isWithinDistanceMeters(origin, gym.position, 1500)
             ? GymRouteMode.walking
             : GymRouteMode.driving);
+    final wasTracking = _routeGym != null;
     final requestId = ++_routeRequestId;
     _setStateIfMapVisible(() {
-      _routeGymId = gym.id;
+      _routeGym = gym;
       _routeMode = selectedMode;
       _isLoadingRoute = true;
+      if (!isReroute) {
+        _isRouteCardOpen = true;
+      }
     });
+    if (!wasTracking) {
+      // Com trajeto ativo, a localização passa a ser acompanhada de perto.
+      unawaited(_restartPositionStream());
+    }
 
     final route = await _routeService.fetchRoute(
       origin: origin,
       destination: gym.position,
       mode: selectedMode,
     );
-    // Outro pedido (outro modo ou outra academia) chegou depois deste.
+    // Outro pedido (outro modo, outra academia ou encerrado) chegou depois.
     if (!mounted || requestId != _routeRequestId) {
       return;
     }
     _setStateIfMapVisible(() {
       _isLoadingRoute = false;
-      _activeRoute = route;
+      // Num recálculo que falhou, mantém a linha anterior na tela.
+      if (route != null || !isReroute) {
+        _activeRoute = route;
+      }
     });
     if (route == null) {
-      _showMapSnack(_t.routeFailed);
+      if (!isReroute) {
+        _showMapSnack(_t.routeFailed);
+      }
+      return;
+    }
+    if (isReroute) {
       return;
     }
     try {
@@ -585,6 +618,41 @@ extension _GymMapPageMapView on _GymMapPageState {
     } catch (_) {
       // Sem o mapa montado, o trajeto aparece quando ele estiver pronto.
     }
+  }
+
+  /// Chamado a cada nova posição durante o trajeto: avisa a chegada e
+  /// recalcula a rota quando a pessoa se afasta da linha.
+  void _checkRouteProgress(LatLng position) {
+    final gym = _routeGym;
+    final route = _activeRoute;
+    if (gym == null || route == null || _isLoadingRoute) {
+      return;
+    }
+    if (_isWithinDistanceMeters(
+      position,
+      gym.position,
+      _GymMapPageState._routeArrivalMeters,
+    )) {
+      _showMapSnack(_t.routeArrived);
+      _clearRoute();
+      return;
+    }
+    final tolerance =
+        route.mode == GymRouteMode.walking
+            ? _GymMapPageState._offRouteWalkingMeters
+            : _GymMapPageState._offRouteDrivingMeters;
+    if (GymRouteService.distanceToRouteMeters(position, route.points) <=
+        tolerance) {
+      return;
+    }
+    final now = DateTime.now();
+    final last = _lastRerouteAt;
+    if (last != null &&
+        now.difference(last) < _GymMapPageState._rerouteCooldown) {
+      return;
+    }
+    _lastRerouteAt = now;
+    unawaited(_showRouteToGym(gym, mode: route.mode, isReroute: true));
   }
 
   String _formatRouteDistance(double meters) {
@@ -604,16 +672,26 @@ extension _GymMapPageMapView on _GymMapPageState {
     return rest == 0 ? '${minutes ~/ 60} h' : '${minutes ~/ 60} h $rest min';
   }
 
-  /// Cartão sobre o mapa: resumo do trajeto, escolha do meio de transporte e
-  /// atalho para navegar no Google Maps.
-  Widget _buildRouteCard() {
+  String get _routeSummary {
     final route = _activeRoute;
-    final gym = _selectedGym;
-    final summary =
-        _isLoadingRoute || route == null
-            ? _t.routeCalculating
-            : '${_formatRouteDistance(route.distanceMeters)} · '
-                '${_formatRouteDuration(route.durationSeconds)}';
+    if (_isLoadingRoute || route == null) {
+      return _routeGym != null && route != null
+          ? _t.routeRecalculating
+          : _t.routeCalculating;
+    }
+    return '${_formatRouteDistance(route.distanceMeters)} · '
+        '${_formatRouteDuration(route.durationSeconds)}';
+  }
+
+  IconData _routeModeIcon(GymRouteMode mode) => switch (mode) {
+    GymRouteMode.walking => Icons.directions_walk_rounded,
+    GymRouteMode.driving => Icons.directions_car_rounded,
+  };
+
+  /// Cartão sobre o mapa: resumo do trajeto, a pé ou de carro, atalho para
+  /// navegar no Google Maps e encerrar. Fechar o cartão mantém o trajeto.
+  Widget _buildRouteCard() {
+    final gym = _routeGym;
     return Material(
       color: Colors.white,
       elevation: 6,
@@ -631,7 +709,7 @@ extension _GymMapPageMapView on _GymMapPageState {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    summary,
+                    _routeSummary,
                     style: const TextStyle(
                       fontWeight: FontWeight.w800,
                       fontSize: 15,
@@ -646,9 +724,11 @@ extension _GymMapPageMapView on _GymMapPageState {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
                 IconButton(
-                  tooltip: _t.routeClose,
-                  icon: const Icon(Icons.close_rounded),
-                  onPressed: _clearRoute,
+                  tooltip: _t.routeHideCard,
+                  icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                  onPressed:
+                      () =>
+                          _setStateIfMapVisible(() => _isRouteCardOpen = false),
                 ),
               ],
             ),
@@ -659,17 +739,12 @@ extension _GymMapPageMapView on _GymMapPageState {
                 segments: <ButtonSegment<GymRouteMode>>[
                   ButtonSegment(
                     value: GymRouteMode.walking,
-                    icon: const Icon(Icons.directions_walk_rounded),
+                    icon: Icon(_routeModeIcon(GymRouteMode.walking)),
                     label: Text(_t.routeWalking),
                   ),
                   ButtonSegment(
-                    value: GymRouteMode.cycling,
-                    icon: const Icon(Icons.pedal_bike_rounded),
-                    label: Text(_t.routeCycling),
-                  ),
-                  ButtonSegment(
                     value: GymRouteMode.driving,
-                    icon: const Icon(Icons.directions_car_rounded),
+                    icon: Icon(_routeModeIcon(GymRouteMode.driving)),
                     label: Text(_t.routeDriving),
                   ),
                 ],
@@ -680,34 +755,91 @@ extension _GymMapPageMapView on _GymMapPageState {
                 },
               ),
             ),
-            if (gym != null)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed:
-                      () => unawaited(
-                        _openGymInGoogleMaps(gym, mode: _routeMode),
+            Row(
+              children: [
+                if (gym != null)
+                  Expanded(
+                    child: TextButton.icon(
+                      onPressed:
+                          () => unawaited(
+                            _openGymInGoogleMaps(gym, mode: _routeMode),
+                          ),
+                      icon: const Icon(Icons.navigation_rounded, size: 18),
+                      label: Text(
+                        _t.routeOpenInGoogleMaps,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                  icon: const Icon(Icons.navigation_rounded, size: 18),
-                  label: Text(_t.routeOpenInGoogleMaps),
+                    ),
+                  ),
+                TextButton.icon(
+                  onPressed: _clearRoute,
+                  icon: const Icon(Icons.close_rounded, size: 18),
+                  label: Text(_t.routeEnd),
                 ),
-              ),
+              ],
+            ),
           ],
         ),
       ),
     );
   }
 
+  /// Com o cartão fechado, o trajeto continua no mapa e fica esta pílula:
+  /// tocar reabre o cartão; o ✕ encerra o trajeto.
+  Widget _buildRoutePill() {
+    return Material(
+      color: Colors.white,
+      elevation: 6,
+      shadowColor: GymMapColors.floatingControlShadow,
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: () => _setStateIfMapVisible(() => _isRouteCardOpen = true),
+        child: Padding(
+          padding: const EdgeInsets.only(left: 14),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(_routeModeIcon(_routeMode), size: 20),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  _routeSummary,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: GymMapColors.textPrimary,
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: _t.routeEnd,
+                icon: const Icon(Icons.close_rounded),
+                onPressed: _clearRoute,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Encerra o trajeto: some a linha, o cartão e a pílula, e a localização
+  /// volta a ser acompanhada no ritmo normal.
   void _clearRoute() {
     _routeRequestId++;
-    if (_routeGymId == null && _activeRoute == null) {
+    if (_routeGym == null && _activeRoute == null) {
       return;
     }
     _setStateIfMapVisible(() {
-      _routeGymId = null;
+      _routeGym = null;
       _activeRoute = null;
       _isLoadingRoute = false;
+      _isRouteCardOpen = false;
     });
+    _lastRerouteAt = null;
+    unawaited(_restartPositionStream());
   }
 
   Future<void> _openGymInGoogleMaps(
@@ -719,7 +851,6 @@ extension _GymMapPageMapView on _GymMapPageState {
     final destination = '$latitude,$longitude';
     final (androidMode, travelMode) = switch (mode) {
       GymRouteMode.walking => ('w', 'walking'),
-      GymRouteMode.cycling => ('b', 'bicycling'),
       GymRouteMode.driving => ('d', 'driving'),
     };
 

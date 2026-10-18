@@ -1217,13 +1217,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get routeFailed => 'Couldn\'t calculate the route right now.';
 
   @override
-  String get routeClose => 'Close route';
-
-  @override
   String get routeWalking => 'Walk';
-
-  @override
-  String get routeCycling => 'Bike';
 
   @override
   String get routeDriving => 'Car';
@@ -1242,4 +1236,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get amenityPool => 'Pool';
+
+  @override
+  String get routeHideCard => 'Hide card (the route stays on the map)';
+
+  @override
+  String get routeEnd => 'End route';
+
+  @override
+  String get routeRecalculating => 'Recalculating route...';
+
+  @override
+  String get routeArrived => 'You\'ve arrived at the gym.';
 }

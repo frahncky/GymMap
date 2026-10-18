@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
@@ -8,12 +9,11 @@ import 'map_services_config.dart';
 /// Meio de transporte do trajeto até a academia.
 enum GymRouteMode {
   walking('foot'),
-  cycling('bike'),
   driving('car');
 
   const GymRouteMode(this.profile);
 
-  /// Perfil do servidor de rotas (`routed-foot`, `routed-bike`, `routed-car`).
+  /// Perfil do servidor de rotas (`routed-foot` ou `routed-car`).
   final String profile;
 }
 
@@ -33,7 +33,7 @@ class GymRoute {
 }
 
 /// Calcula trajetos com um servidor OSRM. O padrão é o do OpenStreetMap
-/// alemão (FOSSGIS), que tem rotas reais a pé, de bicicleta e de carro; o
+/// alemão (FOSSGIS), que tem rotas reais a pé e de carro; o
 /// servidor de demonstração do OSRM só calcula rotas de carro.
 class GymRouteService {
   GymRouteService({http.Client? httpClient})
@@ -126,6 +126,43 @@ class GymRouteService {
       durationSeconds: duration.toDouble(),
       mode: mode,
     );
+  }
+
+  /// Menor distância, em metros, de [point] até a linha do trajeto. Usa uma
+  /// projeção plana local, precisa o bastante para detectar desvios de
+  /// dezenas de metros.
+  static double distanceToRouteMeters(LatLng point, List<LatLng> route) {
+    if (route.isEmpty) {
+      return double.infinity;
+    }
+    const metersPerDegreeLat = 110540.0;
+    final metersPerDegreeLng =
+        111320.0 * math.cos(point.latitude * math.pi / 180);
+    (double, double) project(LatLng p) => (
+      (p.longitude - point.longitude) * metersPerDegreeLng,
+      (p.latitude - point.latitude) * metersPerDegreeLat,
+    );
+    var best = double.infinity;
+    var previous = project(route.first);
+    best = math.sqrt(previous.$1 * previous.$1 + previous.$2 * previous.$2);
+    for (final next in route.skip(1).map(project)) {
+      // Distância da origem (o ponto) ao segmento previous–next.
+      final dx = next.$1 - previous.$1;
+      final dy = next.$2 - previous.$2;
+      final lengthSquared = dx * dx + dy * dy;
+      final t =
+          lengthSquared == 0
+              ? 0.0
+              : ((-previous.$1 * dx - previous.$2 * dy) / lengthSquared).clamp(
+                0.0,
+                1.0,
+              );
+      final x = previous.$1 + t * dx;
+      final y = previous.$2 + t * dy;
+      best = math.min(best, math.sqrt(x * x + y * y));
+      previous = next;
+    }
+    return best;
   }
 
   // OSRM usa longitude,latitude.

@@ -103,6 +103,14 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   // Com pelo menos isto de academias na lista compartilhada, a área já está
   // mapeada e o Overpass público não é consultado.
   static const int _minSharedGymsToSkipOverpass = 5;
+  // Trajeto em andamento: a localização é acompanhada de perto e, se a
+  // pessoa se afastar da linha, uma nova rota é calculada.
+  static const double _routeTrackingDistanceFilterMeters = 10;
+  static const Duration _routeTrackingInterval = Duration(seconds: 3);
+  static const double _offRouteWalkingMeters = 40;
+  static const double _offRouteDrivingMeters = 70;
+  static const Duration _rerouteCooldown = Duration(seconds: 12);
+  static const double _routeArrivalMeters = 30;
   static const double _mapBrowseAnchorUpdateMinDistanceMeters = 220;
   static const Duration _mapPoiReloadDebounceDelay = Duration(
     milliseconds: 450,
@@ -164,7 +172,9 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   // Trajeto até a academia, desenhado no próprio mapa.
   final GymRouteService _routeService = GymRouteService();
   GymRoute? _activeRoute;
-  String? _routeGymId;
+  Gym? _routeGym;
+  bool _isRouteCardOpen = false;
+  DateTime? _lastRerouteAt;
   GymRouteMode _routeMode = GymRouteMode.walking;
   bool _isLoadingRoute = false;
   int _routeRequestId = 0;

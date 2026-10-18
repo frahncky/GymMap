@@ -1230,13 +1230,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get routeFailed => 'Não foi possível calcular o trajeto agora.';
 
   @override
-  String get routeClose => 'Fechar trajeto';
-
-  @override
   String get routeWalking => 'A pé';
-
-  @override
-  String get routeCycling => 'Bicicleta';
 
   @override
   String get routeDriving => 'Carro';
@@ -1255,4 +1249,16 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get amenityPool => 'Piscina';
+
+  @override
+  String get routeHideCard => 'Ocultar cartão (o trajeto continua no mapa)';
+
+  @override
+  String get routeEnd => 'Encerrar trajeto';
+
+  @override
+  String get routeRecalculating => 'Recalculando trajeto...';
+
+  @override
+  String get routeArrived => 'Você chegou à academia.';
 }
