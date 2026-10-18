@@ -80,6 +80,7 @@ extension _GymMapPageInteractions on _GymMapPageState {
     if (moveMap) {
       _moveMapTo(gym.position, 15);
     }
+    unawaited(_loadAmenityVotes(<String>[gym.id]));
     unawaited(
       _syncCrowdReportsForGyms(_crowdSyncGymIds(extraGymIds: [gym.id])),
     );

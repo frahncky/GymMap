@@ -2185,6 +2185,192 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Você chegou à academia.'**
   String get routeArrived;
+
+  /// No description provided for @amenityCrossfit.
+  ///
+  /// In pt, this message translates to:
+  /// **'Crossfit'**
+  String get amenityCrossfit;
+
+  /// No description provided for @amenityPilates.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pilates'**
+  String get amenityPilates;
+
+  /// No description provided for @amenityMartialArts.
+  ///
+  /// In pt, this message translates to:
+  /// **'Lutas'**
+  String get amenityMartialArts;
+
+  /// No description provided for @amenityFunctionalDance.
+  ///
+  /// In pt, this message translates to:
+  /// **'Dança e funcional'**
+  String get amenityFunctionalDance;
+
+  /// No description provided for @amenityLockerRoom.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vestiário com chuveiro'**
+  String get amenityLockerRoom;
+
+  /// No description provided for @amenityAirConditioning.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ar-condicionado'**
+  String get amenityAirConditioning;
+
+  /// No description provided for @amenityParking.
+  ///
+  /// In pt, this message translates to:
+  /// **'Estacionamento'**
+  String get amenityParking;
+
+  /// No description provided for @amenityAccessibility.
+  ///
+  /// In pt, this message translates to:
+  /// **'Acessibilidade'**
+  String get amenityAccessibility;
+
+  /// No description provided for @amenityOpen24h.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aberta 24h'**
+  String get amenityOpen24h;
+
+  /// No description provided for @amenityPersonalTrainer.
+  ///
+  /// In pt, this message translates to:
+  /// **'Personal trainer'**
+  String get amenityPersonalTrainer;
+
+  /// No description provided for @amenityFitnessAssessment.
+  ///
+  /// In pt, this message translates to:
+  /// **'Avaliação física'**
+  String get amenityFitnessAssessment;
+
+  /// No description provided for @amenityAddTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Marcar o que a academia oferece'**
+  String get amenityAddTooltip;
+
+  /// No description provided for @amenitySheetTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'O que a {gym} oferece?'**
+  String amenitySheetTitle(String gym);
+
+  /// No description provided for @amenitySheetSubtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Marque o que você sabe. Um item aparece para todos quando {needed} pessoas confirmam.'**
+  String amenitySheetSubtitle(String needed);
+
+  /// No description provided for @amenityStatusConfirmed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Confirmado por {count} pessoas'**
+  String amenityStatusConfirmed(String count);
+
+  /// No description provided for @amenityStatusPending.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count} de {needed} confirmações'**
+  String amenityStatusPending(String count, String needed);
+
+  /// No description provided for @amenityStatusRejected.
+  ///
+  /// In pt, this message translates to:
+  /// **'A comunidade diz que não tem'**
+  String get amenityStatusRejected;
+
+  /// No description provided for @amenityPointsHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você ganha 2 pontos por item quando a comunidade confirmar o que você marcou.'**
+  String get amenityPointsHint;
+
+  /// No description provided for @amenitySave.
+  ///
+  /// In pt, this message translates to:
+  /// **'Enviar'**
+  String get amenitySave;
+
+  /// No description provided for @amenitySaved.
+  ///
+  /// In pt, this message translates to:
+  /// **'Obrigado! +{points} pontos.'**
+  String amenitySaved(String points);
+
+  /// No description provided for @amenitySavedNoPoints.
+  ///
+  /// In pt, this message translates to:
+  /// **'Obrigado! Você ganha pontos quando outras pessoas confirmarem.'**
+  String get amenitySavedNoPoints;
+
+  /// No description provided for @amenitySaveFailed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não deu para enviar agora. Tente de novo mais tarde.'**
+  String get amenitySaveFailed;
+
+  /// No description provided for @amenityUnavailable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Marcar o que a academia oferece não está disponível agora.'**
+  String get amenityUnavailable;
+
+  /// No description provided for @rewardsTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Troque seus pontos'**
+  String get rewardsTitle;
+
+  /// No description provided for @rewardsOffer.
+  ///
+  /// In pt, this message translates to:
+  /// **'{cost} pontos = {days} dias do plano Essencial'**
+  String rewardsOffer(String cost, String days);
+
+  /// No description provided for @rewardsProgress.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você tem {balance} de {cost} pontos'**
+  String rewardsProgress(String balance, String cost);
+
+  /// No description provided for @rewardsHowToEarn.
+  ///
+  /// In pt, this message translates to:
+  /// **'+5 pontos por relato e +2 por item que você marcou e a comunidade confirmou.'**
+  String get rewardsHowToEarn;
+
+  /// No description provided for @rewardsRedeem.
+  ///
+  /// In pt, this message translates to:
+  /// **'Trocar por {days} dias'**
+  String rewardsRedeem(String days);
+
+  /// No description provided for @rewardsRedeemed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pronto! Você ganhou {days} dias do plano Essencial.'**
+  String rewardsRedeemed(String days);
+
+  /// No description provided for @rewardsHigherPlan.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seu plano já inclui tudo do Essencial.'**
+  String get rewardsHigherPlan;
+
+  /// No description provided for @rewardsFailed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não deu para trocar agora. Tente de novo mais tarde.'**
+  String get rewardsFailed;
 }
 
 class _AppLocalizationsDelegate

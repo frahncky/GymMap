@@ -35,6 +35,8 @@ import 'gym_map_logic.dart';
 import 'gym_map_poi_controller.dart';
 import 'gym_map_poi_reload_controller.dart';
 import 'gym_map_search_state_controller.dart';
+import '../../../core/theme/app_theme.dart';
+import 'widgets/amenity_vote_sheet.dart';
 import 'widgets/gym_marker_bubble.dart';
 import 'widgets/gym_page_sections.dart';
 import 'widgets/map_controls.dart';
@@ -51,6 +53,7 @@ part 'gym_map_page_interactions.dart';
 part 'gym_map_page_state_cache.dart';
 part 'gym_map_page_community.dart';
 part 'gym_map_page_plan.dart';
+part 'gym_map_page_amenities.dart';
 
 /// Traduções do idioma em uso (válido também depois de `await`).
 AppLocalizations get _t => AppL10n.current;
@@ -132,6 +135,10 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   static const int _maxMapPoiMarkersZoomedOut = 48;
   static const int _layoutTotalFlex = 100;
   static const int _panelMinFlex = 42;
+
+  /// Pessoas que precisam marcar "tem" para a comodidade valer para todos
+  /// (o servidor usa o mesmo número).
+  static const int _amenityConfirmThreshold = 3;
   static const int _panelMaxFlex = 66;
   static const double _panelFlexDragSensitivity = 0.28;
   static const double _panelDragPixelThreshold = 3;
@@ -197,6 +204,12 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       CollaborativeCrowdService.withSeedData();
   final GymMapPoiController _mapPoiController = GymMapPoiController();
   CrowdReportRemoteService? _crowdReportRemoteService;
+
+  // Votos da comunidade nas comodidades, por academia, e o saldo de pontos
+  // no servidor (null sem servidor; aí vale _communityPoints).
+  final Map<String, List<GymAmenityVotes>> _amenityVotesByGymId =
+      <String, List<GymAmenityVotes>>{};
+  RemoteRewards? _rewards;
   bool _isSyncingCrowdReports = false;
   bool _isSubmittingCrowdReport = false;
   int _communityPoints = 0;
@@ -557,7 +570,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                     planLabel: activePlan.label,
                     planBadgeColor: _planAccentColor(_activePlan),
                     planBadgeTextColor: _planOnAccentColor(_activePlan),
-                    communityPoints: _communityPoints,
+                    communityPoints: _displayedCommunityPoints,
                     onOpenPlanSettings: _openPlanSettings,
                     onOpenCommunityRanking: _openCommunityLeaderboard,
                   ),

@@ -1243,4 +1243,121 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get routeArrived => 'Você chegou à academia.';
+
+  @override
+  String get amenityCrossfit => 'Crossfit';
+
+  @override
+  String get amenityPilates => 'Pilates';
+
+  @override
+  String get amenityMartialArts => 'Lutas';
+
+  @override
+  String get amenityFunctionalDance => 'Dança e funcional';
+
+  @override
+  String get amenityLockerRoom => 'Vestiário com chuveiro';
+
+  @override
+  String get amenityAirConditioning => 'Ar-condicionado';
+
+  @override
+  String get amenityParking => 'Estacionamento';
+
+  @override
+  String get amenityAccessibility => 'Acessibilidade';
+
+  @override
+  String get amenityOpen24h => 'Aberta 24h';
+
+  @override
+  String get amenityPersonalTrainer => 'Personal trainer';
+
+  @override
+  String get amenityFitnessAssessment => 'Avaliação física';
+
+  @override
+  String get amenityAddTooltip => 'Marcar o que a academia oferece';
+
+  @override
+  String amenitySheetTitle(String gym) {
+    return 'O que a $gym oferece?';
+  }
+
+  @override
+  String amenitySheetSubtitle(String needed) {
+    return 'Marque o que você sabe. Um item aparece para todos quando $needed pessoas confirmam.';
+  }
+
+  @override
+  String amenityStatusConfirmed(String count) {
+    return 'Confirmado por $count pessoas';
+  }
+
+  @override
+  String amenityStatusPending(String count, String needed) {
+    return '$count de $needed confirmações';
+  }
+
+  @override
+  String get amenityStatusRejected => 'A comunidade diz que não tem';
+
+  @override
+  String get amenityPointsHint =>
+      'Você ganha 2 pontos por item quando a comunidade confirmar o que você marcou.';
+
+  @override
+  String get amenitySave => 'Enviar';
+
+  @override
+  String amenitySaved(String points) {
+    return 'Obrigado! +$points pontos.';
+  }
+
+  @override
+  String get amenitySavedNoPoints =>
+      'Obrigado! Você ganha pontos quando outras pessoas confirmarem.';
+
+  @override
+  String get amenitySaveFailed =>
+      'Não deu para enviar agora. Tente de novo mais tarde.';
+
+  @override
+  String get amenityUnavailable =>
+      'Marcar o que a academia oferece não está disponível agora.';
+
+  @override
+  String get rewardsTitle => 'Troque seus pontos';
+
+  @override
+  String rewardsOffer(String cost, String days) {
+    return '$cost pontos = $days dias do plano Essencial';
+  }
+
+  @override
+  String rewardsProgress(String balance, String cost) {
+    return 'Você tem $balance de $cost pontos';
+  }
+
+  @override
+  String get rewardsHowToEarn =>
+      '+5 pontos por relato e +2 por item que você marcou e a comunidade confirmou.';
+
+  @override
+  String rewardsRedeem(String days) {
+    return 'Trocar por $days dias';
+  }
+
+  @override
+  String rewardsRedeemed(String days) {
+    return 'Pronto! Você ganhou $days dias do plano Essencial.';
+  }
+
+  @override
+  String get rewardsHigherPlan => 'Seu plano já inclui tudo do Essencial.';
+
+  @override
+  String get rewardsFailed =>
+      'Não deu para trocar agora. Tente de novo mais tarde.';
 }

@@ -233,6 +233,7 @@ extension _GymMapPageFilters on _GymMapPageState {
       }
       _crowdReportRemoteService = remoteService;
       unawaited(_syncCrowdReportsForCurrentContext());
+      unawaited(_refreshRewards());
     } catch (_) {
       // Falha de inicialização remota não bloqueia experiência local.
     }
@@ -274,6 +275,7 @@ extension _GymMapPageFilters on _GymMapPageState {
         final batch = _pendingCrowdSyncGymIds.take(80).toList(growable: false);
         _pendingCrowdSyncGymIds.removeAll(batch);
         remoteService.refreshAuthFromStorage();
+        unawaited(_loadAmenityVotes(batch));
         final reports = await remoteService.loadReportsForGyms(gymIds: batch);
         if (!mounted || reports.isEmpty) {
           continue;
@@ -570,16 +572,6 @@ extension _GymMapPageFilters on _GymMapPageState {
   List<Gym> get _filteredGyms =>
       _applyLocationFilter(_filterGyms(_searchTerm), term: _searchTerm);
 
-  bool _gymHasAmenity(Gym gym, String amenityTerm) {
-    final normalizedTerm = _normalizeSearchTerm(amenityTerm);
-    for (final amenity in gym.amenities) {
-      if (_normalizeSearchTerm(amenity).contains(normalizedTerm)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   bool _matchesQuickFilters({
     required Gym gym,
     required GymCrowdSnapshot snapshot,
@@ -593,15 +585,15 @@ extension _GymMapPageFilters on _GymMapPageState {
       return false;
     }
     if (_activeQuickFilters.contains(MapQuickFilter.withClasses) &&
-        !_gymHasAmenity(gym, 'aula')) {
+        !_gymOffers(gym, GymAmenity.groupClasses)) {
       return false;
     }
     if (_activeQuickFilters.contains(MapQuickFilter.withCardio) &&
-        !_gymHasAmenity(gym, 'cardio')) {
+        !_gymOffers(gym, GymAmenity.cardio)) {
       return false;
     }
     if (_activeQuickFilters.contains(MapQuickFilter.withPool) &&
-        !_gymHasAmenity(gym, 'piscina')) {
+        !_gymOffers(gym, GymAmenity.pool)) {
       return false;
     }
     if (_activeQuickFilters.contains(MapQuickFilter.favorites) &&

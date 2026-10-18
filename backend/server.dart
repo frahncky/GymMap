@@ -238,6 +238,8 @@ class _PixBillingBackend {
     required this.gymLocations,
     required this.crowdReports,
     required this.accounts,
+    required this.amenityVotes,
+    required this.pointLedgers,
   });
 
   final String storageLabel;
@@ -284,10 +286,49 @@ class _PixBillingBackend {
   /// Contas de usuários finais (anônimas por aparelho ou com usuário/senha),
   /// indexadas pelo userId usado como `sub` do JWT.
   final Map<String, Map<String, dynamic>> accounts;
+
+  /// Votos da comunidade nas comodidades das academias, um por
+  /// academia + comodidade + usuário (id `gymId|amenity|userId`).
+  final Map<String, Map<String, dynamic>> amenityVotes;
+
+  /// Saldo de pontos por usuário (ganhos e gastos). Fica à parte dos relatos,
+  /// que são apagados depois da retenção.
+  final Map<String, Map<String, dynamic>> pointLedgers;
   final Map<String, String> _userIdByUsername = <String, String>{};
   final math.Random _random = math.Random();
   final math.Random _secureRandom = math.Random.secure();
   static const Duration _crowdReportCooldownWindow = Duration(minutes: 10);
+
+  // Pontos: +5 por relato aceito, +2 por comodidade marcada que a comunidade
+  // confirmar (até 20 por dia), 100 pontos = 7 dias do plano Essencial.
+  static const int _pointsPerCrowdReport = 5;
+  static const int _pointsPerAmenityVote = 2;
+  static const int _maxAmenityPointsPerDay = 20;
+  static const int _rewardCostPoints = 100;
+  static const int _rewardPlanDays = 7;
+  static const String _rewardPlanKey = 'smart';
+
+  // Comodidade confirmada: pelo menos 3 pessoas marcaram "tem" e há mais
+  // "tem" que "não tem"; negada no caso oposto; senão, a confirmar.
+  static const int _amenityConfirmThreshold = 3;
+  static const int _maxAmenityGymsPerQuery = 80;
+  static const Set<String> _amenityCatalog = <String>{
+    'weights',
+    'cardio',
+    'group_classes',
+    'pool',
+    'crossfit',
+    'pilates',
+    'martial_arts',
+    'functional_dance',
+    'locker_room',
+    'air_conditioning',
+    'parking',
+    'accessibility',
+    'open_24h',
+    'personal_trainer',
+    'fitness_assessment',
+  };
   static const Duration _rateLimitWindow = Duration(minutes: 1);
   static const Duration _retentionSweepInterval = Duration(minutes: 20);
   static const int _requestLogSampleBodyBytes = 220;
@@ -431,6 +472,8 @@ class _PixBillingBackend {
       gymLocations: state.gymLocations,
       crowdReports: state.crowdReports,
       accounts: state.accounts,
+      amenityVotes: state.amenityVotes,
+      pointLedgers: state.pointLedgers,
     );
     backend._rebuildUsernameIndex();
     if (backend._dbMode) {
@@ -613,11 +656,7 @@ class _PixBillingBackend {
             'error': 'invalid_credentials',
           });
         }
-        return _json(
-          req,
-          HttpStatus.ok,
-          _authSessionPayload(resolvedUserId),
-        );
+        return _json(req, HttpStatus.ok, _authSessionPayload(resolvedUserId));
       }
 
       if (req.method == 'POST' &&
@@ -770,16 +809,15 @@ class _PixBillingBackend {
         final query = req.uri.queryParameters;
         final lat = double.tryParse(query['lat'] ?? '');
         final lng = double.tryParse(query['lng'] ?? '');
-        if (lat == null ||
-            lng == null ||
-            lat.abs() > 90 ||
-            lng.abs() > 180) {
+        if (lat == null || lng == null || lat.abs() > 90 || lng.abs() > 180) {
           return _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'invalid_coordinates',
           });
         }
-        final radiusKm =
-            (double.tryParse(query['radiusKm'] ?? '') ?? 25).clamp(0.5, 50.0);
+        final radiusKm = (double.tryParse(query['radiusKm'] ?? '') ?? 25).clamp(
+          0.5,
+          50.0,
+        );
         final limit = (int.tryParse(query['limit'] ?? '') ?? 300).clamp(1, 500);
         final locations = nearbyGymLocations(
           gymLocations.values,
@@ -1151,10 +1189,221 @@ class _PixBillingBackend {
           'regionLabel': regionLabel,
         };
         crowdReports[reportId] = report;
+        final ledger = _awardPoints(userId, _pointsPerCrowdReport, now);
         await _persist();
         return _json(req, HttpStatus.created, <String, dynamic>{
           'accepted': true,
           'report': report,
+          'pointsAwarded': _pointsPerCrowdReport,
+          'pointsBalance': _pointsBalance(ledger),
+        });
+      }
+
+      // Comodidades das academias, marcadas e validadas pela comunidade.
+      // Leitura pública; o voto do próprio usuário vem quando há sessão.
+      if (req.method == 'GET' &&
+          segments.length == 3 &&
+          segments[0] == 'v1' &&
+          segments[1] == 'gyms' &&
+          segments[2] == 'amenities') {
+        final gymIds = <String>{
+          for (final raw in (req.uri.queryParameters['gymIds'] ?? '').split(
+            ',',
+          ))
+            if (raw.trim().isNotEmpty) raw.trim(),
+        };
+        if (gymIds.isEmpty || gymIds.length > _maxAmenityGymsPerQuery) {
+          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+            'error': 'invalid_gym_ids',
+            'maxGyms': _maxAmenityGymsPerQuery,
+          });
+        }
+        final viewer =
+            _authenticate(req) ??
+            (_jwtEnabled
+                ? null
+                : (req.uri.queryParameters['userId'] ?? '').trim());
+        return _json(req, HttpStatus.ok, <String, dynamic>{
+          'confirmThreshold': _amenityConfirmThreshold,
+          'gyms': <String, dynamic>{
+            for (final gymId in gymIds)
+              gymId: _amenitySummary(gymId, viewerId: viewer),
+          },
+        });
+      }
+
+      if (req.method == 'POST' &&
+          segments.length == 4 &&
+          segments[0] == 'v1' &&
+          segments[1] == 'gyms' &&
+          segments[2] == 'amenities' &&
+          segments[3] == 'votes') {
+        final payload = await _readJson(req);
+        final requested = '${payload['userId'] ?? ''}'.trim();
+        final authUser = _authenticate(req, expectedUserId: requested);
+        if (_jwtEnabled && authUser == null) {
+          return _json(req, HttpStatus.unauthorized, <String, dynamic>{
+            'error': 'unauthorized',
+          });
+        }
+        final userId = _jwtEnabled ? authUser! : requested;
+        final gymId = '${payload['gymId'] ?? ''}'.trim();
+        final votes = payload['votes'];
+        if (userId.isEmpty || gymId.isEmpty || votes is! Map) {
+          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+            'error': 'missing_required_fields',
+          });
+        }
+
+        final now = DateTime.now().toUtc();
+        final confirmedBefore = _confirmedAmenities(gymId);
+        final touched = <String>{};
+        for (final entry in votes.entries) {
+          final amenity = '${entry.key}'.trim();
+          final value = entry.value;
+          if (!_amenityCatalog.contains(amenity) ||
+              (value != null && value is! bool)) {
+            continue;
+          }
+          final voteId = '$gymId|$amenity|$userId';
+          final existing = amenityVotes[voteId];
+          // O voto retirado continua registrado (present = null) para que
+          // marcar de novo não renda pontos outra vez.
+          if (existing == null && value == null) {
+            continue;
+          }
+          touched.add(amenity);
+          amenityVotes[voteId] = <String, dynamic>{
+            ...?existing,
+            'gymId': gymId,
+            'amenity': amenity,
+            'userId': userId,
+            'present': value,
+            'createdAt': existing?['createdAt'] ?? now.toIso8601String(),
+            'updatedAt': now.toIso8601String(),
+            // Quem marca um item já confirmado só repete o que todos veem.
+            if (existing == null && confirmedBefore.contains(amenity))
+              'rewarded': true,
+          };
+        }
+
+        // Pontos só quando a comunidade confirma: quem marcou "tem" antes
+        // da confirmação ganha os pontos daquele item.
+        var pointsAwarded = 0;
+        final confirmedNow = _confirmedAmenities(gymId);
+        for (final amenity in touched) {
+          if (confirmedBefore.contains(amenity) ||
+              !confirmedNow.contains(amenity)) {
+            continue;
+          }
+          for (final vote in amenityVotes.values) {
+            if (vote['gymId'] != gymId ||
+                vote['amenity'] != amenity ||
+                vote['present'] != true ||
+                vote['rewarded'] == true) {
+              continue;
+            }
+            vote['rewarded'] = true;
+            final voterId = '${vote['userId']}';
+            final points = _awardAmenityPoints(voterId, 1, now);
+            if (voterId == userId) {
+              pointsAwarded += points;
+            }
+          }
+        }
+        await _persist();
+        return _json(req, HttpStatus.ok, <String, dynamic>{
+          'gymId': gymId,
+          'amenities': _amenitySummary(gymId, viewerId: userId),
+          'pointsAwarded': pointsAwarded,
+          'pointsBalance': _pointsBalance(pointLedgers[userId]),
+        });
+      }
+
+      // Pontos e a troca por dias do plano Essencial.
+      if (req.method == 'GET' &&
+          segments.length == 3 &&
+          segments[0] == 'v1' &&
+          segments[1] == 'rewards') {
+        final requested = segments[2].trim();
+        final authUser = _authenticate(req, expectedUserId: requested);
+        if (_jwtEnabled && authUser == null) {
+          return _json(req, HttpStatus.unauthorized, <String, dynamic>{
+            'error': 'unauthorized',
+          });
+        }
+        final userId = authUser ?? requested;
+        if (userId.isEmpty) {
+          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+            'error': 'missing_user_id',
+          });
+        }
+        return _json(req, HttpStatus.ok, _rewardsPayload(userId));
+      }
+
+      if (req.method == 'POST' &&
+          segments.length == 3 &&
+          segments[0] == 'v1' &&
+          segments[1] == 'rewards' &&
+          segments[2] == 'redeem') {
+        final payload = await _readJson(req);
+        final requested = '${payload['userId'] ?? ''}'.trim();
+        final authUser = _authenticate(req, expectedUserId: requested);
+        if (_jwtEnabled && authUser == null) {
+          return _json(req, HttpStatus.unauthorized, <String, dynamic>{
+            'error': 'unauthorized',
+          });
+        }
+        final userId = _jwtEnabled ? authUser! : requested;
+        if (userId.isEmpty) {
+          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+            'error': 'missing_user_id',
+          });
+        }
+        final blocked = _rewardBlockedReason(userId);
+        if (blocked != null) {
+          return _json(req, HttpStatus.conflict, <String, dynamic>{
+            'error': blocked,
+            ..._rewardsPayload(userId),
+          });
+        }
+
+        final now = DateTime.now().toUtc();
+        final current = _subscriptionFor(userId);
+        final currentExpiry =
+            DateTime.tryParse('${current['expiresAt'] ?? ''}')?.toUtc();
+        final extendFrom =
+            currentExpiry != null && currentExpiry.isAfter(now)
+                ? currentExpiry
+                : now;
+        final subscription = _activate(
+          userId,
+          _rewardPlanKey,
+          startsAt:
+              DateTime.tryParse('${current['startsAt'] ?? ''}')?.toUtc() ?? now,
+          expiresAt: extendFrom.add(const Duration(days: _rewardPlanDays)),
+        );
+        final ledger = _ledgerFor(userId, now);
+        ledger['spent'] = _ledgerInt(ledger, 'spent') + _rewardCostPoints;
+        final redemptions = <dynamic>[
+          ...(ledger['redemptions'] is List
+              ? ledger['redemptions'] as List
+              : const <dynamic>[]),
+          <String, dynamic>{
+            'at': now.toIso8601String(),
+            'points': _rewardCostPoints,
+            'planKey': _rewardPlanKey,
+            'days': _rewardPlanDays,
+          },
+        ];
+        ledger['redemptions'] =
+            redemptions.length > 50
+                ? redemptions.sublist(redemptions.length - 50)
+                : redemptions;
+        await _persist();
+        return _json(req, HttpStatus.ok, <String, dynamic>{
+          'subscription': subscription,
+          ..._rewardsPayload(userId),
         });
       }
 
@@ -1909,6 +2158,12 @@ class _PixBillingBackend {
         segments[2] == 'reports') {
       return '$method /v1/crowd/reports';
     }
+    if (segments.length == 3 &&
+        segments[0] == 'v1' &&
+        segments[1] == 'rewards' &&
+        segments[2] != 'redeem') {
+      return '$method /v1/rewards/:userId';
+    }
     return '$method /${segments.take(5).join('/')}';
   }
 
@@ -2130,10 +2385,11 @@ class _PixBillingBackend {
 
   String _newAccountId(String prefix) {
     while (true) {
-      final suffix = List<int>.generate(
-        12,
-        (_) => _secureRandom.nextInt(256),
-      ).map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+      final suffix =
+          List<int>.generate(
+            12,
+            (_) => _secureRandom.nextInt(256),
+          ).map((b) => b.toRadixString(16).padLeft(2, '0')).join();
       final id = '${prefix}_$suffix';
       if (!accounts.containsKey(id)) return id;
     }
@@ -2166,11 +2422,7 @@ class _PixBillingBackend {
       (_) => math.Random.secure().nextInt(256),
     );
     final derived = await Isolate.run(
-      () => _pbkdf2Sha256(
-        utf8.encode(password),
-        salt,
-        _passwordHashIterations,
-      ),
+      () => _pbkdf2Sha256(utf8.encode(password), salt, _passwordHashIterations),
     );
     return <String, dynamic>{
       'passwordHash': base64.encode(derived),
@@ -2705,6 +2957,130 @@ class _PixBillingBackend {
     };
   }
 
+  static int _ledgerInt(Map<String, dynamic>? ledger, String key) {
+    final value = ledger?[key];
+    return value is num ? value.toInt() : int.tryParse('$value') ?? 0;
+  }
+
+  int _pointsBalance(Map<String, dynamic>? ledger) =>
+      math.max(0, _ledgerInt(ledger, 'earned') - _ledgerInt(ledger, 'spent'));
+
+  Map<String, dynamic> _ledgerFor(String userId, DateTime now) {
+    final ledger = pointLedgers.putIfAbsent(
+      userId,
+      () => <String, dynamic>{
+        'userId': userId,
+        'earned': 0,
+        'spent': 0,
+        'createdAt': now.toIso8601String(),
+      },
+    );
+    ledger['updatedAt'] = now.toIso8601String();
+    return ledger;
+  }
+
+  Map<String, dynamic> _awardPoints(String userId, int points, DateTime now) {
+    final ledger = _ledgerFor(userId, now);
+    ledger['earned'] = _ledgerInt(ledger, 'earned') + points;
+    return ledger;
+  }
+
+  /// Pontos por [newVotes] comodidades confirmadas pela comunidade, dentro do
+  /// limite diário. Devolve quantos pontos foram dados.
+  int _awardAmenityPoints(String userId, int newVotes, DateTime now) {
+    if (newVotes <= 0) return 0;
+    final ledger = _ledgerFor(userId, now);
+    final today = now.toIso8601String().substring(0, 10);
+    final usedToday =
+        ledger['amenityDay'] == today
+            ? _ledgerInt(ledger, 'amenityDayPoints')
+            : 0;
+    final points = math.min(
+      newVotes * _pointsPerAmenityVote,
+      math.max(0, _maxAmenityPointsPerDay - usedToday),
+    );
+    ledger['amenityDay'] = today;
+    ledger['amenityDayPoints'] = usedToday + points;
+    ledger['earned'] = _ledgerInt(ledger, 'earned') + points;
+    return points;
+  }
+
+  Set<String> _confirmedAmenities(String gymId) => <String>{
+    for (final item in _amenitySummary(gymId))
+      if (item['status'] == 'confirmed') '${item['amenity']}',
+  };
+
+  /// Comodidades votadas de uma academia: contagem de "tem"/"não tem",
+  /// situação e o voto de [viewerId].
+  List<Map<String, dynamic>> _amenitySummary(String gymId, {String? viewerId}) {
+    final yes = <String, int>{};
+    final no = <String, int>{};
+    final viewerVotes = <String, bool?>{};
+    for (final vote in amenityVotes.values) {
+      if (vote['gymId'] != gymId) continue;
+      final amenity = '${vote['amenity'] ?? ''}';
+      final present = vote['present'];
+      if (present == true) yes[amenity] = (yes[amenity] ?? 0) + 1;
+      if (present == false) no[amenity] = (no[amenity] ?? 0) + 1;
+      if (viewerId != null &&
+          viewerId.isNotEmpty &&
+          vote['userId'] == viewerId) {
+        viewerVotes[amenity] = present is bool ? present : null;
+      }
+    }
+    final amenities = <String>{...yes.keys, ...no.keys, ...viewerVotes.keys};
+    return <Map<String, dynamic>>[
+      for (final amenity in _amenityCatalog)
+        if (amenities.contains(amenity))
+          () {
+            final yesCount = yes[amenity] ?? 0;
+            final noCount = no[amenity] ?? 0;
+            final status =
+                yesCount >= _amenityConfirmThreshold && yesCount > noCount
+                    ? 'confirmed'
+                    : noCount >= _amenityConfirmThreshold && noCount >= yesCount
+                    ? 'rejected'
+                    : 'pending';
+            return <String, dynamic>{
+              'amenity': amenity,
+              'yes': yesCount,
+              'no': noCount,
+              'status': status,
+              'userVote': viewerVotes[amenity],
+            };
+          }(),
+    ];
+  }
+
+  /// Motivo para não trocar pontos agora, ou `null` se pode trocar.
+  String? _rewardBlockedReason(String userId) {
+    if (_pointsBalance(pointLedgers[userId]) < _rewardCostPoints) {
+      return 'not_enough_points';
+    }
+    final plan = '${_subscriptionFor(userId)['activePlanKey'] ?? 'free'}';
+    // Quem já tem um plano acima do Essencial não troca pontos por ele.
+    if (plan != 'free' && plan != _rewardPlanKey) {
+      return 'higher_plan_active';
+    }
+    return null;
+  }
+
+  Map<String, dynamic> _rewardsPayload(String userId) {
+    final ledger = pointLedgers[userId];
+    final blocked = _rewardBlockedReason(userId);
+    return <String, dynamic>{
+      'userId': userId,
+      'balance': _pointsBalance(ledger),
+      'earned': _ledgerInt(ledger, 'earned'),
+      'spent': _ledgerInt(ledger, 'spent'),
+      'costPoints': _rewardCostPoints,
+      'planKey': _rewardPlanKey,
+      'planDays': _rewardPlanDays,
+      'canRedeem': blocked == null,
+      if (blocked != null) 'blockedReason': blocked,
+    };
+  }
+
   String _pixCode(String chargeId, String planKey, String monthlyPrice) {
     final cents = monthlyPrice.replaceAll(RegExp(r'[^0-9]'), '');
     return '00020126360014BR.GOV.BCB.PIX0114spacegym.app520400005303986'
@@ -2794,6 +3170,8 @@ class _PixBillingBackend {
       'gymLocations': gymLocations,
       'crowdReports': crowdReports,
       'accounts': accounts,
+      'amenityVotes': amenityVotes,
+      'pointLedgers': pointLedgers,
     };
     await storeFile.writeAsString(
       const JsonEncoder.withIndent('  ').convert(payload),
@@ -2808,6 +3186,8 @@ class _PixBillingBackend {
     'gym_location',
     'crowd_report',
     'account',
+    'amenity_vote',
+    'point_ledger',
   ];
 
   Map<String, Map<String, dynamic>> _sourceForDbKind(String kind) {
@@ -2824,6 +3204,10 @@ class _PixBillingBackend {
         return crowdReports;
       case 'account':
         return accounts;
+      case 'amenity_vote':
+        return amenityVotes;
+      case 'point_ledger':
+        return pointLedgers;
     }
     throw ArgumentError.value(kind, 'kind');
   }
@@ -2960,6 +3344,8 @@ CREATE TABLE IF NOT EXISTS app_state (
     final gymLocations = <String, Map<String, dynamic>>{};
     final crowdReports = <String, Map<String, dynamic>>{};
     final accounts = <String, Map<String, dynamic>>{};
+    final amenityVotes = <String, Map<String, dynamic>>{};
+    final pointLedgers = <String, Map<String, dynamic>>{};
     final rows = await db.query('SELECT kind,id,payload_json FROM app_state');
     for (final row in rows) {
       if (row.length < 3) continue;
@@ -2976,6 +3362,8 @@ CREATE TABLE IF NOT EXISTS app_state (
       if (kind == 'gym_location') gymLocations[id] = payload;
       if (kind == 'crowd_report') crowdReports[id] = payload;
       if (kind == 'account') accounts[id] = payload;
+      if (kind == 'amenity_vote') amenityVotes[id] = payload;
+      if (kind == 'point_ledger') pointLedgers[id] = payload;
     }
     return _State(
       subscriptions,
@@ -2984,6 +3372,8 @@ CREATE TABLE IF NOT EXISTS app_state (
       gymLocations,
       crowdReports,
       accounts,
+      amenityVotes,
+      pointLedgers,
     );
   }
 
@@ -2997,6 +3387,8 @@ CREATE TABLE IF NOT EXISTS app_state (
     final gymLocations = <String, Map<String, dynamic>>{};
     final crowdReports = <String, Map<String, dynamic>>{};
     final accounts = <String, Map<String, dynamic>>{};
+    final amenityVotes = <String, Map<String, dynamic>>{};
+    final pointLedgers = <String, Map<String, dynamic>>{};
     if (!file.existsSync()) {
       return _State(
         subscriptions,
@@ -3005,6 +3397,8 @@ CREATE TABLE IF NOT EXISTS app_state (
         gymLocations,
         crowdReports,
         accounts,
+        amenityVotes,
+        pointLedgers,
       );
     }
 
@@ -3061,6 +3455,8 @@ CREATE TABLE IF NOT EXISTS app_state (
             }
           }
         }
+        _readStoreMap(decoded['amenityVotes'], amenityVotes);
+        _readStoreMap(decoded['pointLedgers'], pointLedgers);
         final rawAccounts = decoded['accounts'];
         if (rawAccounts is Map) {
           for (final entry in rawAccounts.entries) {
@@ -3081,6 +3477,8 @@ CREATE TABLE IF NOT EXISTS app_state (
       gymLocations,
       crowdReports,
       accounts,
+      amenityVotes,
+      pointLedgers,
     );
   }
 
@@ -3227,6 +3625,8 @@ class _State {
     this.gymLocations,
     this.crowdReports,
     this.accounts,
+    this.amenityVotes,
+    this.pointLedgers,
   );
   final Map<String, Map<String, dynamic>> subscriptions;
   final Map<String, Map<String, dynamic>> charges;
@@ -3234,6 +3634,20 @@ class _State {
   final Map<String, Map<String, dynamic>> gymLocations;
   final Map<String, Map<String, dynamic>> crowdReports;
   final Map<String, Map<String, dynamic>> accounts;
+  final Map<String, Map<String, dynamic>> amenityVotes;
+  final Map<String, Map<String, dynamic>> pointLedgers;
+}
+
+/// Copia as entradas de um mapa do arquivo de estado para [target].
+void _readStoreMap(Object? raw, Map<String, Map<String, dynamic>> target) {
+  if (raw is! Map) return;
+  for (final entry in raw.entries) {
+    if (entry.value is Map) {
+      target[entry.key.toString()] = Map<String, dynamic>.from(
+        entry.value as Map,
+      );
+    }
+  }
 }
 
 class _SlidingWindowRateLimiter {

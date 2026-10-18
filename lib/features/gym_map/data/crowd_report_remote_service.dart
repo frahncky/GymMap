@@ -11,11 +11,67 @@ class RemoteCrowdSubmitResult {
     required this.accepted,
     this.retryAfter,
     this.report,
+    this.pointsBalance,
   });
 
   final bool accepted;
   final Duration? retryAfter;
   final CrowdReport? report;
+
+  /// Saldo de pontos no servidor depois do relato.
+  final int? pointsBalance;
+}
+
+/// Saldo de pontos e a troca por dias de plano.
+class RemoteRewards {
+  const RemoteRewards({
+    required this.balance,
+    required this.costPoints,
+    required this.planKey,
+    required this.planDays,
+    required this.canRedeem,
+    this.blockedReason,
+  });
+
+  final int balance;
+  final int costPoints;
+  final String planKey;
+  final int planDays;
+  final bool canRedeem;
+
+  /// `not_enough_points` ou `higher_plan_active` quando não dá para trocar.
+  final String? blockedReason;
+
+  static RemoteRewards? fromJson(Map<String, dynamic> json) {
+    final balance = int.tryParse('${json['balance'] ?? ''}');
+    final cost = int.tryParse('${json['costPoints'] ?? ''}');
+    final days = int.tryParse('${json['planDays'] ?? ''}');
+    if (balance == null || cost == null || days == null) {
+      return null;
+    }
+    final blocked = '${json['blockedReason'] ?? ''}'.trim();
+    return RemoteRewards(
+      balance: balance.clamp(0, 1000000),
+      costPoints: cost,
+      planKey: '${json['planKey'] ?? 'smart'}',
+      planDays: days,
+      canRedeem: json['canRedeem'] == true,
+      blockedReason: blocked.isEmpty ? null : blocked,
+    );
+  }
+}
+
+/// Resultado de marcar comodidades: a situação atualizada e os pontos.
+class RemoteAmenityVoteResult {
+  const RemoteAmenityVoteResult({
+    required this.amenities,
+    required this.pointsAwarded,
+    this.pointsBalance,
+  });
+
+  final List<GymAmenityVotes> amenities;
+  final int pointsAwarded;
+  final int? pointsBalance;
 }
 
 class RemoteCrowdLeaderboardEntry {
@@ -175,7 +231,155 @@ class CrowdReportRemoteService {
       report = _crowdReportFromJson(Map<String, dynamic>.from(reportRaw));
     }
 
-    return RemoteCrowdSubmitResult(accepted: accepted, report: report);
+    return RemoteCrowdSubmitResult(
+      accepted: accepted,
+      report: report,
+      pointsBalance: int.tryParse('${decoded['pointsBalance'] ?? ''}'),
+    );
+  }
+
+  /// Comodidades votadas de cada academia em [gymIds] (até 80 por vez).
+  Future<Map<String, List<GymAmenityVotes>>> loadAmenities(
+    Iterable<String> gymIds,
+  ) async {
+    if (!hasRemoteBackend) {
+      return const <String, List<GymAmenityVotes>>{};
+    }
+    refreshAuthFromStorage();
+    final ids = gymIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .take(80)
+        .toList(growable: false);
+    if (ids.isEmpty) {
+      return const <String, List<GymAmenityVotes>>{};
+    }
+    final uri = _buildRemoteUri(<String>['v1', 'gyms', 'amenities']).replace(
+      queryParameters: <String, String>{
+        'gymIds': ids.join(','),
+        'userId': _userId,
+      },
+    );
+    final response = await _httpClient
+        .get(uri, headers: _remoteHeaders())
+        .timeout(_requestTimeout);
+    if (response.statusCode != HttpStatus.ok) {
+      return const <String, List<GymAmenityVotes>>{};
+    }
+    final gyms = _decodeJsonMap(response.body)['gyms'];
+    if (gyms is! Map) {
+      return const <String, List<GymAmenityVotes>>{};
+    }
+    return <String, List<GymAmenityVotes>>{
+      for (final entry in gyms.entries)
+        '${entry.key}': parseAmenityVotes(entry.value),
+    };
+  }
+
+  /// Marca comodidades de [gymId]: `true` (tem), `false` (não tem) ou `null`
+  /// (retira o voto).
+  Future<RemoteAmenityVoteResult> submitAmenityVotes({
+    required String gymId,
+    required Map<GymAmenity, bool?> votes,
+  }) async {
+    if (!hasRemoteBackend) {
+      throw StateError('Backend crowd service not configured');
+    }
+    refreshAuthFromStorage();
+    final response = await _httpClient
+        .post(
+          _buildRemoteUri(<String>['v1', 'gyms', 'amenities', 'votes']),
+          headers: _remoteHeaders(contentTypeJson: true),
+          body: jsonEncode(<String, dynamic>{
+            'userId': _userId,
+            'gymId': gymId,
+            'votes': <String, bool?>{
+              for (final entry in votes.entries) entry.key.key: entry.value,
+            },
+          }),
+        )
+        .timeout(_requestTimeout);
+    if (response.statusCode != HttpStatus.ok) {
+      throw StateError(_parseBackendError(response));
+    }
+    final decoded = _decodeJsonMap(response.body);
+    return RemoteAmenityVoteResult(
+      amenities: parseAmenityVotes(decoded['amenities']),
+      pointsAwarded: int.tryParse('${decoded['pointsAwarded'] ?? ''}') ?? 0,
+      pointsBalance: int.tryParse('${decoded['pointsBalance'] ?? ''}'),
+    );
+  }
+
+  /// Saldo de pontos e se dá para trocar por dias de plano.
+  Future<RemoteRewards?> loadRewards() async {
+    if (!hasRemoteBackend) {
+      return null;
+    }
+    refreshAuthFromStorage();
+    final response = await _httpClient
+        .get(
+          _buildRemoteUri(<String>['v1', 'rewards', _userId]),
+          headers: _remoteHeaders(),
+        )
+        .timeout(_requestTimeout);
+    if (response.statusCode != HttpStatus.ok) {
+      return null;
+    }
+    return RemoteRewards.fromJson(_decodeJsonMap(response.body));
+  }
+
+  /// Troca pontos por dias de plano. Lança [StateError] com o motivo
+  /// (`not_enough_points`, `higher_plan_active`...) quando não dá.
+  Future<RemoteRewards?> redeemReward() async {
+    if (!hasRemoteBackend) {
+      throw StateError('Backend crowd service not configured');
+    }
+    refreshAuthFromStorage();
+    final response = await _httpClient
+        .post(
+          _buildRemoteUri(<String>['v1', 'rewards', 'redeem']),
+          headers: _remoteHeaders(contentTypeJson: true),
+          body: jsonEncode(<String, dynamic>{'userId': _userId}),
+        )
+        .timeout(_requestTimeout);
+    if (response.statusCode != HttpStatus.ok) {
+      throw StateError(_parseBackendError(response));
+    }
+    return RemoteRewards.fromJson(_decodeJsonMap(response.body));
+  }
+
+  /// Lê a lista de comodidades votadas do servidor. Pública para testes.
+  static List<GymAmenityVotes> parseAmenityVotes(Object? raw) {
+    if (raw is! List) {
+      return const <GymAmenityVotes>[];
+    }
+    final result = <GymAmenityVotes>[];
+    for (final item in raw) {
+      if (item is! Map) {
+        continue;
+      }
+      final amenity = GymAmenity.fromKey('${item['amenity'] ?? ''}');
+      if (amenity == null) {
+        continue;
+      }
+      final status = switch ('${item['status'] ?? ''}') {
+        'confirmed' => AmenityVoteStatus.confirmed,
+        'rejected' => AmenityVoteStatus.rejected,
+        _ => AmenityVoteStatus.pending,
+      };
+      final userVote = item['userVote'];
+      result.add(
+        GymAmenityVotes(
+          amenity: amenity,
+          yes: int.tryParse('${item['yes'] ?? ''}') ?? 0,
+          no: int.tryParse('${item['no'] ?? ''}') ?? 0,
+          status: status,
+          userVote: userVote is bool ? userVote : null,
+        ),
+      );
+    }
+    return List<GymAmenityVotes>.unmodifiable(result);
   }
 
   Future<List<CrowdReport>> loadReportsForGyms({

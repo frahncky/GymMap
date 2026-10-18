@@ -63,25 +63,31 @@ Color occupancyColorForValue(double percent) {
 String displayGymName(String name) =>
     name == kUnnamedGymName ? AppL10n.current.gymUnnamed : name;
 
-/// Comodidade para exibir: as gravadas pelo app aparecem traduzidas; as que
-/// vierem de outra fonte ficam como estão.
-String displayAmenity(String amenity) => switch (amenity) {
-  kAmenityWeights => AppL10n.current.amenityWeights,
-  kAmenityCardio => AppL10n.current.amenityCardio,
-  kAmenityGroupClasses => AppL10n.current.amenityGroupClasses,
-  kAmenityPool => AppL10n.current.amenityPool,
-  _ => amenity,
-};
+/// Nome da comodidade no idioma em uso.
+String amenityLabel(GymAmenity amenity) {
+  final t = AppL10n.current;
+  return switch (amenity) {
+    GymAmenity.weights => t.amenityWeights,
+    GymAmenity.cardio => t.amenityCardio,
+    GymAmenity.groupClasses => t.amenityGroupClasses,
+    GymAmenity.pool => t.amenityPool,
+    GymAmenity.crossfit => t.amenityCrossfit,
+    GymAmenity.pilates => t.amenityPilates,
+    GymAmenity.martialArts => t.amenityMartialArts,
+    GymAmenity.functionalDance => t.amenityFunctionalDance,
+    GymAmenity.lockerRoom => t.amenityLockerRoom,
+    GymAmenity.airConditioning => t.amenityAirConditioning,
+    GymAmenity.parking => t.amenityParking,
+    GymAmenity.accessibility => t.amenityAccessibility,
+    GymAmenity.open24h => t.amenityOpen24h,
+    GymAmenity.personalTrainer => t.amenityPersonalTrainer,
+    GymAmenity.fitnessAssessment => t.amenityFitnessAssessment,
+  };
+}
 
-/// Ícone da marca para a comodidade (tool/brand/gerar_marca.ps1), ou `null`
-/// para as que não têm ícone próprio.
-String? amenityIconAsset(String amenity) => switch (amenity) {
-  kAmenityWeights => 'assets/brand/amenity_weights.png',
-  kAmenityCardio => 'assets/brand/amenity_cardio.png',
-  kAmenityGroupClasses => 'assets/brand/amenity_classes.png',
-  kAmenityPool => 'assets/brand/amenity_pool.png',
-  _ => null,
-};
+/// Ícone da marca para a comodidade (gerado por tool/brand/gerar_marca.ps1).
+String amenityIconAsset(GymAmenity amenity) =>
+    'assets/brand/amenity_${amenity.key}.png';
 
 String occupancyLabel(int percent) {
   if (percent <= 35) {

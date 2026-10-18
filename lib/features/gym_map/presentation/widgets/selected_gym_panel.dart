@@ -37,9 +37,18 @@ class SelectedGymPanel extends StatelessWidget {
     this.comparison = const <GymComparisonInsight>[],
     this.forecast = const <ForecastInsightPoint>[],
     this.alerts = const <String>[],
+    this.amenities,
+    this.onEditAmenities,
   });
 
   final Gym gym;
+
+  /// Comodidades a mostrar (as confirmadas pela comunidade). Sem valor, usa as
+  /// gravadas em [Gym.amenities].
+  final List<GymAmenity>? amenities;
+
+  /// Abre a lista para marcar comodidades; sem valor, o "+" não aparece.
+  final VoidCallback? onEditAmenities;
   final GymCrowdSnapshot snapshot;
   final String? distanceFromUserLabel;
   final bool isOpenNow;
@@ -70,6 +79,12 @@ class SelectedGymPanel extends StatelessWidget {
     final primary = Theme.of(context).colorScheme.primary;
     final showOccupancy = isOpenNow;
     final targetOccupancy = snapshot.occupancyPercent.clamp(0, 100).toDouble();
+    final shownAmenities =
+        amenities ??
+        <GymAmenity>[
+          for (final stored in gym.amenities)
+            if (GymAmenity.fromStored(stored) case final amenity?) amenity,
+        ];
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -134,14 +149,17 @@ class SelectedGymPanel extends StatelessWidget {
                           color: GymMapColors.panelTitle,
                         ),
                       ),
-                      if (gym.amenities.isNotEmpty) ...[
+                      if (shownAmenities.isNotEmpty ||
+                          onEditAmenities != null) ...[
                         const SizedBox(height: 6),
                         Wrap(
                           spacing: 6,
                           runSpacing: 6,
                           children: [
-                            for (final item in gym.amenities)
+                            for (final item in shownAmenities)
                               _AmenityChip(amenity: item),
+                            if (onEditAmenities != null)
+                              _AddAmenityButton(onPressed: onEditAmenities!),
                           ],
                         ),
                         const SizedBox(height: 6),
@@ -572,36 +590,22 @@ class SelectedGymPanel extends StatelessWidget {
   }
 }
 
+BoxDecoration _amenityTileDecoration() => BoxDecoration(
+  color: withUiOpacity(AppBrand.teal, 0.10),
+  borderRadius: BorderRadius.circular(10),
+  border: Border.all(color: withUiOpacity(AppBrand.teal, 0.22)),
+);
+
 /// Comodidade como ícone da marca; o nome vem no balão ao tocar e no leitor
-/// de tela. As que não têm ícone próprio aparecem por escrito.
+/// de tela.
 class _AmenityChip extends StatelessWidget {
   const _AmenityChip({required this.amenity});
 
-  final String amenity;
+  final GymAmenity amenity;
 
   @override
   Widget build(BuildContext context) {
-    final iconAsset = amenityIconAsset(amenity);
-    final label = displayAmenity(amenity);
-    final decoration = BoxDecoration(
-      color: withUiOpacity(AppBrand.teal, 0.10),
-      borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: withUiOpacity(AppBrand.teal, 0.22)),
-    );
-    if (iconAsset == null) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: decoration,
-        child: Text(
-          label,
-          style: const TextStyle(
-            color: GymMapColors.tagText,
-            fontWeight: FontWeight.w700,
-            fontSize: 13,
-          ),
-        ),
-      );
-    }
+    final label = amenityLabel(amenity);
     return Tooltip(
       message: label,
       triggerMode: TooltipTriggerMode.tap,
@@ -611,12 +615,50 @@ class _AmenityChip extends StatelessWidget {
           width: 36,
           height: 36,
           alignment: Alignment.center,
-          decoration: decoration,
+          decoration: _amenityTileDecoration(),
           child: Image.asset(
-            iconAsset,
+            amenityIconAsset(amenity),
             width: 24,
             height: 24,
             excludeFromSemantics: true,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "+" ao lado das comodidades: abre a lista para marcar o que a academia
+/// oferece.
+class _AddAmenityButton extends StatelessWidget {
+  const _AddAmenityButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: _t.amenityAddTooltip,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(10),
+          child: Ink(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: withUiOpacity(AppBrand.tealDeep, 0.45),
+                width: 1.4,
+              ),
+            ),
+            child: const Icon(
+              Icons.add_rounded,
+              size: 22,
+              color: AppBrand.tealDeep,
+            ),
           ),
         ),
       ),

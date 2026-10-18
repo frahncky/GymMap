@@ -101,6 +101,7 @@ extension _GymMapPageCommunity on _GymMapPageState {
             });
           }
           unawaited(_persistCommunityPoints());
+          unawaited(_refreshRewards());
 
           final trust =
               ((remoteReport?.reliabilityWeight ?? 1) * 100)
@@ -472,8 +473,7 @@ extension _GymMapPageCommunity on _GymMapPageState {
     final selected = _selectedGym;
     if (selected != null) {
       final selectedAddress = selected.address.trim();
-      if (selectedAddress.isNotEmpty &&
-          selectedAddress != kMapGymAddress) {
+      if (selectedAddress.isNotEmpty && selectedAddress != kMapGymAddress) {
         return selectedAddress;
       }
     }
@@ -617,6 +617,10 @@ extension _GymMapPageCommunity on _GymMapPageState {
                           color: GymMapColors.textSecondary,
                         ),
                       ),
+                      if (_rewards case final rewards?) ...[
+                        const SizedBox(height: 12),
+                        _RewardsCard(initial: rewards, onRedeem: _redeemReward),
+                      ],
                       if (snapshot.connectionState == ConnectionState.waiting &&
                           !data.isRegional) ...[
                         const SizedBox(height: 8),

@@ -321,6 +321,8 @@ extension _GymMapPagePlan on _GymMapPageState {
     }
     if (!hadSession || previousUserId != service.userId) {
       _crowdReportRemoteService?.refreshAuthFromStorage();
+      // O saldo pedido antes da sessão existir volta "não autorizado".
+      unawaited(_refreshRewards());
     }
   }
 

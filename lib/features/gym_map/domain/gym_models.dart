@@ -9,11 +9,75 @@ const String kUnnamedGymName = 'Academia';
 const String kMapGymAddress = 'Academia encontrada no mapa';
 
 // Comodidades gravadas (os filtros "Aulas", "Cardio" e "Com piscina" procuram
-// por estes textos). Na tela use `displayAmenity`, que traduz.
+// por estes textos). Na tela, converta com [GymAmenity.fromStored].
 const String kAmenityWeights = 'Musculação';
 const String kAmenityCardio = 'Cardio';
 const String kAmenityGroupClasses = 'Aulas coletivas';
 const String kAmenityPool = 'Piscina';
+
+/// Comodidades que a comunidade marca e valida. [key] é o nome no servidor.
+enum GymAmenity {
+  weights('weights'),
+  cardio('cardio'),
+  groupClasses('group_classes'),
+  pool('pool'),
+  crossfit('crossfit'),
+  pilates('pilates'),
+  martialArts('martial_arts'),
+  functionalDance('functional_dance'),
+  lockerRoom('locker_room'),
+  airConditioning('air_conditioning'),
+  parking('parking'),
+  accessibility('accessibility'),
+  open24h('open_24h'),
+  personalTrainer('personal_trainer'),
+  fitnessAssessment('fitness_assessment');
+
+  const GymAmenity(this.key);
+
+  final String key;
+
+  static GymAmenity? fromKey(String key) {
+    for (final amenity in values) {
+      if (amenity.key == key) {
+        return amenity;
+      }
+    }
+    return null;
+  }
+
+  /// Comodidade equivalente aos textos gravados em [Gym.amenities].
+  static GymAmenity? fromStored(String stored) => switch (stored) {
+    kAmenityWeights => weights,
+    kAmenityCardio => cardio,
+    kAmenityGroupClasses => groupClasses,
+    kAmenityPool => pool,
+    _ => null,
+  };
+}
+
+/// Situação de uma comodidade numa academia, segundo os votos.
+enum AmenityVoteStatus { confirmed, pending, rejected }
+
+/// Votos da comunidade numa comodidade de uma academia.
+class GymAmenityVotes {
+  const GymAmenityVotes({
+    required this.amenity,
+    required this.yes,
+    required this.no,
+    required this.status,
+    this.userVote,
+  });
+
+  final GymAmenity amenity;
+  final int yes;
+  final int no;
+  final AmenityVoteStatus status;
+
+  /// Voto de quem está usando o app: `true` (tem), `false` (não tem) ou
+  /// `null` (não votou).
+  final bool? userVote;
+}
 
 /// Representa uma academia no mapa.
 class Gym {

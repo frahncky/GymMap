@@ -91,10 +91,15 @@ $amenityIcons = [ordered]@{
 <rect x="7.5" y="11" width="9" height="2" rx="1" fill="$orange"/>
 "@
   cardio = @"
-<path d="M12 21s-7.6-4.6-9.6-9.3C.9 8.1 3.2 4 7.1 4c2.1 0 3.5 1.1 4.9 2.9C13.4 5.1 14.8 4 16.9 4c3.9 0 6.2 4.1 4.7 7.7C19.6 16.4 12 21 12 21z" fill="$teal"/>
-<polyline points="3.5,12 8,12 9.8,9 12.4,15.2 14.4,10.6 15.8,12 20.5,12" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="15" cy="4.2" r="2.3" fill="$teal"/>
+<g fill="none" stroke="$teal" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M13.6 8 11 13.4l3.4 2.6-1 5"/>
+  <path d="M11 13.4 8.6 17.2l-3.8.6"/>
+  <path d="M8.4 10.2 11.6 7.8l3.2 2.8 2.8.4"/>
+</g>
+<g fill="none" stroke="$orange" stroke-width="2" stroke-linecap="round"><path d="M2 9.4h3.6M1.6 13h3"/></g>
 "@
-  classes = @"
+  group_classes = @"
 <g fill="$teal" opacity="0.55">
   <circle cx="5.2" cy="8.6" r="2.1"/><path d="M1 19.5c0-2.8 1.8-4.6 4.2-4.6s4.2 1.8 4.2 4.6z"/>
   <circle cx="18.8" cy="8.6" r="2.1"/><path d="M14.6 19.5c0-2.8 1.8-4.6 4.2-4.6s4.2 1.8 4.2 4.6z"/>
@@ -110,6 +115,67 @@ $amenityIcons = [ordered]@{
   <path d="M2 16.5c1.7 0 1.7-1.3 3.3-1.3s1.7 1.3 3.4 1.3 1.6-1.3 3.3-1.3 1.7 1.3 3.3 1.3 1.7-1.3 3.4-1.3 1.6 1.3 3.3 1.3"/>
 </g>
 <path d="M2 20.5c1.7 0 1.7-1.3 3.3-1.3s1.7 1.3 3.4 1.3 1.6-1.3 3.3-1.3 1.7 1.3 3.3 1.3 1.7-1.3 3.4-1.3 1.6 1.3 3.3 1.3" fill="none" stroke="$orange" stroke-width="1.9" stroke-linecap="round"/>
+"@
+  crossfit = @"
+<path fill-rule="evenodd" fill="$teal" d="M9.4 2.6h5.2a3.8 3.8 0 0 1 3.8 3.8v2.2a3.8 3.8 0 0 1-1 2.6H6.6a3.8 3.8 0 0 1-1-2.6V6.4a3.8 3.8 0 0 1 3.8-3.8zM9.6 5a1.6 1.6 0 0 0-1.6 1.6v1.8a1.6 1.6 0 0 0 .2.8h7.6a1.6 1.6 0 0 0 .2-.8V6.6A1.6 1.6 0 0 0 14.4 5z"/>
+<circle cx="12" cy="15.2" r="6.9" fill="$teal"/>
+<rect x="7.6" y="20.4" width="8.8" height="1.8" rx="0.9" fill="$orange"/>
+<path d="M8.2 15a3.9 3.9 0 0 1 2.6-3.2" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity="0.6"/>
+"@
+  pilates = @"
+<circle cx="12" cy="10.8" r="7.3" fill="$teal"/>
+<path d="M7.4 9.2a5.1 5.1 0 0 1 3.8-3.4" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity="0.7"/>
+<rect x="2.5" y="19.6" width="19" height="2.2" rx="1.1" fill="$orange"/>
+"@
+  martial_arts = @"
+<path d="M6 10.6V8a4.5 4.5 0 0 1 4.5-4.5h3A5.5 5.5 0 0 1 19 9v3.6a4.4 4.4 0 0 1-4.4 4.4H9.6A3.6 3.6 0 0 1 6 13.4z" fill="$teal"/>
+<path d="M6.4 10.8a2.6 2.6 0 0 1 4.4 1.8v1.2" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/>
+<rect x="7.4" y="17.6" width="9" height="3.8" rx="1.2" fill="$orange"/>
+"@
+  functional_dance = @"
+<path d="M9 18.2V6.2l10-2.2v12" fill="none" stroke="$teal" stroke-width="2.2" stroke-linejoin="round"/>
+<path d="M9 9.6l10-2.2" fill="none" stroke="$orange" stroke-width="2.2"/>
+<ellipse cx="6.4" cy="18.2" rx="2.8" ry="2.4" fill="$teal"/>
+<ellipse cx="16.4" cy="16" rx="2.8" ry="2.4" fill="$teal"/>
+"@
+  locker_room = @"
+<path d="M5 21V8.5A4.5 4.5 0 0 1 9.5 4h1A4.5 4.5 0 0 1 15 8.5V9" fill="none" stroke="$teal" stroke-width="2.2" stroke-linecap="round"/>
+<path d="M10.5 9h9l-1.4 2.6h-6.2z" fill="$teal"/>
+<g fill="$orange"><circle cx="12.6" cy="14.4" r="1.1"/><circle cx="16.4" cy="14.4" r="1.1"/><circle cx="14.5" cy="17.4" r="1.1"/><circle cx="18.3" cy="17.4" r="1.1"/><circle cx="12.6" cy="20.2" r="1.1"/><circle cx="16.4" cy="20.2" r="1.1"/></g>
+"@
+  air_conditioning = @"
+<g fill="none" stroke="$teal" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M12 2.8v18.4M4 7.4l16 9.2M4 16.6l16-9.2"/>
+  <path d="M9.4 4.4 12 7l2.6-2.6M9.4 19.6 12 17l2.6 2.6"/>
+</g>
+<circle cx="12" cy="12" r="2" fill="$orange"/>
+"@
+  parking = @"
+<rect x="3" y="3" width="18" height="18" rx="4.5" fill="$teal"/>
+<path d="M9.6 17V7.2h3.6a3 3 0 0 1 0 6H9.6" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="3" y="18.4" width="18" height="2.6" rx="1.3" fill="$orange"/>
+"@
+  accessibility = @"
+<circle cx="10.4" cy="4.2" r="2.1" fill="$teal"/>
+<path d="M10.4 8v6.2h5.2l2.6 5" fill="none" stroke="$teal" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M10.4 10.8h4.4" fill="none" stroke="$teal" stroke-width="2.3" stroke-linecap="round"/>
+<path d="M7.4 11.4a5.6 5.6 0 1 0 7.7 7.4" fill="none" stroke="$orange" stroke-width="2.1" stroke-linecap="round"/>
+"@
+  open_24h = @"
+<path d="M20 12a8 8 0 1 1-2.4-5.7" fill="none" stroke="$teal" stroke-width="2.2" stroke-linecap="round"/>
+<path d="M18.6 2.8v3.8h-3.8" fill="none" stroke="$teal" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M12 7.6V12l3 2" fill="none" stroke="$orange" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+"@
+  personal_trainer = @"
+<path d="M8.2 7.8h11.3a1.6 1.6 0 0 1 1.6 1.6v1.6a1.6 1.6 0 0 1-1.6 1.6h-7.3z" fill="$teal"/>
+<circle cx="8.2" cy="13.6" r="5.7" fill="$teal"/>
+<circle cx="8.2" cy="13.6" r="2" fill="#fff"/>
+<path d="M4.4 9.4 2.8 5.2" fill="none" stroke="$orange" stroke-width="2" stroke-linecap="round"/>
+"@
+  fitness_assessment = @"
+<rect x="4.8" y="4" width="14.4" height="17.6" rx="2.6" fill="$teal"/>
+<rect x="8.4" y="2.4" width="7.2" height="3.8" rx="1.3" fill="$orange"/>
+<path d="M8.4 13.2l2.4 2.4 4.8-5" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
 "@
 }
 foreach ($name in $amenityIcons.Keys) {

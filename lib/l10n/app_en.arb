@@ -347,5 +347,108 @@
   "routeHideCard": "Hide card (the route stays on the map)",
   "routeEnd": "End route",
   "routeRecalculating": "Recalculating route…",
-  "routeArrived": "You've arrived at the gym."
+  "routeArrived": "You've arrived at the gym.",
+  "amenityCrossfit": "Crossfit",
+  "amenityPilates": "Pilates",
+  "amenityMartialArts": "Martial arts",
+  "amenityFunctionalDance": "Dance and functional",
+  "amenityLockerRoom": "Locker room with showers",
+  "amenityAirConditioning": "Air conditioning",
+  "amenityParking": "Parking",
+  "amenityAccessibility": "Accessibility",
+  "amenityOpen24h": "Open 24h",
+  "amenityPersonalTrainer": "Personal trainer",
+  "amenityFitnessAssessment": "Fitness assessment",
+  "amenityAddTooltip": "Mark what this gym offers",
+  "amenitySheetTitle": "What does {gym} offer?",
+  "@amenitySheetTitle": {
+    "placeholders": {
+      "gym": {
+        "type": "String"
+      }
+    }
+  },
+  "amenitySheetSubtitle": "Mark what you know. An item shows for everyone once {needed} people confirm it.",
+  "@amenitySheetSubtitle": {
+    "placeholders": {
+      "needed": {
+        "type": "String"
+      }
+    }
+  },
+  "amenityStatusConfirmed": "Confirmed by {count} people",
+  "@amenityStatusConfirmed": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "amenityStatusPending": "{count} of {needed} confirmations",
+  "@amenityStatusPending": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      },
+      "needed": {
+        "type": "String"
+      }
+    }
+  },
+  "amenityStatusRejected": "The community says it doesn't have this",
+  "amenityPointsHint": "You get 2 points per item once the community confirms what you marked.",
+  "amenitySave": "Send",
+  "amenitySaved": "Thanks! +{points} points.",
+  "@amenitySaved": {
+    "placeholders": {
+      "points": {
+        "type": "String"
+      }
+    }
+  },
+  "amenitySavedNoPoints": "Thanks! You get points once other people confirm.",
+  "amenitySaveFailed": "Couldn't send right now. Try again later.",
+  "amenityUnavailable": "Marking what a gym offers isn't available right now.",
+  "rewardsTitle": "Use your points",
+  "rewardsOffer": "{cost} points = {days} days of the Essential plan",
+  "@rewardsOffer": {
+    "placeholders": {
+      "cost": {
+        "type": "String"
+      },
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "rewardsProgress": "You have {balance} of {cost} points",
+  "@rewardsProgress": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      },
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
+  "rewardsHowToEarn": "+5 points per report and +2 per item you marked that the community confirmed.",
+  "rewardsRedeem": "Get {days} days",
+  "@rewardsRedeem": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "rewardsRedeemed": "Done! You got {days} days of the Essential plan.",
+  "@rewardsRedeemed": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "rewardsHigherPlan": "Your plan already includes everything in Essential.",
+  "rewardsFailed": "Couldn't redeem right now. Try again later."
 }

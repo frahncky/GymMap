@@ -723,5 +723,108 @@
   "routeHideCard": "Ocultar cartão (o trajeto continua no mapa)",
   "routeEnd": "Encerrar trajeto",
   "routeRecalculating": "Recalculando trajeto…",
-  "routeArrived": "Você chegou à academia."
+  "routeArrived": "Você chegou à academia.",
+  "amenityCrossfit": "Crossfit",
+  "amenityPilates": "Pilates",
+  "amenityMartialArts": "Lutas",
+  "amenityFunctionalDance": "Dança e funcional",
+  "amenityLockerRoom": "Vestiário com chuveiro",
+  "amenityAirConditioning": "Ar-condicionado",
+  "amenityParking": "Estacionamento",
+  "amenityAccessibility": "Acessibilidade",
+  "amenityOpen24h": "Aberta 24h",
+  "amenityPersonalTrainer": "Personal trainer",
+  "amenityFitnessAssessment": "Avaliação física",
+  "amenityAddTooltip": "Marcar o que a academia oferece",
+  "amenitySheetTitle": "O que a {gym} oferece?",
+  "@amenitySheetTitle": {
+    "placeholders": {
+      "gym": {
+        "type": "String"
+      }
+    }
+  },
+  "amenitySheetSubtitle": "Marque o que você sabe. Um item aparece para todos quando {needed} pessoas confirmam.",
+  "@amenitySheetSubtitle": {
+    "placeholders": {
+      "needed": {
+        "type": "String"
+      }
+    }
+  },
+  "amenityStatusConfirmed": "Confirmado por {count} pessoas",
+  "@amenityStatusConfirmed": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "amenityStatusPending": "{count} de {needed} confirmações",
+  "@amenityStatusPending": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      },
+      "needed": {
+        "type": "String"
+      }
+    }
+  },
+  "amenityStatusRejected": "A comunidade diz que não tem",
+  "amenityPointsHint": "Você ganha 2 pontos por item quando a comunidade confirmar o que você marcou.",
+  "amenitySave": "Enviar",
+  "amenitySaved": "Obrigado! +{points} pontos.",
+  "@amenitySaved": {
+    "placeholders": {
+      "points": {
+        "type": "String"
+      }
+    }
+  },
+  "amenitySavedNoPoints": "Obrigado! Você ganha pontos quando outras pessoas confirmarem.",
+  "amenitySaveFailed": "Não deu para enviar agora. Tente de novo mais tarde.",
+  "amenityUnavailable": "Marcar o que a academia oferece não está disponível agora.",
+  "rewardsTitle": "Troque seus pontos",
+  "rewardsOffer": "{cost} pontos = {days} dias do plano Essencial",
+  "@rewardsOffer": {
+    "placeholders": {
+      "cost": {
+        "type": "String"
+      },
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "rewardsProgress": "Você tem {balance} de {cost} pontos",
+  "@rewardsProgress": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      },
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
+  "rewardsHowToEarn": "+5 pontos por relato e +2 por item que você marcou e a comunidade confirmou.",
+  "rewardsRedeem": "Trocar por {days} dias",
+  "@rewardsRedeem": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "rewardsRedeemed": "Pronto! Você ganhou {days} dias do plano Essencial.",
+  "@rewardsRedeemed": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "rewardsHigherPlan": "Seu plano já inclui tudo do Essencial.",
+  "rewardsFailed": "Não deu para trocar agora. Tente de novo mais tarde."
 }
