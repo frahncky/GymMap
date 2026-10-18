@@ -173,7 +173,15 @@ extension _GymMapPageMapView on _GymMapPageState {
           ],
         ),
         if (_routeGym != null && _isRouteCardOpen)
-          Positioned(left: 12, right: 12, bottom: 28, child: _buildRouteCard())
+          Positioned(
+            left: 12,
+            right: 12,
+            bottom: 28,
+            child: KeyedSubtree(
+              key: _routeOverlayKey,
+              child: _buildRouteCard(),
+            ),
+          )
         else if (_routeGym != null)
           Positioned(
             left: 12,
@@ -181,7 +189,10 @@ extension _GymMapPageMapView on _GymMapPageState {
             bottom: 28,
             child: Align(
               alignment: Alignment.centerLeft,
-              child: _buildRoutePill(),
+              child: KeyedSubtree(
+                key: _routeOverlayKey,
+                child: _buildRoutePill(),
+              ),
             ),
           ),
         if (_vectorMapStyle == null)
@@ -607,11 +618,21 @@ extension _GymMapPageMapView on _GymMapPageState {
     if (isReroute) {
       return;
     }
+    // Enquadra o trajeto na área livre, entre a busca e o cartão da rota.
+    // Em cima sobra também a altura do pino e do selo de lotação, que são
+    // desenhados acima do ponto da academia.
+    const pinHeightAbovePoint = 96.0;
+    final covered = _mapCoveredInsets();
     try {
       _mapController.fitCamera(
         CameraFit.coordinates(
           coordinates: route.points,
-          padding: const EdgeInsets.fromLTRB(48, 150, 80, 170),
+          padding: EdgeInsets.fromLTRB(
+            48,
+            math.max(covered.top, 150) + pinHeightAbovePoint,
+            80,
+            math.max(covered.bottom, 170) + 24,
+          ),
           maxZoom: 17,
         ),
       );

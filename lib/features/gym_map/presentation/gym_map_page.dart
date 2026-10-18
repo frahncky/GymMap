@@ -169,6 +169,12 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   final MapController _mapController = MapController();
   final VectorMapStyleLoader _vectorMapStyleLoader = VectorMapStyleLoader();
 
+  // O que fica por cima do mapa; medido para centralizar na área livre.
+  final GlobalKey _mapTopOverlayKey = GlobalKey();
+  final GlobalKey _mapHintCardKey = GlobalKey();
+  final GlobalKey _routeOverlayKey = GlobalKey();
+  double _mapAreaHeight = 0;
+
   // Trajeto até a academia, desenhado no próprio mapa.
   final GymRouteService _routeService = GymRouteService();
   GymRoute? _activeRoute;
@@ -484,7 +490,23 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     final snapshotsByGymId = derivedMapData.snapshotsByGymId;
     final filteredGyms = derivedMapData.filteredGyms;
     final filteredMapPois = derivedMapData.filteredMapPois;
-    final markerGyms = filteredGyms;
+    // Com trajeto, só o destino fica no mapa.
+    final routeGym = _routeGym;
+    var markerGyms = filteredGyms;
+    var markerPois = filteredMapPois;
+    if (routeGym != null) {
+      markerGyms = [
+        for (final gym in filteredGyms)
+          if (gym.id == routeGym.id) gym,
+      ];
+      markerPois = [
+        for (final poi in filteredMapPois)
+          if (poi.id == routeGym.id) poi,
+      ];
+      if (markerGyms.isEmpty && markerPois.isEmpty) {
+        markerGyms = [routeGym];
+      }
+    }
     final quickFilterChips = _buildQuickFilterChips();
     final hasVisiblePins =
         filteredGyms.isNotEmpty || filteredMapPois.isNotEmpty;
@@ -550,20 +572,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                       clipBehavior: Clip.antiAlias,
                       child: LayoutBuilder(
                         builder: (context, constraints) {
-                          final availableHeight = constraints.maxHeight;
-                          final minPanelHeight =
-                              (availableHeight * 0.38)
-                                  .clamp(150.0, 220.0)
-                                  .toDouble();
-                          final maxPanelHeight =
-                              (availableHeight - 132)
-                                  .clamp(minPanelHeight, availableHeight)
-                                  .toDouble();
-                          final panelHeight =
-                              (availableHeight *
-                                      (_panelFlex / _layoutTotalFlex))
-                                  .clamp(minPanelHeight, maxPanelHeight)
-                                  .toDouble();
+                          _mapAreaHeight = constraints.maxHeight;
+                          final panelHeight = _selectedPanelHeight();
 
                           return Stack(
                             children: [
@@ -571,7 +581,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                                 child: _buildMap(
                                   markerGyms,
                                   snapshotsByGymId,
-                                  filteredMapPois,
+                                  markerPois,
                                 ),
                               ),
                               Positioned(
@@ -579,6 +589,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                                 top: 12,
                                 right: 14,
                                 child: Column(
+                                  key: _mapTopOverlayKey,
                                   mainAxisSize: MainAxisSize.min,
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
@@ -624,6 +635,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                                   right: 14,
                                   bottom: 10,
                                   child: SelectionHintCard(
+                                    key: _mapHintCardKey,
                                     hasNoResults: hasNoSearchResults,
                                     hasNoNearbyGyms: hasNoNearbyGyms,
                                     needsLocationForNearbyGyms:

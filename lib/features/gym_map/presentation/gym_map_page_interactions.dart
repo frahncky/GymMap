@@ -1,15 +1,57 @@
 part of 'gym_map_page.dart';
 
 extension _GymMapPageInteractions on _GymMapPageState {
+  /// Leva o ponto ao centro da área livre do mapa (fora da busca, dos
+  /// filtros, do anúncio e do painel de baixo), não ao centro do widget.
   void _moveMapTo(LatLng point, double zoom) {
     if (!widget.showMap) {
       return;
     }
+    final covered = _mapCoveredInsets();
+    final shift =
+        ((covered.top - covered.bottom) / 2)
+            .clamp(-_mapAreaHeight / 4, _mapAreaHeight / 4)
+            .toDouble();
     try {
-      _mapController.move(point, zoom);
+      _mapController.move(point, zoom, offset: Offset(0, shift));
     } catch (_) {
       // Ignora quando o controlador ainda não está conectado ao widget do mapa.
     }
+  }
+
+  /// Altura do painel da academia selecionada, conforme o arrasto.
+  double _selectedPanelHeight() {
+    final availableHeight = _mapAreaHeight;
+    final minPanelHeight = (availableHeight * 0.38).clamp(150.0, 220.0);
+    final maxPanelHeight = (availableHeight - 132).clamp(
+      minPanelHeight,
+      math.max(minPanelHeight, availableHeight),
+    );
+    return (availableHeight * (_panelFlex / _GymMapPageState._layoutTotalFlex))
+        .clamp(minPanelHeight, maxPanelHeight)
+        .toDouble();
+  }
+
+  /// Quanto do mapa fica coberto em cima e embaixo.
+  EdgeInsets _mapCoveredInsets() {
+    double heightOf(GlobalKey key) {
+      final box = key.currentContext?.findRenderObject();
+      return box is RenderBox && box.hasSize ? box.size.height : 0;
+    }
+
+    final topOverlay = heightOf(_mapTopOverlayKey);
+    final panel =
+        _selectedGym != null
+            ? _selectedPanelHeight()
+            : heightOf(_mapHintCardKey);
+    final routeOverlay = _routeGym != null ? heightOf(_routeOverlayKey) : 0.0;
+    return EdgeInsets.only(
+      top: topOverlay > 0 ? topOverlay + 12 : 0,
+      bottom: math.max(
+        panel > 0 ? panel + 10 : 0,
+        routeOverlay > 0 ? routeOverlay + 28 : 0,
+      ),
+    );
   }
 
   /// Corrige somente orientação para norte (0 graus), sem alterar centro/zoom.
