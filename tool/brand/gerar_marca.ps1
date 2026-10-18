@@ -57,24 +57,27 @@ function Symbol([int]$height) {
 # Pino do mapa (proporção 192x256, em 2x para telas de alta densidade).
 Render $pinDir 'pin' 384 512 (Symbol 512)
 
-# Ícone do app: fundo grafite com o símbolo (iOS e Android antigo).
-Render $genDir 'app_icon' 1024 1024 (Symbol 660) '#1B222B'
+# Pino apoiado no mapa dobrado (a composição da marca), em HTML.
+function PinOnMap([int]$pinHeight, [int]$mapWidth, [string]$extra = '', [int]$offsetY = 0) {
+  $mapHeight = [int]($mapWidth * 0.4)
+  $overlap = [int]($mapHeight * 0.6)
+  $pin = (Symbol $pinHeight) -replace '<svg ', '<svg style="position:relative;z-index:2" '
+  $map = $mapSvg -replace '<svg ', "<svg width=""$mapWidth"" height=""$mapHeight"" style=""margin-top:-$($overlap)px"" "
+  return "<div style=""display:flex;flex-direction:column;align-items:center;margin-top:$($offsetY)px"">$pin$map$extra</div>"
+}
 
-# Ícone adaptável do Android: só o símbolo, dentro da área segura (~60%).
-Render $genDir 'app_icon_foreground' 1024 1024 (Symbol 560)
+# Ícone do app: fundo grafite, pino sobre o mapa (iOS e Android antigo).
+Render $genDir 'app_icon' 1024 1024 (PinOnMap 560 700 '' -20) '#1B222B'
 
-# Splash: símbolo + nome.
-# O mapa dobrado fica embaixo do pino, como na marca original.
-$splashMap = $mapSvg -replace '<svg ', '<svg width="620" height="248" style="margin-top:-150px" '
-$splashPin = (Symbol 520) -replace '<svg ', '<svg style="position:relative;z-index:2" '
-$splashBody = '<div style="display:flex;flex-direction:column;align-items:center">' + $splashPin + $splashMap + '</div><div class="word">Gym<b>Map</b></div>'
-Render $genDir 'splash_logo' 1152 1152 $splashBody
+# Ícone adaptável do Android: a mesma composição dentro da área segura
+# (círculo de ~61% que nenhum formato de ícone recorta).
+Render $genDir 'app_icon_foreground' 1024 1024 (PinOnMap 370 420 '' -10)
 
-# Splash do Android 12+: o sistema recorta o ícone num círculo (2/3 da
-# imagem). Pino sobre o mapa, dimensionado para caber inteiro no círculo.
-$a12Pin = (Symbol 400) -replace '<svg ', '<svg style="position:relative;z-index:2" '
-$a12Map = $mapSvg -replace '<svg ', '<svg width="460" height="184" style="margin-top:-112px" '
-Render $genDir 'splash_android12' 1152 1152 ('<div style="display:flex;flex-direction:column;align-items:center;margin-top:-30px">' + $a12Pin + $a12Map + '</div>')
+# Splash: pino sobre o mapa e o nome.
+Render $genDir 'splash_logo' 1152 1152 (PinOnMap 520 620 '<div class="word">Gym<b>Map</b></div>')
 
-# Nome do app embaixo do ícone no splash do Android 12+ ("branding").
-Render $genDir 'splash_branding' 800 320 '<div class="word" style="margin-top:0;font-size:150px">Gym<b>Map</b></div>'
+# Splash do Android 12+: o sistema mostra só um círculo (2/3 da imagem) e põe
+# o "branding" no rodapé, longe do ícone. Por isso o nome vai dentro da
+# própria imagem, logo abaixo do pino com o mapa, tudo dentro do círculo.
+$a12Name = '<div class="word" style="font-size:96px;margin-top:14px;letter-spacing:-2px">Gym<b>Map</b></div>'
+Render $genDir 'splash_android12' 1152 1152 (PinOnMap 290 380 $a12Name 10)
