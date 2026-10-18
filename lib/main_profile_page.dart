@@ -73,12 +73,18 @@ class _ProfilePageState extends State<_ProfilePage> {
   static const String _locationAlertsPrefKey = 'gymmap_pref_location_alerts_v1';
   static const String _hapticsPrefKey = 'gymmap_pref_haptics_v1';
   static const String _dataSaverPrefKey = 'gymmap_pref_data_saver_v1';
-  static String get _defaultProfileName => _t.profileDefaultName;
+
+  /// Nomes padrão de versões anteriores, gravados no idioma da época; hoje o
+  /// nome padrão só aparece na tela, traduzido.
+  static const Set<String> _legacyDefaultNames = <String>{
+    'Usuário GymMap',
+    'GymMap user',
+  };
 
   final ImagePicker _imagePicker = ImagePicker();
 
   _ProfilePreferences _preferences = _ProfilePreferences(
-    displayName: _defaultProfileName,
+    displayName: '',
     photoBase64: '',
     isProfileVisible: true,
     pushNotifications: true,
@@ -94,13 +100,17 @@ class _ProfilePageState extends State<_ProfilePage> {
     unawaited(_loadProfilePreferences());
   }
 
+  /// Nome digitado pela pessoa; vazio quando ela não escolheu um.
   String _normalizeDisplayName(String value) {
     final normalized = value.trim();
-    if (normalized.isEmpty) {
-      return _defaultProfileName;
-    }
-    return normalized;
+    return _legacyDefaultNames.contains(normalized) ? '' : normalized;
   }
+
+  /// Nome exibido: o escolhido ou o padrão no idioma em uso.
+  String get _shownDisplayName =>
+      _preferences.displayName.isEmpty
+          ? _t.profileDefaultName
+          : _preferences.displayName;
 
   void _showSaveErrorSnack() {
     if (!mounted) {
@@ -128,7 +138,7 @@ class _ProfilePageState extends State<_ProfilePage> {
       final prefs = await SharedPreferences.getInstance();
       final loaded = _ProfilePreferences(
         displayName: _normalizeDisplayName(
-          prefs.getString(_displayNamePrefKey) ?? _defaultProfileName,
+          prefs.getString(_displayNamePrefKey) ?? '',
         ),
         photoBase64: (prefs.getString(_photoBase64PrefKey) ?? '').trim(),
         isProfileVisible: prefs.getBool(_profileVisiblePrefKey) ?? true,
@@ -528,7 +538,7 @@ class _ProfilePageState extends State<_ProfilePage> {
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              _preferences.displayName,
+                                              _shownDisplayName,
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
                                               style: TextStyle(
@@ -562,53 +572,42 @@ class _ProfilePageState extends State<_ProfilePage> {
                                   const SizedBox(height: 10),
                                   Row(
                                     children: [
-                                      GestureDetector(
-                                        onTap: _toggleProfileVisibility,
-                                        behavior: HitTestBehavior.opaque,
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 10,
-                                            vertical: 6,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            borderRadius: BorderRadius.circular(
-                                              999,
+                                      Flexible(
+                                        child: GestureDetector(
+                                          onTap: _toggleProfileVisibility,
+                                          behavior: HitTestBehavior.opaque,
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 6,
                                             ),
-                                            color:
-                                                isPublicProfile
-                                                    ? const Color(0xFFE9F7EF)
-                                                    : const Color(0xFFF7EFE9),
-                                            border: Border.all(
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(999),
                                               color:
                                                   isPublicProfile
-                                                      ? const Color(0xFFB2DEC0)
-                                                      : const Color(0xFFE5C7B2),
-                                            ),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(
-                                                isPublicProfile
-                                                    ? Icons.public_rounded
-                                                    : Icons
-                                                        .visibility_off_rounded,
-                                                size: 14,
+                                                      ? const Color(0xFFE9F7EF)
+                                                      : const Color(0xFFF7EFE9),
+                                              border: Border.all(
                                                 color:
                                                     isPublicProfile
                                                         ? const Color(
-                                                          0xFF2E7D32,
+                                                          0xFFB2DEC0,
                                                         )
                                                         : const Color(
-                                                          0xFF8A4B2E,
+                                                          0xFFE5C7B2,
                                                         ),
                                               ),
-                                              const SizedBox(width: 6),
-                                              Text(
-                                                isPublicProfile
-                                                    ? _t.profileVisible
-                                                    : _t.profilePrivate,
-                                                style: TextStyle(
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  isPublicProfile
+                                                      ? Icons.public_rounded
+                                                      : Icons
+                                                          .visibility_off_rounded,
+                                                  size: 14,
                                                   color:
                                                       isPublicProfile
                                                           ? const Color(
@@ -617,14 +616,37 @@ class _ProfilePageState extends State<_ProfilePage> {
                                                           : const Color(
                                                             0xFF8A4B2E,
                                                           ),
-                                                  fontWeight: FontWeight.w700,
-                                                  fontSize: 12,
                                                 ),
-                                              ),
-                                            ],
+                                                const SizedBox(width: 6),
+                                                Flexible(
+                                                  child: Text(
+                                                    isPublicProfile
+                                                        ? _t.profileVisible
+                                                        : _t.profilePrivate,
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: TextStyle(
+                                                      color:
+                                                          isPublicProfile
+                                                              ? const Color(
+                                                                0xFF2E7D32,
+                                                              )
+                                                              : const Color(
+                                                                0xFF8A4B2E,
+                                                              ),
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      fontSize: 12,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ),
                                       ),
+                                      const SizedBox(width: 8),
                                       const Spacer(),
                                       TextButton(
                                         onPressed: widget.onOpenMap,

@@ -2,12 +2,15 @@ part of 'main.dart';
 
 enum _CommunityVote { confirm, disagree }
 
+/// Legenda da foto de um relato; o texto vem da tradução na hora de exibir.
+enum _CommunityPhotoCaption { recent, record }
+
 class _CommunityReportItem {
   const _CommunityReportItem({
     required this.id,
     required this.gymName,
-    required this.regionLabel,
-    required this.timeAgoLabel,
+    required this.address,
+    required this.createdAt,
     required this.occupancyPercent,
     required this.confirmCount,
     required this.disagreeCount,
@@ -18,13 +21,13 @@ class _CommunityReportItem {
 
   final String id;
   final String gymName;
-  final String regionLabel;
-  final String timeAgoLabel;
+  final String address;
+  final DateTime createdAt;
   final int occupancyPercent;
   final int confirmCount;
   final int disagreeCount;
   final bool hasPhoto;
-  final String? photoCaption;
+  final _CommunityPhotoCaption? photoCaption;
   final _CommunityVote? userVote;
 
   _CommunityReportItem copyWith({
@@ -36,8 +39,8 @@ class _CommunityReportItem {
     return _CommunityReportItem(
       id: id,
       gymName: gymName,
-      regionLabel: regionLabel,
-      timeAgoLabel: timeAgoLabel,
+      address: address,
+      createdAt: createdAt,
       occupancyPercent: occupancyPercent,
       confirmCount: confirmCount ?? this.confirmCount,
       disagreeCount: disagreeCount ?? this.disagreeCount,
@@ -83,7 +86,16 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
   int _leaderboardUserRank = 0;
   bool _isLoadingLeaderboard = false;
   bool _hasRealLeaderboard = false;
-  String _leaderboardRegionLabel = _t.communityYourRegion;
+
+  /// Nome da região enviado pelo servidor, quando houver.
+  String? _leaderboardRegionName;
+  bool _leaderboardHasRegion = true;
+
+  String get _leaderboardRegionLabel =>
+      _leaderboardRegionName ??
+      (_leaderboardHasRegion
+          ? _t.communityYourRegion
+          : _t.communityRegionUnavailable);
   DateTime? _lastLeaderboardLoadAt;
 
   @override
@@ -401,21 +413,17 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
         _CommunityReportItem(
           id: 'remote-${location.id}',
           gymName: location.name,
-          regionLabel: _communityRegionLabel(location.address),
-          timeAgoLabel: _timeAgoLabel(report.createdAt),
+          address: location.address,
+          createdAt: report.createdAt,
           occupancyPercent: report.occupancyPercent.clamp(0, 100).toInt(),
           confirmCount: confirmCount,
           disagreeCount: disagreeCount,
           hasPhoto: seed % 4 == 0,
-          photoCaption: seed % 4 == 0 ? _t.communityPhotoCaptionRecent : null,
+          photoCaption: seed % 4 == 0 ? _CommunityPhotoCaption.recent : null,
         ),
       );
     }
-    items.sort((a, b) {
-      final left = _minutesFromTimeAgoLabel(a.timeAgoLabel);
-      final right = _minutesFromTimeAgoLabel(b.timeAgoLabel);
-      return left.compareTo(right);
-    });
+    items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return items.take(8).toList(growable: false);
   }
 
@@ -483,21 +491,17 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
         _CommunityReportItem(
           id: 'nearby-${location.id}',
           gymName: location.name,
-          regionLabel: _communityRegionLabel(location.address),
-          timeAgoLabel: _timeAgoLabel(createdAt),
+          address: location.address,
+          createdAt: createdAt,
           occupancyPercent: occupancy.clamp(0, 100).toInt(),
           confirmCount: confirmCount,
           disagreeCount: disagreeCount,
           hasPhoto: seed % 5 == 0,
-          photoCaption: seed % 5 == 0 ? _t.communityPhotoCaptionRecord : null,
+          photoCaption: seed % 5 == 0 ? _CommunityPhotoCaption.record : null,
         ),
       );
     }
-    items.sort((a, b) {
-      final left = _minutesFromTimeAgoLabel(a.timeAgoLabel);
-      final right = _minutesFromTimeAgoLabel(b.timeAgoLabel);
-      return left.compareTo(right);
-    });
+    items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return items;
   }
 
@@ -521,7 +525,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     final now = DateTime.now().toUtc();
     final delta = now.difference(createdAt.toUtc());
     if (delta.inMinutes < 1) {
-      return 'agora';
+      return _t.timeNow;
     }
     if (delta.inMinutes < 60) {
       return _t.timeAgoMinutes('${delta.inMinutes}');
@@ -530,25 +534,6 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
       return _t.timeAgoHours('${delta.inHours}');
     }
     return _t.timeAgoDays('${delta.inDays}');
-  }
-
-  int _minutesFromTimeAgoLabel(String label) {
-    if (label == 'agora') {
-      return 0;
-    }
-    final raw = label.toLowerCase();
-    final match = RegExp(r'(\d+)').firstMatch(raw);
-    if (match == null) {
-      return 99999;
-    }
-    final value = int.tryParse(match.group(1) ?? '') ?? 99999;
-    if (raw.contains(' h')) {
-      return value * 60;
-    }
-    if (raw.contains(' d')) {
-      return value * 24 * 60;
-    }
-    return value;
   }
 
   int _stableSeed(String raw) {
@@ -644,7 +629,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
   }
 
   void _setLeaderboardEmpty({
-    required String regionLabel,
+    required bool hasRegion,
     required DateTime timestamp,
   }) {
     setState(() {
@@ -652,7 +637,8 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
           const <({String name, int points, bool isCurrentUser})>[];
       _leaderboardUserRank = 0;
       _hasRealLeaderboard = false;
-      _leaderboardRegionLabel = regionLabel;
+      _leaderboardRegionName = null;
+      _leaderboardHasRegion = hasRegion;
       _isLoadingLeaderboard = false;
       _lastLeaderboardLoadAt = timestamp;
     });
@@ -722,7 +708,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
       if (!mounted) {
         return;
       }
-      _setLeaderboardEmpty(regionLabel: regionLabel, timestamp: startedAt);
+      _setLeaderboardEmpty(hasRegion: hasRegion, timestamp: startedAt);
       return;
     }
 
@@ -737,7 +723,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
         return;
       }
       if (result == null || result.entries.isEmpty) {
-        _setLeaderboardEmpty(regionLabel: regionLabel, timestamp: startedAt);
+        _setLeaderboardEmpty(hasRegion: hasRegion, timestamp: startedAt);
         return;
       }
 
@@ -767,16 +753,16 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
           userRankFromEntries > 0
               ? userRankFromEntries
               : (result.userRank > 0 ? result.userRank : 0);
-      final normalizedRegionLabel =
-          result.regionLabel.trim().isEmpty
-              ? regionLabel
-              : result.regionLabel.trim();
 
       setState(() {
         _leaderboardEntries = entries;
         _leaderboardUserRank = userRank;
         _hasRealLeaderboard = true;
-        _leaderboardRegionLabel = normalizedRegionLabel;
+        _leaderboardRegionName =
+            result.regionLabel.trim().isEmpty
+                ? null
+                : result.regionLabel.trim();
+        _leaderboardHasRegion = hasRegion;
         _isLoadingLeaderboard = false;
         _lastLeaderboardLoadAt = startedAt;
       });
@@ -784,7 +770,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
       if (!mounted) {
         return;
       }
-      _setLeaderboardEmpty(regionLabel: regionLabel, timestamp: startedAt);
+      _setLeaderboardEmpty(hasRegion: hasRegion, timestamp: startedAt);
     }
   }
 
@@ -1326,7 +1312,8 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              '${report.regionLabel} - ${report.timeAgoLabel}',
+                              '${_communityRegionLabel(report.address)} · '
+                              '${_timeAgoLabel(report.createdAt)}',
                               style: const TextStyle(
                                 color: Colors.black54,
                                 fontWeight: FontWeight.w600,
@@ -1369,8 +1356,13 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                                     const SizedBox(width: 10),
                                     Expanded(
                                       child: Text(
-                                        report.photoCaption ??
-                                            _t.communityPhotoByCommunity,
+                                        switch (report.photoCaption) {
+                                          _CommunityPhotoCaption.recent =>
+                                            _t.communityPhotoCaptionRecent,
+                                          _CommunityPhotoCaption.record =>
+                                            _t.communityPhotoCaptionRecord,
+                                          null => _t.communityPhotoByCommunity,
+                                        },
                                         style: const TextStyle(
                                           fontWeight: FontWeight.w700,
                                           color: Colors.black87,

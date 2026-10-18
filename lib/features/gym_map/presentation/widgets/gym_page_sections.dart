@@ -526,7 +526,7 @@ class _AdBannerCardState extends State<AdBannerCard> {
           SizedBox(width: 8),
           Expanded(
             child: Text(
-              _t.adLabel,
+              context.l10n.adLabel,
               style: TextStyle(
                 color: GymMapColors.adText,
                 fontWeight: FontWeight.w700,

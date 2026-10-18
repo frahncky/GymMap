@@ -41,6 +41,34 @@ void main() {
     AppL10n.preference.value = AppLanguagePreference.system;
   });
 
+  testWidgets('switching to English live updates every tab', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.5;
+    addTearDown(tester.view.reset);
+
+    // Começa em português, com cada aba já aberta uma vez (textos montados).
+    AppL10n.preference.value = AppLanguagePreference.portuguese;
+    await tester.pumpWidget(const MyApp(showMap: false));
+    await _settle(tester);
+    for (final tab in ['Favoritos', 'Comunidade', 'Perfil', 'Mapa']) {
+      await tester.tap(find.text(tab).last);
+      await _settle(tester);
+    }
+
+    // Troca o idioma com o app aberto, como no Perfil.
+    AppL10n.preference.value = AppLanguagePreference.english;
+    await _settle(tester);
+
+    final found = <String, List<String>>{};
+    for (final tab in ['Map', 'Favorites', 'Community', 'Profile']) {
+      await tester.tap(find.text(tab).last);
+      await _settle(tester);
+      final portuguese = _portugueseTexts(tester);
+      if (portuguese.isNotEmpty) found[tab] = portuguese;
+    }
+    expect(found, isEmpty, reason: 'Português após trocar o idioma: $found');
+  });
+
   testWidgets('every main screen is in English when English is selected', (
     tester,
   ) async {
