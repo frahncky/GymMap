@@ -21,8 +21,10 @@ class GymMapColors {
   static const Color floatingControlShadow = Color(0x26000000);
   static const Color myLocationGlow = Color(0x661E90FF);
 
-  static const Color occupancyLow = Color(0xFF4A7DBA);
-  static const Color occupancyMedium = Color(0xFF6A9ACF);
+  // Baixa e moderada seguem a marca (verde e verde-água); escuras o
+  // bastante para o número branco continuar legível.
+  static const Color occupancyLow = Color(0xFF2A8F52);
+  static const Color occupancyMedium = Color(0xFF13897E);
   static const Color occupancyHigh = Color(0xFFE09F3E);
   static const Color occupancyCritical = Color(0xFFCC4A37);
 

@@ -17,6 +17,8 @@ import 'features/gym_map/data/gym_location_cache_service.dart';
 import 'features/gym_map/domain/gym_models.dart';
 import 'features/gym_map/presentation/gym_map_poi_controller.dart';
 import 'features/gym_map/presentation/gym_map_page.dart';
+import 'features/gym_map/presentation/widgets/gym_page_sections.dart'
+    show BrandEmptyPin;
 
 part 'main_favorites_page.dart';
 part 'main_profile_page.dart';

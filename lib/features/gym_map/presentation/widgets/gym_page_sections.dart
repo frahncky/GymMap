@@ -44,25 +44,17 @@ class GymPageHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: withUiOpacity(Colors.white, 0.18),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(
-              Icons.fitness_center,
-              color: Colors.white,
-              size: 22,
-            ),
+          Image.asset(
+            'assets/brand/pin.png',
+            height: 44,
+            semanticLabel: 'GymMap',
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'GymMap',
+                BrandWordmark(
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w800,
@@ -415,6 +407,8 @@ class SelectionHintCard extends StatelessWidget {
       ),
       child: Row(
         children: [
+          const BrandEmptyPin(size: 30),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               message,
@@ -776,3 +770,48 @@ class _TutorialHintRow extends StatelessWidget {
 
 /// Traduções do idioma em uso.
 AppLocalizations get _t => AppL10n.current;
+
+/// "GymMap" com "Map" no gradiente da marca, como no splash e no README.
+class BrandWordmark extends StatelessWidget {
+  const BrandWordmark({super.key, this.style});
+
+  static const List<Color> gradient = <Color>[
+    Color(0xFF3FC6F0),
+    Color(0xFF22B7A8),
+    Color(0xFF7EDB5A),
+  ];
+
+  final TextStyle? style;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('Gym', style: style),
+        ShaderMask(
+          blendMode: BlendMode.srcIn,
+          shaderCallback:
+              (bounds) => const LinearGradient(
+                colors: gradient,
+              ).createShader(Offset.zero & bounds.size),
+          child: Text('Map', style: style),
+        ),
+      ],
+    );
+  }
+}
+
+/// Pino da marca nas telas sem conteúdo (sem favoritos, sem relatos...).
+class BrandEmptyPin extends StatelessWidget {
+  const BrandEmptyPin({super.key, this.size = 64});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return ExcludeSemantics(
+      child: Image.asset('assets/brand/pin.png', height: size),
+    );
+  }
+}

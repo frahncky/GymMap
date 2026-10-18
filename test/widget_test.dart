@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:gymmap/core/l10n/l10n.dart';
+import 'package:gymmap/features/gym_map/presentation/widgets/gym_page_sections.dart';
 import 'package:gymmap/main.dart';
 
 void main() {
@@ -22,7 +23,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    expect(find.text('GymMap'), findsOneWidget);
+    expect(find.byType(BrandWordmark), findsOneWidget);
     expect(find.text('Mapa desativado no modo de teste'), findsOneWidget);
     expect(find.textContaining('Toque no marcador'), findsNothing);
     expect(find.byIcon(Icons.settings), findsOneWidget);
@@ -40,7 +41,13 @@ void main() {
 
     expect(find.text('Map disabled in test mode'), findsOneWidget);
     expect(find.textContaining('Ad:'), findsOneWidget);
-    expect(find.text('Map'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.text('Map'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Profile'), findsOneWidget);
   });
 }

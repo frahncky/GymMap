@@ -1243,14 +1243,22 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                           color: primary.withValues(alpha: 0.20),
                         ),
                       ),
-                      child: Text(
-                        _hasLocationContext
-                            ? _t.communityEmptyRegion
-                            : _t.communityEnableLocationReports,
-                        style: const TextStyle(
-                          color: Colors.black54,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      child: Row(
+                        children: [
+                          const BrandEmptyPin(size: 40),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              _hasLocationContext
+                                  ? _t.communityEmptyRegion
+                                  : _t.communityEnableLocationReports,
+                              style: const TextStyle(
+                                color: Colors.black54,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),

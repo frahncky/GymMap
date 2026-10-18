@@ -207,13 +207,20 @@ class _FavoritesPageState extends State<_FavoritesPage> {
                               color: primary.withValues(alpha: 0.20),
                             ),
                           ),
-                          child: Text(
-                            _t.favoritesHint,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              color: onSurface.withValues(alpha: 0.84),
-                            ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const BrandEmptyPin(),
+                              const SizedBox(height: 12),
+                              Text(
+                                _t.favoritesHint,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: onSurface.withValues(alpha: 0.84),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
