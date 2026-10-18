@@ -1,12 +1,15 @@
 # Gera as imagens da marca do GymMap a partir de um único símbolo vetorial
 # (tool/brand/gymmap_symbol.svg): pino do mapa, ícone do app e splash.
 #
-#   pwsh tool/brand/gerar_marca.ps1   (pino em assets/brand; ícone e splash em tool/brand/out)
+#   pwsh tool/brand/gerar_marca.ps1   (pinos em assets/brand; ícone e splash em tool/brand/out)
+#   pwsh tool/brand/gerar_marca.ps1 -SoPinos   (só os pinos do mapa)
 #   dart run flutter_launcher_icons
 #   dart run flutter_native_splash:create
 #
 # Usa o Microsoft Edge em modo headless para rasterizar, com fundo
 # transparente. Cores da marca: grafite #1B222B (fundo do ícone e do splash).
+
+param([switch]$SoPinos)
 
 $ErrorActionPreference = 'Stop'
 $root = Resolve-Path (Join-Path $PSScriptRoot '..\..')
@@ -51,13 +54,31 @@ svg{display:block}
   Write-Host "gerado: $target"
 }
 
-function Symbol([int]$height) {
+function Symbol([int]$height, [string]$source = $svg) {
   $width = [int]($height * 192 / 256)
-  return $svg -replace '<svg ', "<svg width=""$width"" height=""$height"" "
+  return $source -replace '<svg ', "<svg width=""$width"" height=""$height"" "
 }
 
 # Pino do mapa (proporção 192x256, em 2x para telas de alta densidade).
 Render $pinDir 'pin' 384 512 (Symbol 512)
+
+# Pinos por lotação: só o anel muda, nas cores do selo de lotação do app
+# (GymMapColors.occupancy*), do tom claro ao tom do selo.
+$levels = [ordered]@{
+  low    = @('#7EDB5A', '#2A8F52')
+  medium = @('#5FD6C8', '#13897E')
+  high   = @('#FFD27A', '#E09F3E')
+  full   = @('#FF8A73', '#CC4A37')
+}
+foreach ($level in $levels.Keys) {
+  $from, $to = $levels[$level]
+  $ring = "<linearGradient id=""ring"" x1=""0.15"" y1=""0"" x2=""0.85"" y2=""1"">" +
+    "<stop offset=""0"" stop-color=""$from""/><stop offset=""1"" stop-color=""$to""/></linearGradient>"
+  $levelSvg = [regex]::Replace($svg, '<linearGradient id="ring"[\s\S]*?</linearGradient>', $ring)
+  Render $pinDir "pin_$level" 384 512 (Symbol 512 $levelSvg)
+}
+
+if ($SoPinos) { return }
 
 # Pino apoiado no mapa dobrado (a composição da marca), em HTML.
 function PinOnMap([int]$pinHeight, [int]$mapWidth, [string]$extra = '', [int]$offsetY = 0) {

@@ -4,12 +4,23 @@ import '../../../../core/l10n/l10n.dart';
 import '../gym_map_colors.dart';
 import '../gym_map_helpers.dart';
 
-const Widget _pinImage = Image(
-  image: AssetImage('assets/brand/pin.png'),
-  width: 32,
-  height: 32,
-  fit: BoxFit.contain,
-);
+Widget _pinImage(String asset) =>
+    Image.asset(asset, width: 32, height: 32, fit: BoxFit.contain);
+
+/// Pino com o anel na cor da lotação, nas mesmas faixas de
+/// [occupancyColor] (gerados por tool/brand/gerar_marca.ps1).
+String _pinAssetForPercent(int percent) {
+  if (percent <= 35) {
+    return 'assets/brand/pin_low.png';
+  }
+  if (percent <= 65) {
+    return 'assets/brand/pin_medium.png';
+  }
+  if (percent <= 85) {
+    return 'assets/brand/pin_high.png';
+  }
+  return 'assets/brand/pin_full.png';
+}
 
 /// Tons de cinza (luminância), para o pino de academia fechada.
 const ColorFilter _grayscale = ColorFilter.matrix(<double>[
@@ -321,12 +332,12 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
                         borderRadius: BorderRadius.circular(8),
                         child:
                             widget.isOpenNow
-                                ? _pinImage
-                                : const Opacity(
+                                ? _pinImage(_pinAssetForPercent(widget.percent))
+                                : Opacity(
                                   opacity: 0.6,
                                   child: ColorFiltered(
                                     colorFilter: _grayscale,
-                                    child: _pinImage,
+                                    child: _pinImage('assets/brand/pin.png'),
                                   ),
                                 ),
                       ),
