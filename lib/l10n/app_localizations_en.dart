@@ -1438,8 +1438,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get suggestionMissing => 'It doesn\'t';
 
   @override
-  String get suggestionMine =>
-      'You suggested this gym. Wait for other people to confirm it.';
+  String get suggestionMine => 'You suggested this gym.';
 
   @override
   String get suggestionTooFar => 'Get within 500 m to rate it.';
@@ -1455,4 +1454,47 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get suggestionVoteFailed =>
       'Couldn\'t save your vote right now. Try again later.';
+
+  @override
+  String get suggestFormAmenities => 'What does it have?';
+
+  @override
+  String get suggestPointsHint =>
+      'If the gym is confirmed, you get 5 points. If everything you checked is confirmed too, you get 5 more.';
+
+  @override
+  String get suggestEditTitle => 'Edit suggestion';
+
+  @override
+  String get suggestSave => 'Save';
+
+  @override
+  String get suggestionClaims => 'The person who suggested it says it has:';
+
+  @override
+  String get suggestionEdit => 'Edit';
+
+  @override
+  String get suggestionDelete => 'Delete';
+
+  @override
+  String get suggestionDeleteConfirmTitle => 'Delete suggestion?';
+
+  @override
+  String get suggestionDeleteConfirmBody =>
+      'The suggestion leaves the map. It still counts toward your limit of 3 a day.';
+
+  @override
+  String get suggestionDeleted => 'Suggestion deleted.';
+
+  @override
+  String get suggestionUpdated => 'Suggestion updated.';
+
+  @override
+  String get suggestionLocked =>
+      'It already has votes, so it can\'t be edited or deleted anymore.';
+
+  @override
+  String get suggestionChangeFailed =>
+      'Couldn\'t save right now. Try again later.';
 }

@@ -333,6 +333,9 @@ class _PixBillingBackend {
   static const int _suggestionConfirmThreshold = 3;
   static const int _pointsPerConfirmedSuggestion = 5;
   static const int _pointsPerSuggestionVote = 2;
+  // Bônus para quem sugeriu quando tudo o que disse que a academia tem é
+  // confirmado pela comunidade.
+  static const int _pointsForAllClaimedAmenities = 5;
   static const Set<String> _amenityCatalog = <String>{
     'weights',
     'cardio',
@@ -1414,6 +1417,7 @@ class _PixBillingBackend {
             }
           }
         }
+        _maybeAwardClaimedAmenitiesBonus(gymId, now);
         await _persist();
         return _json(req, HttpStatus.ok, <String, dynamic>{
           'gymId': gymId,
@@ -1489,6 +1493,12 @@ class _PixBillingBackend {
           'lng': lng,
           'status': 'pending',
           'votes': <String, dynamic>{},
+          // O que quem sugeriu diz que a academia tem.
+          'amenities': <String>[
+            if (payload['amenities'] is List)
+              for (final item in (payload['amenities'] as List).toSet())
+                if (_amenityCatalog.contains('$item')) '$item',
+          ],
           'createdAt': now.toIso8601String(),
         };
         gymSuggestions[id] = suggestion;
@@ -1522,7 +1532,8 @@ class _PixBillingBackend {
             (_jwtEnabled ? '' : (query['userId'] ?? '').trim());
         final nearby = <Map<String, dynamic>>[
           for (final item in gymSuggestions.values)
-            if (item['status'] != 'rejected' &&
+            if ((item['status'] == 'pending' ||
+                    item['status'] == 'confirmed') &&
                 gymDistanceKm(
                       lat,
                       lng,
@@ -1600,6 +1611,75 @@ class _PixBillingBackend {
         }
         suggestion['votes'] = votes;
         _decideGymSuggestion(suggestion, DateTime.now().toUtc());
+        await _persist();
+        return _json(
+          req,
+          HttpStatus.ok,
+          _publicGymSuggestion(suggestion, viewerId: userId),
+        );
+      }
+
+      // Quem sugeriu pode editar (nome e comodidades) ou excluir enquanto a
+      // sugestão não recebeu nenhum voto. Excluída continua contando no
+      // limite diário.
+      if (req.method == 'POST' &&
+          segments.length == 4 &&
+          segments[0] == 'v1' &&
+          segments[1] == 'gyms' &&
+          segments[2] == 'suggestions' &&
+          (segments[3] == 'update' || segments[3] == 'delete')) {
+        final payload = await _readJson(req);
+        final requested = '${payload['userId'] ?? ''}'.trim();
+        final authUser = _authenticate(req, expectedUserId: requested);
+        if (_jwtEnabled && authUser == null) {
+          return _json(req, HttpStatus.unauthorized, <String, dynamic>{
+            'error': 'unauthorized',
+          });
+        }
+        final userId = _jwtEnabled ? authUser! : requested;
+        final suggestion =
+            gymSuggestions['${payload['suggestionId'] ?? ''}'.trim()];
+        if (userId.isEmpty || suggestion == null) {
+          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+            'error': 'invalid_suggestion',
+          });
+        }
+        if (suggestion['userId'] != userId) {
+          return _json(req, HttpStatus.forbidden, <String, dynamic>{
+            'error': 'not_owner',
+          });
+        }
+        if (suggestion['status'] != 'pending') {
+          return _json(req, HttpStatus.conflict, <String, dynamic>{
+            'error': 'already_decided',
+          });
+        }
+        if (suggestion['votes'] is Map &&
+            (suggestion['votes'] as Map).isNotEmpty) {
+          return _json(req, HttpStatus.conflict, <String, dynamic>{
+            'error': 'already_voted',
+          });
+        }
+        final now = DateTime.now().toUtc();
+        if (segments[3] == 'delete') {
+          suggestion['status'] = 'deleted';
+          suggestion['deletedAt'] = now.toIso8601String();
+          await _persist();
+          return _json(req, HttpStatus.ok, <String, dynamic>{'deleted': true});
+        }
+        final name = '${payload['name'] ?? ''}'.trim();
+        if (name.length < 2 || name.length > 80) {
+          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+            'error': 'invalid_suggestion',
+          });
+        }
+        suggestion['name'] = name;
+        suggestion['amenities'] = <String>[
+          if (payload['amenities'] is List)
+            for (final item in (payload['amenities'] as List).toSet())
+              if (_amenityCatalog.contains('$item')) '$item',
+        ];
+        suggestion['updatedAt'] = now.toIso8601String();
         await _persist();
         return _json(
           req,
@@ -3329,6 +3409,10 @@ class _PixBillingBackend {
       'name': suggestion['name'],
       'lat': suggestion['lat'],
       'lng': suggestion['lng'],
+      'amenities':
+          suggestion['amenities'] is List
+              ? suggestion['amenities']
+              : const <String>[],
       'status': suggestion['status'],
       'createdAt': suggestion['createdAt'],
       'existsCount': votes.values.where((v) => v == 'exists').length,
@@ -3351,7 +3435,8 @@ class _PixBillingBackend {
     return gymLocations.values.any((gym) => near(gym['lat'], gym['lng'])) ||
         gymSuggestions.values.any(
           (item) =>
-              item['status'] != 'rejected' && near(item['lat'], item['lng']),
+              (item['status'] == 'pending' || item['status'] == 'confirmed') &&
+              near(item['lat'], item['lng']),
         );
   }
 
@@ -3394,6 +3479,44 @@ class _PixBillingBackend {
       'lng': suggestion['lng'],
       'updatedAtUtc': now.toIso8601String(),
     };
+    if (suggesterId.isEmpty || suggestion['amenities'] is! List) {
+      return;
+    }
+    for (final amenity in suggestion['amenities'] as List) {
+      amenityVotes['$id|$amenity|$suggesterId'] = <String, dynamic>{
+        'gymId': id,
+        'amenity': '$amenity',
+        'userId': suggesterId,
+        'present': true,
+        'createdAt': now.toIso8601String(),
+        'updatedAt': now.toIso8601String(),
+      };
+    }
+  }
+
+  /// Bônus para quem sugeriu a academia quando todos os itens que disse
+  /// que ela tem foram confirmados (uma vez só).
+  void _maybeAwardClaimedAmenitiesBonus(String gymId, DateTime now) {
+    final suggestion = gymSuggestions[gymId];
+    if (suggestion == null ||
+        suggestion['status'] != 'confirmed' ||
+        suggestion['amenityBonusAwarded'] == true ||
+        suggestion['amenities'] is! List ||
+        (suggestion['amenities'] as List).isEmpty) {
+      return;
+    }
+    final statuses = _amenityStatuses(gymId);
+    final allConfirmed = (suggestion['amenities'] as List).every(
+      (amenity) => statuses['$amenity'] == 'confirmed',
+    );
+    if (!allConfirmed) {
+      return;
+    }
+    suggestion['amenityBonusAwarded'] = true;
+    final suggesterId = '${suggestion['userId'] ?? ''}';
+    if (suggesterId.isNotEmpty) {
+      _awardPoints(suggesterId, _pointsForAllClaimedAmenities, now);
+    }
   }
 
   Map<String, String> _amenityStatuses(String gymId) => <String, String>{

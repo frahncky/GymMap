@@ -217,6 +217,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   // Academias sugeridas por perto e o modo de posicionar uma nova.
   List<GymSuggestion> _gymSuggestions = const <GymSuggestion>[];
   bool _isPlacingSuggestion = false;
+  LatLng? _suggestionsLoadedAround;
+  DateTime? _suggestionsLoadedAt;
   bool _isSyncingCrowdReports = false;
   bool _isSubmittingCrowdReport = false;
   int _communityPoints = 0;

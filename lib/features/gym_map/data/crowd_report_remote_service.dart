@@ -309,6 +309,7 @@ class CrowdReportRemoteService {
     required String name,
     required LatLng position,
     required LatLng userPosition,
+    Set<GymAmenity> amenities = const <GymAmenity>{},
   }) async {
     if (!hasRemoteBackend) {
       throw StateError('Backend crowd service not configured');
@@ -325,6 +326,7 @@ class CrowdReportRemoteService {
             'lng': position.longitude,
             'userLat': userPosition.latitude,
             'userLng': userPosition.longitude,
+            'amenities': <String>[for (final a in amenities) a.key],
           }),
         )
         .timeout(_requestTimeout);
@@ -336,6 +338,53 @@ class CrowdReportRemoteService {
       throw const FormatException('Invalid suggestion payload');
     }
     return suggestion;
+  }
+
+  /// Muda nome e comodidades de uma sugestão sua ainda sem votos. Lança
+  /// [StateError] (`already_voted`, `already_decided`...) quando não dá.
+  Future<GymSuggestion> updateGymSuggestion({
+    required String suggestionId,
+    required String name,
+    required Set<GymAmenity> amenities,
+  }) async {
+    final decoded = await _postSuggestionChange('update', <String, dynamic>{
+      'suggestionId': suggestionId,
+      'name': name,
+      'amenities': <String>[for (final a in amenities) a.key],
+    });
+    final suggestion = parseGymSuggestion(decoded);
+    if (suggestion == null) {
+      throw const FormatException('Invalid suggestion payload');
+    }
+    return suggestion;
+  }
+
+  /// Exclui uma sugestão sua ainda sem votos.
+  Future<void> deleteGymSuggestion(String suggestionId) async {
+    await _postSuggestionChange('delete', <String, dynamic>{
+      'suggestionId': suggestionId,
+    });
+  }
+
+  Future<Map<String, dynamic>> _postSuggestionChange(
+    String action,
+    Map<String, dynamic> body,
+  ) async {
+    if (!hasRemoteBackend) {
+      throw StateError('Backend crowd service not configured');
+    }
+    refreshAuthFromStorage();
+    final response = await _httpClient
+        .post(
+          _buildRemoteUri(<String>['v1', 'gyms', 'suggestions', action]),
+          headers: _remoteHeaders(contentTypeJson: true),
+          body: jsonEncode(<String, dynamic>{'userId': _userId, ...body}),
+        )
+        .timeout(_requestTimeout);
+    if (response.statusCode != HttpStatus.ok) {
+      throw StateError(_parseBackendError(response));
+    }
+    return _decodeJsonMap(response.body);
   }
 
   /// Vota se a academia sugerida existe (`exists`), não existe (`missing`)
@@ -400,6 +449,11 @@ class CrowdReportRemoteService {
       missingCount: int.tryParse('${json['missingCount'] ?? ''}') ?? 0,
       isMine: json['isMine'] == true,
       userVote: vote == 'exists' || vote == 'missing' ? '$vote' : null,
+      amenities: <GymAmenity>[
+        if (json['amenities'] is List)
+          for (final key in json['amenities'] as List)
+            if (GymAmenity.fromKey('$key') case final amenity?) amenity,
+      ],
     );
   }
 

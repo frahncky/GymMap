@@ -106,11 +106,14 @@ void main() {
           'missingCount': 1,
           'userVote': 'exists',
           'isMine': false,
+          'amenities': <String>['pool', 'sauna', 'cardio'],
         });
 
     expect(pending!.status, GymSuggestionStatus.pending);
     expect(pending.existsCount, 2);
     expect(pending.userVote, 'exists');
+    expect(pending.amenities, [GymAmenity.pool, GymAmenity.cardio]);
+    expect(pending.hasVotes, isTrue);
     expect(
       CrowdReportRemoteService.parseGymSuggestion(<String, dynamic>{
         'id': 'sug-2',

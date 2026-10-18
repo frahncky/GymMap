@@ -1452,8 +1452,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get suggestionMissing => 'Não existe';
 
   @override
-  String get suggestionMine =>
-      'Você sugeriu esta academia. Aguarde outras pessoas confirmarem.';
+  String get suggestionMine => 'Você sugeriu esta academia.';
 
   @override
   String get suggestionTooFar => 'Chegue a até 500 m para avaliar.';
@@ -1469,4 +1468,47 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get suggestionVoteFailed =>
       'Não deu para registrar seu voto agora. Tente de novo mais tarde.';
+
+  @override
+  String get suggestFormAmenities => 'O que ela tem?';
+
+  @override
+  String get suggestPointsHint =>
+      'Se a academia for confirmada, você ganha 5 pontos. Se tudo o que você marcou também for confirmado, ganha mais 5.';
+
+  @override
+  String get suggestEditTitle => 'Editar sugestão';
+
+  @override
+  String get suggestSave => 'Salvar';
+
+  @override
+  String get suggestionClaims => 'Quem sugeriu diz que tem:';
+
+  @override
+  String get suggestionEdit => 'Editar';
+
+  @override
+  String get suggestionDelete => 'Excluir';
+
+  @override
+  String get suggestionDeleteConfirmTitle => 'Excluir sugestão?';
+
+  @override
+  String get suggestionDeleteConfirmBody =>
+      'A sugestão some do mapa. Ela continua contando no seu limite de 3 por dia.';
+
+  @override
+  String get suggestionDeleted => 'Sugestão excluída.';
+
+  @override
+  String get suggestionUpdated => 'Sugestão atualizada.';
+
+  @override
+  String get suggestionLocked =>
+      'Ela já recebeu votos, então não dá mais para editar nem excluir.';
+
+  @override
+  String get suggestionChangeFailed =>
+      'Não deu para salvar agora. Tente de novo mais tarde.';
 }

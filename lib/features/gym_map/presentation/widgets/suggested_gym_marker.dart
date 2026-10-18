@@ -19,7 +19,7 @@ class SuggestedGymMarker extends StatelessWidget {
   final VoidCallback onTap;
 
   static const double width = 140;
-  static const double height = 96;
+  static const double height = 82;
 
   @override
   Widget build(BuildContext context) {
@@ -68,9 +68,10 @@ class SuggestedGymMarker extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 2),
+              // Mesmo tamanho do pino das academias (GymMarkerBubble).
               SizedBox(
-                width: 36,
-                height: 46,
+                width: 32,
+                height: 32,
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
@@ -78,8 +79,8 @@ class SuggestedGymMarker extends StatelessWidget {
                       opacity: 0.7,
                       child: Image.asset(
                         'assets/brand/pin.png',
-                        width: 36,
-                        height: 46,
+                        width: 32,
+                        height: 32,
                         fit: BoxFit.contain,
                       ),
                     ),

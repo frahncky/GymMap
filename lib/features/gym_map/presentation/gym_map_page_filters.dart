@@ -250,7 +250,7 @@ extension _GymMapPageFilters on _GymMapPageState {
       }
       _lastDataSaverCrowdSyncAt = now;
     }
-    unawaited(_loadGymSuggestions());
+    unawaited(_loadGymSuggestions(force: true));
     await _syncCrowdReportsForGyms(_crowdSyncGymIds());
   }
 

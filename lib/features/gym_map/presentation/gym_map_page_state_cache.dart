@@ -112,6 +112,9 @@ extension _GymMapPageStateCache on _GymMapPageState {
       hasHydratedFavoriteNames = _hydrateFavoriteGymNamesFromPois(nextPois);
     });
     _tryResolvePendingFocusGymId();
+    // A lista muda quando a localização chega ou o mapa se move: hora de
+    // ver as sugestões de academia por perto.
+    unawaited(_loadGymSuggestions());
     if (hasHydratedFavoriteNames) {
       unawaited(_persistFavoriteGymIds());
     }

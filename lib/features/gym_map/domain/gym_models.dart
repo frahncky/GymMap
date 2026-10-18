@@ -71,12 +71,19 @@ class GymSuggestion {
     required this.missingCount,
     required this.isMine,
     this.userVote,
+    this.amenities = const <GymAmenity>[],
   });
 
   final String id;
   final String name;
   final LatLng position;
   final GymSuggestionStatus status;
+
+  /// O que quem sugeriu diz que a academia tem.
+  final List<GymAmenity> amenities;
+
+  /// Sem votos ainda: quem sugeriu pode editar ou excluir.
+  bool get hasVotes => existsCount + missingCount > 0;
   final int existsCount;
   final int missingCount;
 

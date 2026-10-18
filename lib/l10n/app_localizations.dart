@@ -2525,7 +2525,7 @@ abstract class AppLocalizations {
   /// No description provided for @suggestionMine.
   ///
   /// In pt, this message translates to:
-  /// **'Você sugeriu esta academia. Aguarde outras pessoas confirmarem.'**
+  /// **'Você sugeriu esta academia.'**
   String get suggestionMine;
 
   /// No description provided for @suggestionTooFar.
@@ -2551,6 +2551,84 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Não deu para registrar seu voto agora. Tente de novo mais tarde.'**
   String get suggestionVoteFailed;
+
+  /// No description provided for @suggestFormAmenities.
+  ///
+  /// In pt, this message translates to:
+  /// **'O que ela tem?'**
+  String get suggestFormAmenities;
+
+  /// No description provided for @suggestPointsHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Se a academia for confirmada, você ganha 5 pontos. Se tudo o que você marcou também for confirmado, ganha mais 5.'**
+  String get suggestPointsHint;
+
+  /// No description provided for @suggestEditTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Editar sugestão'**
+  String get suggestEditTitle;
+
+  /// No description provided for @suggestSave.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvar'**
+  String get suggestSave;
+
+  /// No description provided for @suggestionClaims.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quem sugeriu diz que tem:'**
+  String get suggestionClaims;
+
+  /// No description provided for @suggestionEdit.
+  ///
+  /// In pt, this message translates to:
+  /// **'Editar'**
+  String get suggestionEdit;
+
+  /// No description provided for @suggestionDelete.
+  ///
+  /// In pt, this message translates to:
+  /// **'Excluir'**
+  String get suggestionDelete;
+
+  /// No description provided for @suggestionDeleteConfirmTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Excluir sugestão?'**
+  String get suggestionDeleteConfirmTitle;
+
+  /// No description provided for @suggestionDeleteConfirmBody.
+  ///
+  /// In pt, this message translates to:
+  /// **'A sugestão some do mapa. Ela continua contando no seu limite de 3 por dia.'**
+  String get suggestionDeleteConfirmBody;
+
+  /// No description provided for @suggestionDeleted.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sugestão excluída.'**
+  String get suggestionDeleted;
+
+  /// No description provided for @suggestionUpdated.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sugestão atualizada.'**
+  String get suggestionUpdated;
+
+  /// No description provided for @suggestionLocked.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ela já recebeu votos, então não dá mais para editar nem excluir.'**
+  String get suggestionLocked;
+
+  /// No description provided for @suggestionChangeFailed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não deu para salvar agora. Tente de novo mais tarde.'**
+  String get suggestionChangeFailed;
 }
 
 class _AppLocalizationsDelegate
