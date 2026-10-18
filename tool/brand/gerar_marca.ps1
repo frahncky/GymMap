@@ -71,7 +71,7 @@ Render $genDir 'app_icon' 1024 1024 (PinOnMap 560 700 '' -20) '#1B222B'
 
 # Ícone adaptável do Android: a mesma composição dentro da área segura
 # (círculo de ~61% que nenhum formato de ícone recorta).
-Render $genDir 'app_icon_foreground' 1024 1024 (PinOnMap 370 420 '' -10)
+Render $genDir 'app_icon_foreground' 1024 1024 (PinOnMap 470 540 '' -16)
 
 # Splash: pino sobre o mapa e o nome.
 Render $genDir 'splash_logo' 1152 1152 (PinOnMap 520 620 '<div class="word">Gym<b>Map</b></div>')
