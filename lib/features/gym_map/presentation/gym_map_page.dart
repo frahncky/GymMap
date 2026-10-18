@@ -42,6 +42,7 @@ import 'widgets/gym_marker_bubble.dart';
 import 'widgets/gym_page_sections.dart';
 import 'widgets/map_controls.dart';
 import 'widgets/selected_gym_panel.dart';
+import 'widgets/suggested_gym_marker.dart';
 
 part 'gym_map_page_models.dart';
 part 'gym_map_page_preferences.dart';
@@ -55,6 +56,7 @@ part 'gym_map_page_state_cache.dart';
 part 'gym_map_page_community.dart';
 part 'gym_map_page_plan.dart';
 part 'gym_map_page_amenities.dart';
+part 'gym_map_page_suggestions.dart';
 
 /// Traduções do idioma em uso (válido também depois de `await`).
 AppLocalizations get _t => AppL10n.current;
@@ -211,6 +213,10 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   final Map<String, List<GymAmenityVotes>> _amenityVotesByGymId =
       <String, List<GymAmenityVotes>>{};
   RemoteRewards? _rewards;
+
+  // Academias sugeridas por perto e o modo de posicionar uma nova.
+  List<GymSuggestion> _gymSuggestions = const <GymSuggestion>[];
+  bool _isPlacingSuggestion = false;
   bool _isSyncingCrowdReports = false;
   bool _isSubmittingCrowdReport = false;
   int _communityPoints = 0;

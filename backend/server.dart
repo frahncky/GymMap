@@ -240,6 +240,7 @@ class _PixBillingBackend {
     required this.accounts,
     required this.amenityVotes,
     required this.pointLedgers,
+    required this.gymSuggestions,
   });
 
   final String storageLabel;
@@ -294,6 +295,10 @@ class _PixBillingBackend {
   /// Saldo de pontos por usuário (ganhos e gastos). Fica à parte dos relatos,
   /// que são apagados depois da retenção.
   final Map<String, Map<String, dynamic>> pointLedgers;
+
+  /// Academias sugeridas por usuários (fora do mapa), a confirmar pela
+  /// comunidade.
+  final Map<String, Map<String, dynamic>> gymSuggestions;
   final Map<String, String> _userIdByUsername = <String, String>{};
   final math.Random _random = math.Random();
   final math.Random _secureRandom = math.Random.secure();
@@ -316,6 +321,18 @@ class _PixBillingBackend {
   // "tem" que "não tem"; negada no caso oposto; senão, a confirmar.
   static const int _amenityConfirmThreshold = 3;
   static const int _maxAmenityGymsPerQuery = 80;
+
+  // Sugestões de academia: até 1 km de quem sugere, 3 por dia, nenhuma
+  // academia a menos de 50 m; votar só a até 500 m. Confirma (ou nega) com
+  // 3 votos e maioria. Quem sugeriu ganha 5 ao confirmar; quem votou certo
+  // antes da decisão ganha 2.
+  static const double _maxSuggestDistanceKm = 1.0;
+  static const double _maxSuggestionVoteDistanceKm = 0.5;
+  static const double _duplicateGymDistanceKm = 0.05;
+  static const int _maxSuggestionsPerDay = 3;
+  static const int _suggestionConfirmThreshold = 3;
+  static const int _pointsPerConfirmedSuggestion = 5;
+  static const int _pointsPerSuggestionVote = 2;
   static const Set<String> _amenityCatalog = <String>{
     'weights',
     'cardio',
@@ -478,6 +495,7 @@ class _PixBillingBackend {
       accounts: state.accounts,
       amenityVotes: state.amenityVotes,
       pointLedgers: state.pointLedgers,
+      gymSuggestions: state.gymSuggestions,
     );
     backend._rebuildUsernameIndex();
     if (backend._dbMode) {
@@ -1403,6 +1421,191 @@ class _PixBillingBackend {
           'pointsAwarded': pointsAwarded,
           'pointsBalance': _pointsBalance(pointLedgers[userId]),
         });
+      }
+
+      // Academias que não estão no mapa, sugeridas por quem está perto e
+      // confirmadas (ou negadas) por outras pessoas que também estão perto.
+      if (req.method == 'POST' &&
+          segments.length == 3 &&
+          segments[0] == 'v1' &&
+          segments[1] == 'gyms' &&
+          segments[2] == 'suggestions') {
+        final payload = await _readJson(req);
+        final requested = '${payload['userId'] ?? ''}'.trim();
+        final authUser = _authenticate(req, expectedUserId: requested);
+        if (_jwtEnabled && authUser == null) {
+          return _json(req, HttpStatus.unauthorized, <String, dynamic>{
+            'error': 'unauthorized',
+          });
+        }
+        final userId = _jwtEnabled ? authUser! : requested;
+        final name = '${payload['name'] ?? ''}'.trim();
+        final lat = double.tryParse('${payload['lat'] ?? ''}');
+        final lng = double.tryParse('${payload['lng'] ?? ''}');
+        final userLat = double.tryParse('${payload['userLat'] ?? ''}');
+        final userLng = double.tryParse('${payload['userLng'] ?? ''}');
+        if (userId.isEmpty ||
+            name.length < 2 ||
+            name.length > 80 ||
+            lat == null ||
+            lng == null ||
+            userLat == null ||
+            userLng == null) {
+          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+            'error': 'invalid_suggestion',
+          });
+        }
+        if (gymDistanceKm(userLat, userLng, lat, lng) > _maxSuggestDistanceKm) {
+          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+            'error': 'too_far',
+          });
+        }
+        final now = DateTime.now().toUtc();
+        final dayAgo = now.subtract(const Duration(days: 1));
+        final suggestedToday =
+            gymSuggestions.values.where((item) {
+              final createdAt = DateTime.tryParse('${item['createdAt'] ?? ''}');
+              return item['userId'] == userId &&
+                  createdAt != null &&
+                  createdAt.isAfter(dayAgo);
+            }).length;
+        if (suggestedToday >= _maxSuggestionsPerDay) {
+          return _json(req, HttpStatus.tooManyRequests, <String, dynamic>{
+            'error': 'daily_limit',
+          });
+        }
+        if (_hasGymNear(lat, lng)) {
+          return _json(req, HttpStatus.conflict, <String, dynamic>{
+            'error': 'duplicate_nearby',
+          });
+        }
+        final id =
+            'sug-${now.millisecondsSinceEpoch}-${1000 + _random.nextInt(9000)}';
+        final suggestion = <String, dynamic>{
+          'id': id,
+          'userId': userId,
+          'name': name,
+          'lat': lat,
+          'lng': lng,
+          'status': 'pending',
+          'votes': <String, dynamic>{},
+          'createdAt': now.toIso8601String(),
+        };
+        gymSuggestions[id] = suggestion;
+        await _persist();
+        return _json(
+          req,
+          HttpStatus.created,
+          _publicGymSuggestion(suggestion, viewerId: userId),
+        );
+      }
+
+      if (req.method == 'GET' &&
+          segments.length == 3 &&
+          segments[0] == 'v1' &&
+          segments[1] == 'gyms' &&
+          segments[2] == 'suggestions') {
+        final query = req.uri.queryParameters;
+        final lat = double.tryParse(query['lat'] ?? '');
+        final lng = double.tryParse(query['lng'] ?? '');
+        if (lat == null || lng == null) {
+          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+            'error': 'missing_coordinates',
+          });
+        }
+        final radiusKm = (double.tryParse(query['radiusKm'] ?? '') ?? 25).clamp(
+          1,
+          50,
+        );
+        final viewer =
+            _authenticate(req) ??
+            (_jwtEnabled ? '' : (query['userId'] ?? '').trim());
+        final nearby = <Map<String, dynamic>>[
+          for (final item in gymSuggestions.values)
+            if (item['status'] != 'rejected' &&
+                gymDistanceKm(
+                      lat,
+                      lng,
+                      (item['lat'] as num).toDouble(),
+                      (item['lng'] as num).toDouble(),
+                    ) <=
+                    radiusKm)
+              _publicGymSuggestion(item, viewerId: viewer),
+        ];
+        return _json(req, HttpStatus.ok, <String, dynamic>{
+          'confirmThreshold': _suggestionConfirmThreshold,
+          'suggestions': nearby.take(200).toList(),
+        });
+      }
+
+      if (req.method == 'POST' &&
+          segments.length == 4 &&
+          segments[0] == 'v1' &&
+          segments[1] == 'gyms' &&
+          segments[2] == 'suggestions' &&
+          segments[3] == 'votes') {
+        final payload = await _readJson(req);
+        final requested = '${payload['userId'] ?? ''}'.trim();
+        final authUser = _authenticate(req, expectedUserId: requested);
+        if (_jwtEnabled && authUser == null) {
+          return _json(req, HttpStatus.unauthorized, <String, dynamic>{
+            'error': 'unauthorized',
+          });
+        }
+        final userId = _jwtEnabled ? authUser! : requested;
+        final suggestion =
+            gymSuggestions['${payload['suggestionId'] ?? ''}'.trim()];
+        final vote = payload['vote'];
+        final userLat = double.tryParse('${payload['userLat'] ?? ''}');
+        final userLng = double.tryParse('${payload['userLng'] ?? ''}');
+        if (userId.isEmpty ||
+            suggestion == null ||
+            (vote != null && vote != 'exists' && vote != 'missing') ||
+            userLat == null ||
+            userLng == null) {
+          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+            'error': 'invalid_vote',
+          });
+        }
+        if (suggestion['userId'] == userId) {
+          return _json(req, HttpStatus.conflict, <String, dynamic>{
+            'error': 'own_suggestion',
+          });
+        }
+        if (suggestion['status'] != 'pending') {
+          return _json(req, HttpStatus.conflict, <String, dynamic>{
+            'error': 'already_decided',
+            ..._publicGymSuggestion(suggestion, viewerId: userId),
+          });
+        }
+        final distanceKm = gymDistanceKm(
+          userLat,
+          userLng,
+          (suggestion['lat'] as num).toDouble(),
+          (suggestion['lng'] as num).toDouble(),
+        );
+        if (distanceKm > _maxSuggestionVoteDistanceKm) {
+          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+            'error': 'too_far',
+          });
+        }
+        final votes = <String, dynamic>{
+          if (suggestion['votes'] is Map)
+            ...Map<String, dynamic>.from(suggestion['votes'] as Map),
+        };
+        if (vote == null) {
+          votes.remove(userId);
+        } else {
+          votes[userId] = vote;
+        }
+        suggestion['votes'] = votes;
+        _decideGymSuggestion(suggestion, DateTime.now().toUtc());
+        await _persist();
+        return _json(
+          req,
+          HttpStatus.ok,
+          _publicGymSuggestion(suggestion, viewerId: userId),
+        );
       }
 
       // Pontos e a troca por dias do plano Essencial.
@@ -3111,6 +3314,88 @@ class _PixBillingBackend {
     };
   }
 
+  /// Sugestão como sai para os apps: contagem de votos, o voto de
+  /// [viewerId] e se é dele, sem a lista de quem votou.
+  Map<String, dynamic> _publicGymSuggestion(
+    Map<String, dynamic> suggestion, {
+    required String viewerId,
+  }) {
+    final votes =
+        suggestion['votes'] is Map
+            ? Map<String, dynamic>.from(suggestion['votes'] as Map)
+            : const <String, dynamic>{};
+    return <String, dynamic>{
+      'id': suggestion['id'],
+      'name': suggestion['name'],
+      'lat': suggestion['lat'],
+      'lng': suggestion['lng'],
+      'status': suggestion['status'],
+      'createdAt': suggestion['createdAt'],
+      'existsCount': votes.values.where((v) => v == 'exists').length,
+      'missingCount': votes.values.where((v) => v == 'missing').length,
+      'userVote': viewerId.isEmpty ? null : votes[viewerId],
+      'isMine': viewerId.isNotEmpty && suggestion['userId'] == viewerId,
+    };
+  }
+
+  /// Já existe academia (do mapa ou sugerida) a menos de 50 m?
+  bool _hasGymNear(double lat, double lng) {
+    bool near(Object? rawLat, Object? rawLng) {
+      final gymLat = double.tryParse('${rawLat ?? ''}');
+      final gymLng = double.tryParse('${rawLng ?? ''}');
+      return gymLat != null &&
+          gymLng != null &&
+          gymDistanceKm(lat, lng, gymLat, gymLng) <= _duplicateGymDistanceKm;
+    }
+
+    return gymLocations.values.any((gym) => near(gym['lat'], gym['lng'])) ||
+        gymSuggestions.values.any(
+          (item) =>
+              item['status'] != 'rejected' && near(item['lat'], item['lng']),
+        );
+  }
+
+  /// Confirma ou nega a sugestão quando há votos suficientes e dá os pontos.
+  /// Confirmada, entra na lista compartilhada como uma academia normal.
+  void _decideGymSuggestion(Map<String, dynamic> suggestion, DateTime now) {
+    final votes = Map<String, dynamic>.from(suggestion['votes'] as Map);
+    final exists = votes.values.where((v) => v == 'exists').length;
+    final missing = votes.values.where((v) => v == 'missing').length;
+    final String decided;
+    if (exists >= _suggestionConfirmThreshold && exists > missing) {
+      decided = 'confirmed';
+    } else if (missing >= _suggestionConfirmThreshold && missing >= exists) {
+      decided = 'rejected';
+    } else {
+      return;
+    }
+    suggestion['status'] = decided;
+    suggestion['decidedAt'] = now.toIso8601String();
+    final winningVote = decided == 'confirmed' ? 'exists' : 'missing';
+    for (final entry in votes.entries) {
+      if (entry.value == winningVote) {
+        _awardPoints(entry.key, _pointsPerSuggestionVote, now);
+      }
+    }
+    if (decided != 'confirmed') {
+      return;
+    }
+    final suggesterId = '${suggestion['userId'] ?? ''}';
+    if (suggesterId.isNotEmpty) {
+      _awardPoints(suggesterId, _pointsPerConfirmedSuggestion, now);
+    }
+    final id = '${suggestion['id']}';
+    gymLocations['community::$id'] = <String, dynamic>{
+      'id': id,
+      'userId': 'community',
+      'name': suggestion['name'],
+      'address': 'Academia encontrada no mapa',
+      'lat': suggestion['lat'],
+      'lng': suggestion['lng'],
+      'updatedAtUtc': now.toIso8601String(),
+    };
+  }
+
   Map<String, String> _amenityStatuses(String gymId) => <String, String>{
     for (final item in _amenitySummary(gymId))
       '${item['amenity']}': '${item['status']}',
@@ -3278,6 +3563,7 @@ class _PixBillingBackend {
       'accounts': accounts,
       'amenityVotes': amenityVotes,
       'pointLedgers': pointLedgers,
+      'gymSuggestions': gymSuggestions,
     };
     await storeFile.writeAsString(
       const JsonEncoder.withIndent('  ').convert(payload),
@@ -3294,6 +3580,7 @@ class _PixBillingBackend {
     'account',
     'amenity_vote',
     'point_ledger',
+    'gym_suggestion',
   ];
 
   Map<String, Map<String, dynamic>> _sourceForDbKind(String kind) {
@@ -3314,6 +3601,8 @@ class _PixBillingBackend {
         return amenityVotes;
       case 'point_ledger':
         return pointLedgers;
+      case 'gym_suggestion':
+        return gymSuggestions;
     }
     throw ArgumentError.value(kind, 'kind');
   }
@@ -3452,6 +3741,7 @@ CREATE TABLE IF NOT EXISTS app_state (
     final accounts = <String, Map<String, dynamic>>{};
     final amenityVotes = <String, Map<String, dynamic>>{};
     final pointLedgers = <String, Map<String, dynamic>>{};
+    final gymSuggestions = <String, Map<String, dynamic>>{};
     final rows = await db.query('SELECT kind,id,payload_json FROM app_state');
     for (final row in rows) {
       if (row.length < 3) continue;
@@ -3470,6 +3760,7 @@ CREATE TABLE IF NOT EXISTS app_state (
       if (kind == 'account') accounts[id] = payload;
       if (kind == 'amenity_vote') amenityVotes[id] = payload;
       if (kind == 'point_ledger') pointLedgers[id] = payload;
+      if (kind == 'gym_suggestion') gymSuggestions[id] = payload;
     }
     return _State(
       subscriptions,
@@ -3480,6 +3771,7 @@ CREATE TABLE IF NOT EXISTS app_state (
       accounts,
       amenityVotes,
       pointLedgers,
+      gymSuggestions,
     );
   }
 
@@ -3495,6 +3787,7 @@ CREATE TABLE IF NOT EXISTS app_state (
     final accounts = <String, Map<String, dynamic>>{};
     final amenityVotes = <String, Map<String, dynamic>>{};
     final pointLedgers = <String, Map<String, dynamic>>{};
+    final gymSuggestions = <String, Map<String, dynamic>>{};
     if (!file.existsSync()) {
       return _State(
         subscriptions,
@@ -3505,6 +3798,7 @@ CREATE TABLE IF NOT EXISTS app_state (
         accounts,
         amenityVotes,
         pointLedgers,
+        gymSuggestions,
       );
     }
 
@@ -3563,6 +3857,7 @@ CREATE TABLE IF NOT EXISTS app_state (
         }
         _readStoreMap(decoded['amenityVotes'], amenityVotes);
         _readStoreMap(decoded['pointLedgers'], pointLedgers);
+        _readStoreMap(decoded['gymSuggestions'], gymSuggestions);
         final rawAccounts = decoded['accounts'];
         if (rawAccounts is Map) {
           for (final entry in rawAccounts.entries) {
@@ -3585,6 +3880,7 @@ CREATE TABLE IF NOT EXISTS app_state (
       accounts,
       amenityVotes,
       pointLedgers,
+      gymSuggestions,
     );
   }
 
@@ -3733,6 +4029,7 @@ class _State {
     this.accounts,
     this.amenityVotes,
     this.pointLedgers,
+    this.gymSuggestions,
   );
   final Map<String, Map<String, dynamic>> subscriptions;
   final Map<String, Map<String, dynamic>> charges;
@@ -3742,6 +4039,7 @@ class _State {
   final Map<String, Map<String, dynamic>> accounts;
   final Map<String, Map<String, dynamic>> amenityVotes;
   final Map<String, Map<String, dynamic>> pointLedgers;
+  final Map<String, Map<String, dynamic>> gymSuggestions;
 }
 
 /// Copia as entradas de um mapa do arquivo de estado para [target].

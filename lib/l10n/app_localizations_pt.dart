@@ -1318,7 +1318,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get rewardsHowToEarn =>
-      '+5 pontos por relato e +2 por item que você marcou ou desmarcou e a comunidade concordou.';
+      '+5 por relato ou academia sugerida e confirmada; +2 quando a comunidade concordar com você.';
 
   @override
   String rewardsRedeem(String days) {
@@ -1382,4 +1382,91 @@ class AppLocalizationsPt extends AppLocalizations {
   String amenityStatusRemovalPending(String count, String needed) {
     return '$count de $needed dizem que não tem';
   }
+
+  @override
+  String get suggestAddTooltip => 'Adicionar academia que não está no mapa';
+
+  @override
+  String get suggestPlaceHint =>
+      'Mova o mapa até o pino ficar em cima da academia.';
+
+  @override
+  String get suggestContinue => 'Continuar';
+
+  @override
+  String get suggestCancel => 'Cancelar';
+
+  @override
+  String get suggestNameTitle => 'Nome da academia';
+
+  @override
+  String get suggestNameHint => 'Ex.: Academia Força Total';
+
+  @override
+  String get suggestSend => 'Enviar sugestão';
+
+  @override
+  String suggestSent(String needed) {
+    return 'Sugestão enviada! A academia aparece para todos quando $needed pessoas que estiverem perto confirmarem.';
+  }
+
+  @override
+  String get suggestNeedsLocation =>
+      'Ative a localização para sugerir uma academia.';
+
+  @override
+  String get suggestTooFar => 'Você precisa estar a até 1 km do lugar.';
+
+  @override
+  String get suggestDuplicate => 'Já existe uma academia aqui no mapa.';
+
+  @override
+  String get suggestDailyLimit =>
+      'Você já sugeriu 3 academias hoje. Tente amanhã.';
+
+  @override
+  String get suggestFailed =>
+      'Não deu para enviar a sugestão agora. Tente de novo mais tarde.';
+
+  @override
+  String get suggestUnavailable =>
+      'Sugerir academias não está disponível agora.';
+
+  @override
+  String get suggestionPendingLabel => 'A confirmar';
+
+  @override
+  String suggestionSheetSubtitle(String needed) {
+    return 'Academia sugerida pela comunidade. Ela entra no mapa quando $needed pessoas que estiverem perto confirmarem.';
+  }
+
+  @override
+  String suggestionVotes(String exists, String missing) {
+    return '$exists dizem que existe · $missing que não existe';
+  }
+
+  @override
+  String get suggestionExists => 'Existe';
+
+  @override
+  String get suggestionMissing => 'Não existe';
+
+  @override
+  String get suggestionMine =>
+      'Você sugeriu esta academia. Aguarde outras pessoas confirmarem.';
+
+  @override
+  String get suggestionTooFar => 'Chegue a até 500 m para avaliar.';
+
+  @override
+  String get suggestionVoted =>
+      'Obrigado! Você ganha 2 pontos se a comunidade concordar.';
+
+  @override
+  String get suggestionConfirmedNow =>
+      'Confirmada! A academia agora aparece para todos.';
+
+  @override
+  String get suggestionVoteFailed =>
+      'Não deu para registrar seu voto agora. Tente de novo mais tarde.';
 }

@@ -426,7 +426,7 @@
       }
     }
   },
-  "rewardsHowToEarn": "+5 points per report and +2 per item you checked or unchecked that the community agreed with.",
+  "rewardsHowToEarn": "+5 per report or suggested gym that gets confirmed; +2 when the community agrees with you.",
   "rewardsRedeem": "Get {days} days",
   "@rewardsRedeem": {
     "placeholders": {
@@ -483,5 +483,53 @@
         "type": "String"
       }
     }
-  }
+  },
+  "suggestAddTooltip": "Add a gym that isn't on the map",
+  "suggestPlaceHint": "Move the map until the pin sits on the gym.",
+  "suggestContinue": "Continue",
+  "suggestCancel": "Cancel",
+  "suggestNameTitle": "Gym name",
+  "suggestNameHint": "E.g.: Iron Gym",
+  "suggestSend": "Send suggestion",
+  "suggestSent": "Suggestion sent! The gym shows for everyone once {needed} people nearby confirm it.",
+  "@suggestSent": {
+    "placeholders": {
+      "needed": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestNeedsLocation": "Turn on location to suggest a gym.",
+  "suggestTooFar": "You need to be within 1 km of the place.",
+  "suggestDuplicate": "There's already a gym here on the map.",
+  "suggestDailyLimit": "You've already suggested 3 gyms today. Try tomorrow.",
+  "suggestFailed": "Couldn't send the suggestion right now. Try again later.",
+  "suggestUnavailable": "Suggesting gyms isn't available right now.",
+  "suggestionPendingLabel": "To confirm",
+  "suggestionSheetSubtitle": "Gym suggested by the community. It joins the map once {needed} people nearby confirm it.",
+  "@suggestionSheetSubtitle": {
+    "placeholders": {
+      "needed": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionVotes": "{exists} say it exists · {missing} say it doesn't",
+  "@suggestionVotes": {
+    "placeholders": {
+      "exists": {
+        "type": "String"
+      },
+      "missing": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionExists": "It exists",
+  "suggestionMissing": "It doesn't",
+  "suggestionMine": "You suggested this gym. Wait for other people to confirm it.",
+  "suggestionTooFar": "Get within 500 m to rate it.",
+  "suggestionVoted": "Thanks! You get 2 points if the community agrees.",
+  "suggestionConfirmedNow": "Confirmed! The gym now shows for everyone.",
+  "suggestionVoteFailed": "Couldn't save your vote right now. Try again later."
 }

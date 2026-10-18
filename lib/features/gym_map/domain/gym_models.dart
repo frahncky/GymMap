@@ -56,6 +56,37 @@ enum GymAmenity {
   };
 }
 
+/// Situação de uma academia sugerida por um usuário.
+enum GymSuggestionStatus { pending, confirmed }
+
+/// Academia que não estava no mapa, sugerida por quem estava perto e
+/// confirmada (ou não) pela comunidade.
+class GymSuggestion {
+  const GymSuggestion({
+    required this.id,
+    required this.name,
+    required this.position,
+    required this.status,
+    required this.existsCount,
+    required this.missingCount,
+    required this.isMine,
+    this.userVote,
+  });
+
+  final String id;
+  final String name;
+  final LatLng position;
+  final GymSuggestionStatus status;
+  final int existsCount;
+  final int missingCount;
+
+  /// Se quem está usando o app foi quem sugeriu (não vota na própria).
+  final bool isMine;
+
+  /// `exists`, `missing` ou `null` (não votou).
+  final String? userVote;
+}
+
 /// Situação de uma comodidade numa academia, segundo os votos.
 enum AmenityVoteStatus { confirmed, pending, rejected }
 

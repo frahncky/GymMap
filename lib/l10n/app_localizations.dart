@@ -2309,7 +2309,7 @@ abstract class AppLocalizations {
   /// No description provided for @rewardsHowToEarn.
   ///
   /// In pt, this message translates to:
-  /// **'+5 pontos por relato e +2 por item que você marcou ou desmarcou e a comunidade concordou.'**
+  /// **'+5 por relato ou academia sugerida e confirmada; +2 quando a comunidade concordar com você.'**
   String get rewardsHowToEarn;
 
   /// No description provided for @rewardsRedeem.
@@ -2407,6 +2407,150 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'{count} de {needed} dizem que não tem'**
   String amenityStatusRemovalPending(String count, String needed);
+
+  /// No description provided for @suggestAddTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar academia que não está no mapa'**
+  String get suggestAddTooltip;
+
+  /// No description provided for @suggestPlaceHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mova o mapa até o pino ficar em cima da academia.'**
+  String get suggestPlaceHint;
+
+  /// No description provided for @suggestContinue.
+  ///
+  /// In pt, this message translates to:
+  /// **'Continuar'**
+  String get suggestContinue;
+
+  /// No description provided for @suggestCancel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cancelar'**
+  String get suggestCancel;
+
+  /// No description provided for @suggestNameTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nome da academia'**
+  String get suggestNameTitle;
+
+  /// No description provided for @suggestNameHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ex.: Academia Força Total'**
+  String get suggestNameHint;
+
+  /// No description provided for @suggestSend.
+  ///
+  /// In pt, this message translates to:
+  /// **'Enviar sugestão'**
+  String get suggestSend;
+
+  /// No description provided for @suggestSent.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sugestão enviada! A academia aparece para todos quando {needed} pessoas que estiverem perto confirmarem.'**
+  String suggestSent(String needed);
+
+  /// No description provided for @suggestNeedsLocation.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ative a localização para sugerir uma academia.'**
+  String get suggestNeedsLocation;
+
+  /// No description provided for @suggestTooFar.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você precisa estar a até 1 km do lugar.'**
+  String get suggestTooFar;
+
+  /// No description provided for @suggestDuplicate.
+  ///
+  /// In pt, this message translates to:
+  /// **'Já existe uma academia aqui no mapa.'**
+  String get suggestDuplicate;
+
+  /// No description provided for @suggestDailyLimit.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você já sugeriu 3 academias hoje. Tente amanhã.'**
+  String get suggestDailyLimit;
+
+  /// No description provided for @suggestFailed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não deu para enviar a sugestão agora. Tente de novo mais tarde.'**
+  String get suggestFailed;
+
+  /// No description provided for @suggestUnavailable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sugerir academias não está disponível agora.'**
+  String get suggestUnavailable;
+
+  /// No description provided for @suggestionPendingLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'A confirmar'**
+  String get suggestionPendingLabel;
+
+  /// No description provided for @suggestionSheetSubtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Academia sugerida pela comunidade. Ela entra no mapa quando {needed} pessoas que estiverem perto confirmarem.'**
+  String suggestionSheetSubtitle(String needed);
+
+  /// No description provided for @suggestionVotes.
+  ///
+  /// In pt, this message translates to:
+  /// **'{exists} dizem que existe · {missing} que não existe'**
+  String suggestionVotes(String exists, String missing);
+
+  /// No description provided for @suggestionExists.
+  ///
+  /// In pt, this message translates to:
+  /// **'Existe'**
+  String get suggestionExists;
+
+  /// No description provided for @suggestionMissing.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não existe'**
+  String get suggestionMissing;
+
+  /// No description provided for @suggestionMine.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você sugeriu esta academia. Aguarde outras pessoas confirmarem.'**
+  String get suggestionMine;
+
+  /// No description provided for @suggestionTooFar.
+  ///
+  /// In pt, this message translates to:
+  /// **'Chegue a até 500 m para avaliar.'**
+  String get suggestionTooFar;
+
+  /// No description provided for @suggestionVoted.
+  ///
+  /// In pt, this message translates to:
+  /// **'Obrigado! Você ganha 2 pontos se a comunidade concordar.'**
+  String get suggestionVoted;
+
+  /// No description provided for @suggestionConfirmedNow.
+  ///
+  /// In pt, this message translates to:
+  /// **'Confirmada! A academia agora aparece para todos.'**
+  String get suggestionConfirmedNow;
+
+  /// No description provided for @suggestionVoteFailed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não deu para registrar seu voto agora. Tente de novo mais tarde.'**
+  String get suggestionVoteFailed;
 }
 
 class _AppLocalizationsDelegate

@@ -94,6 +94,42 @@ void main() {
     },
   );
 
+  test('parses gym suggestions and skips rejected or incomplete ones', () {
+    final pending =
+        CrowdReportRemoteService.parseGymSuggestion(<String, dynamic>{
+          'id': 'sug-1',
+          'name': 'Academia Nova',
+          'lat': -2.59,
+          'lng': -44.23,
+          'status': 'pending',
+          'existsCount': 2,
+          'missingCount': 1,
+          'userVote': 'exists',
+          'isMine': false,
+        });
+
+    expect(pending!.status, GymSuggestionStatus.pending);
+    expect(pending.existsCount, 2);
+    expect(pending.userVote, 'exists');
+    expect(
+      CrowdReportRemoteService.parseGymSuggestion(<String, dynamic>{
+        'id': 'sug-2',
+        'name': 'X',
+        'lat': 1,
+        'lng': 1,
+        'status': 'rejected',
+      }),
+      isNull,
+    );
+    expect(
+      CrowdReportRemoteService.parseGymSuggestion(<String, dynamic>{
+        'id': 'sug-3',
+        'status': 'pending',
+      }),
+      isNull,
+    );
+  });
+
   test('votes on a report and reads the real counts back', () async {
     late Map<String, dynamic> sent;
     final service = await CrowdReportRemoteService.create(

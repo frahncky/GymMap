@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
+import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../domain/gym_models.dart';
@@ -267,6 +268,139 @@ class CrowdReportRemoteService {
       throw const FormatException('Invalid report payload');
     }
     return report;
+  }
+
+  /// Academias sugeridas (a confirmar e confirmadas) perto de [center].
+  Future<List<GymSuggestion>> loadGymSuggestions(LatLng center) async {
+    if (!hasRemoteBackend) {
+      return const <GymSuggestion>[];
+    }
+    refreshAuthFromStorage();
+    final uri = _buildRemoteUri(<String>['v1', 'gyms', 'suggestions']).replace(
+      queryParameters: <String, String>{
+        'lat': '${center.latitude}',
+        'lng': '${center.longitude}',
+        'userId': _userId,
+      },
+    );
+    final response = await _httpClient
+        .get(uri, headers: _remoteHeaders())
+        .timeout(_requestTimeout);
+    if (response.statusCode != HttpStatus.ok) {
+      return const <GymSuggestion>[];
+    }
+    final raw = _decodeJsonMap(response.body)['suggestions'];
+    if (raw is! List) {
+      return const <GymSuggestion>[];
+    }
+    return <GymSuggestion>[
+      for (final item in raw)
+        if (item is Map)
+          if (parseGymSuggestion(Map<String, dynamic>.from(item))
+              case final suggestion?)
+            suggestion,
+    ];
+  }
+
+  /// Sugere uma academia em [position]; [userPosition] é onde a pessoa está
+  /// (o servidor exige até 1 km). Lança [StateError] com o motivo
+  /// (`too_far`, `duplicate_nearby`, `daily_limit`...).
+  Future<GymSuggestion> suggestGym({
+    required String name,
+    required LatLng position,
+    required LatLng userPosition,
+  }) async {
+    if (!hasRemoteBackend) {
+      throw StateError('Backend crowd service not configured');
+    }
+    refreshAuthFromStorage();
+    final response = await _httpClient
+        .post(
+          _buildRemoteUri(<String>['v1', 'gyms', 'suggestions']),
+          headers: _remoteHeaders(contentTypeJson: true),
+          body: jsonEncode(<String, dynamic>{
+            'userId': _userId,
+            'name': name,
+            'lat': position.latitude,
+            'lng': position.longitude,
+            'userLat': userPosition.latitude,
+            'userLng': userPosition.longitude,
+          }),
+        )
+        .timeout(_requestTimeout);
+    if (response.statusCode != HttpStatus.created) {
+      throw StateError(_parseBackendError(response));
+    }
+    final suggestion = parseGymSuggestion(_decodeJsonMap(response.body));
+    if (suggestion == null) {
+      throw const FormatException('Invalid suggestion payload');
+    }
+    return suggestion;
+  }
+
+  /// Vota se a academia sugerida existe (`exists`), não existe (`missing`)
+  /// ou retira o voto (`null`). O servidor exige estar a até 500 m.
+  Future<GymSuggestion> voteGymSuggestion({
+    required String suggestionId,
+    required String? vote,
+    required LatLng userPosition,
+  }) async {
+    if (!hasRemoteBackend) {
+      throw StateError('Backend crowd service not configured');
+    }
+    refreshAuthFromStorage();
+    final response = await _httpClient
+        .post(
+          _buildRemoteUri(<String>['v1', 'gyms', 'suggestions', 'votes']),
+          headers: _remoteHeaders(contentTypeJson: true),
+          body: jsonEncode(<String, dynamic>{
+            'userId': _userId,
+            'suggestionId': suggestionId,
+            'vote': vote,
+            'userLat': userPosition.latitude,
+            'userLng': userPosition.longitude,
+          }),
+        )
+        .timeout(_requestTimeout);
+    if (response.statusCode != HttpStatus.ok) {
+      throw StateError(_parseBackendError(response));
+    }
+    final suggestion = parseGymSuggestion(_decodeJsonMap(response.body));
+    if (suggestion == null) {
+      throw const FormatException('Invalid suggestion payload');
+    }
+    return suggestion;
+  }
+
+  /// Lê uma sugestão do servidor; negadas ou incompletas viram `null`.
+  /// Pública para testes.
+  static GymSuggestion? parseGymSuggestion(Map<String, dynamic> json) {
+    final id = '${json['id'] ?? ''}'.trim();
+    final name = '${json['name'] ?? ''}'.trim();
+    final lat = double.tryParse('${json['lat'] ?? ''}');
+    final lng = double.tryParse('${json['lng'] ?? ''}');
+    final status = switch ('${json['status'] ?? ''}') {
+      'pending' => GymSuggestionStatus.pending,
+      'confirmed' => GymSuggestionStatus.confirmed,
+      _ => null,
+    };
+    if (id.isEmpty || name.isEmpty || lat == null || lng == null) {
+      return null;
+    }
+    if (status == null) {
+      return null;
+    }
+    final vote = json['userVote'];
+    return GymSuggestion(
+      id: id,
+      name: name,
+      position: LatLng(lat, lng),
+      status: status,
+      existsCount: int.tryParse('${json['existsCount'] ?? ''}') ?? 0,
+      missingCount: int.tryParse('${json['missingCount'] ?? ''}') ?? 0,
+      isMine: json['isMine'] == true,
+      userVote: vote == 'exists' || vote == 'missing' ? '$vote' : null,
+    );
   }
 
   /// Comodidades votadas de cada academia em [gymIds] (até 80 por vez).

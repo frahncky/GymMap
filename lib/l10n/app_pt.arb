@@ -785,7 +785,7 @@
       }
     }
   },
-  "rewardsHowToEarn": "+5 pontos por relato e +2 por item que você marcou ou desmarcou e a comunidade concordou.",
+  "rewardsHowToEarn": "+5 por relato ou academia sugerida e confirmada; +2 quando a comunidade concordar com você.",
   "rewardsRedeem": "Trocar por {days} dias",
   "@rewardsRedeem": {
     "placeholders": {
@@ -842,5 +842,53 @@
         "type": "String"
       }
     }
-  }
+  },
+  "suggestAddTooltip": "Adicionar academia que não está no mapa",
+  "suggestPlaceHint": "Mova o mapa até o pino ficar em cima da academia.",
+  "suggestContinue": "Continuar",
+  "suggestCancel": "Cancelar",
+  "suggestNameTitle": "Nome da academia",
+  "suggestNameHint": "Ex.: Academia Força Total",
+  "suggestSend": "Enviar sugestão",
+  "suggestSent": "Sugestão enviada! A academia aparece para todos quando {needed} pessoas que estiverem perto confirmarem.",
+  "@suggestSent": {
+    "placeholders": {
+      "needed": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestNeedsLocation": "Ative a localização para sugerir uma academia.",
+  "suggestTooFar": "Você precisa estar a até 1 km do lugar.",
+  "suggestDuplicate": "Já existe uma academia aqui no mapa.",
+  "suggestDailyLimit": "Você já sugeriu 3 academias hoje. Tente amanhã.",
+  "suggestFailed": "Não deu para enviar a sugestão agora. Tente de novo mais tarde.",
+  "suggestUnavailable": "Sugerir academias não está disponível agora.",
+  "suggestionPendingLabel": "A confirmar",
+  "suggestionSheetSubtitle": "Academia sugerida pela comunidade. Ela entra no mapa quando {needed} pessoas que estiverem perto confirmarem.",
+  "@suggestionSheetSubtitle": {
+    "placeholders": {
+      "needed": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionVotes": "{exists} dizem que existe · {missing} que não existe",
+  "@suggestionVotes": {
+    "placeholders": {
+      "exists": {
+        "type": "String"
+      },
+      "missing": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionExists": "Existe",
+  "suggestionMissing": "Não existe",
+  "suggestionMine": "Você sugeriu esta academia. Aguarde outras pessoas confirmarem.",
+  "suggestionTooFar": "Chegue a até 500 m para avaliar.",
+  "suggestionVoted": "Obrigado! Você ganha 2 pontos se a comunidade concordar.",
+  "suggestionConfirmedNow": "Confirmada! A academia agora aparece para todos.",
+  "suggestionVoteFailed": "Não deu para registrar seu voto agora. Tente de novo mais tarde."
 }

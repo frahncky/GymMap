@@ -1306,7 +1306,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get rewardsHowToEarn =>
-      '+5 points per report and +2 per item you checked or unchecked that the community agreed with.';
+      '+5 per report or suggested gym that gets confirmed; +2 when the community agrees with you.';
 
   @override
   String rewardsRedeem(String days) {
@@ -1370,4 +1370,89 @@ class AppLocalizationsEn extends AppLocalizations {
   String amenityStatusRemovalPending(String count, String needed) {
     return '$count of $needed say it doesn\'t have this';
   }
+
+  @override
+  String get suggestAddTooltip => 'Add a gym that isn\'t on the map';
+
+  @override
+  String get suggestPlaceHint => 'Move the map until the pin sits on the gym.';
+
+  @override
+  String get suggestContinue => 'Continue';
+
+  @override
+  String get suggestCancel => 'Cancel';
+
+  @override
+  String get suggestNameTitle => 'Gym name';
+
+  @override
+  String get suggestNameHint => 'E.g.: Iron Gym';
+
+  @override
+  String get suggestSend => 'Send suggestion';
+
+  @override
+  String suggestSent(String needed) {
+    return 'Suggestion sent! The gym shows for everyone once $needed people nearby confirm it.';
+  }
+
+  @override
+  String get suggestNeedsLocation => 'Turn on location to suggest a gym.';
+
+  @override
+  String get suggestTooFar => 'You need to be within 1 km of the place.';
+
+  @override
+  String get suggestDuplicate => 'There\'s already a gym here on the map.';
+
+  @override
+  String get suggestDailyLimit =>
+      'You\'ve already suggested 3 gyms today. Try tomorrow.';
+
+  @override
+  String get suggestFailed =>
+      'Couldn\'t send the suggestion right now. Try again later.';
+
+  @override
+  String get suggestUnavailable =>
+      'Suggesting gyms isn\'t available right now.';
+
+  @override
+  String get suggestionPendingLabel => 'To confirm';
+
+  @override
+  String suggestionSheetSubtitle(String needed) {
+    return 'Gym suggested by the community. It joins the map once $needed people nearby confirm it.';
+  }
+
+  @override
+  String suggestionVotes(String exists, String missing) {
+    return '$exists say it exists · $missing say it doesn\'t';
+  }
+
+  @override
+  String get suggestionExists => 'It exists';
+
+  @override
+  String get suggestionMissing => 'It doesn\'t';
+
+  @override
+  String get suggestionMine =>
+      'You suggested this gym. Wait for other people to confirm it.';
+
+  @override
+  String get suggestionTooFar => 'Get within 500 m to rate it.';
+
+  @override
+  String get suggestionVoted =>
+      'Thanks! You get 2 points if the community agrees.';
+
+  @override
+  String get suggestionConfirmedNow =>
+      'Confirmed! The gym now shows for everyone.';
+
+  @override
+  String get suggestionVoteFailed =>
+      'Couldn\'t save your vote right now. Try again later.';
 }

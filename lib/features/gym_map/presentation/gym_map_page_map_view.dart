@@ -64,6 +64,10 @@ extension _GymMapPageMapView on _GymMapPageState {
           enablePulse: enableMarkerPulse,
         ),
     ];
+    // Sugestões a confirmar; com trajeto, ficam de fora como os outros pinos.
+    if (_routeGym == null) {
+      markers.addAll(_suggestionMarkers());
+    }
     final userPoint = _userLocation;
     if (userPoint != null) {
       markers.add(
@@ -229,6 +233,13 @@ extension _GymMapPageMapView on _GymMapPageState {
             onTap: _openBasemapPoiSheet,
           ),
         ),
+        if (!_isPlacingSuggestion)
+          Positioned(
+            right: controlsRight,
+            top: controlsTop + (controlsGap * 3),
+            child: AddGymButton(onTap: _startGymSuggestion),
+          ),
+        if (_isPlacingSuggestion) ..._buildPlacementOverlay(),
         Positioned(
           left: 12,
           top: controlsTop,
