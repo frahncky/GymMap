@@ -135,11 +135,16 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
                       curve: Curves.easeOutCubic,
                       builder: (context, animatedColor, _) {
                         final badgeColor = animatedColor ?? color;
+                        // Fechada: só o relógio (o leitor de tela ainda diz
+                        // "fechada agora"); aberta: lotação.
                         return Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
+                          padding:
+                              widget.isOpenNow
+                                  ? const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 3,
+                                  )
+                                  : const EdgeInsets.all(4),
                           decoration: BoxDecoration(
                             color: badgeColor,
                             borderRadius: BorderRadius.circular(999),
@@ -151,29 +156,32 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
                               ),
                             ],
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                widget.isOpenNow
-                                    ? Icons.groups_rounded
-                                    : Icons.schedule_rounded,
-                                size: 11,
-                                color: Colors.white,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                widget.isOpenNow
-                                    ? '${widget.percent}%'
-                                    : _t.gymClosed,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
+                          child:
+                              widget.isOpenNow
+                                  ? Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.groups_rounded,
+                                        size: 11,
+                                        color: Colors.white,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '${widget.percent}%',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                  : const Icon(
+                                    Icons.schedule_rounded,
+                                    size: 14,
+                                    color: Colors.white,
+                                  ),
                         );
                       },
                     ),
