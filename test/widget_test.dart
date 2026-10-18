@@ -27,7 +27,7 @@ void main() {
     expect(find.text('Mapa desativado no modo de teste'), findsOneWidget);
     expect(find.textContaining('Toque no marcador'), findsNothing);
     expect(find.byIcon(Icons.settings), findsOneWidget);
-    expect(find.textContaining('Publicidade:'), findsOneWidget);
+    expect(find.textContaining('Anúncio ·'), findsOneWidget);
     expect(find.text('Enviar relato colaborativo'), findsNothing);
   });
 
@@ -40,7 +40,7 @@ void main() {
     await tester.pump();
 
     expect(find.text('Map disabled in test mode'), findsOneWidget);
-    expect(find.textContaining('Ad:'), findsOneWidget);
+    expect(find.textContaining('Ad ·'), findsOneWidget);
     expect(
       find.descendant(
         of: find.byType(NavigationBar),

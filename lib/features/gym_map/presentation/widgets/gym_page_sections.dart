@@ -785,6 +785,15 @@ class BrandWordmark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Em telas estreitas ou com fonte grande, diminui em vez de estourar.
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: _wordmark(),
+    );
+  }
+
+  Widget _wordmark() {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [

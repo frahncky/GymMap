@@ -59,68 +59,57 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get authInitializing => 'Autenticação ainda inicializando';
+  String get authInitializing => 'Carregando sua conta…';
 
   @override
-  String get authProductionNoBackend =>
-      'Modo produção ativo sem backend remoto configurado';
+  String get authProductionNoBackend => 'Contas indisponíveis no momento.';
 
   @override
-  String get authNoBackend => 'Backend remoto não configurado no app';
+  String get authNoBackend => 'Contas indisponíveis no momento.';
 
   @override
-  String get authProductionNeedsSession =>
-      'Modo produção exige sessão autenticada';
+  String get authProductionNeedsSession => 'Entre na sua conta para assinar.';
 
   @override
   String get authAnonymousAccount =>
-      'Conta anônima neste aparelho. Crie uma conta para não perder sua assinatura ao trocar de celular.';
+      'Você está usando o app sem conta. Crie uma para não perder sua assinatura ao trocar de celular.';
 
   @override
   String authSessionActive(String user) {
-    return 'Sessão ativa para $user';
+    return 'Conectado como $user';
   }
 
   @override
-  String get authNotSignedIn => 'Sessão não autenticada';
+  String get authNotSignedIn => 'Você não entrou na sua conta.';
 
   @override
-  String get playLoadingProducts => 'Google Play: carregando produtos...';
+  String get playUnavailable =>
+      'A Google Play não está disponível neste aparelho.';
 
   @override
-  String get playUnavailable => 'Google Play indisponível neste aparelho.';
-
-  @override
-  String get playProductsMissing =>
-      'Google Play: um ou mais produtos ainda não encontrados.';
-
-  @override
-  String get playReady => 'Google Play pronto para checkout.';
-
-  @override
-  String get playListenFailed => 'Falha ao escutar compras do Google Play.';
+  String get playListenFailed =>
+      'Não deu para acompanhar suas compras agora. Tente de novo mais tarde.';
 
   @override
   String get playLoadProductsFailed =>
-      'Não foi possível carregar produtos do Google Play.';
+      'Não deu para carregar os planos agora. Tente de novo mais tarde.';
 
   @override
-  String playProductsNotFound(String ids) {
-    return 'Produtos não encontrados no Google Play: $ids';
-  }
+  String get playProductsNotFound =>
+      'Alguns planos não estão disponíveis agora.';
 
   @override
   String get playLoadProductsError =>
-      'Falha ao carregar produtos do Google Play.';
+      'Não deu para carregar os planos agora. Tente de novo mais tarde.';
 
   @override
   String authTooManyAttemptsWait(String wait) {
-    return 'Muitas tentativas de login. Aguarde $wait.';
+    return 'Muitas tentativas de entrar. Espere $wait e tente de novo.';
   }
 
   @override
   String get authTooManyAttempts =>
-      'Muitas tentativas de login. Aguarde um pouco e tente novamente.';
+      'Muitas tentativas de entrar. Espere um pouco e tente de novo.';
 
   @override
   String get authInvalidCredentials => 'Usuário ou senha inválidos.';
@@ -130,7 +119,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get authInvalidUsername =>
-      'Usuário deve ter de 3 a 32 caracteres: letras minúsculas, números, ponto, hífen ou sublinhado.';
+      'O usuário deve ter de 3 a 32 caracteres: letras minúsculas, números, ponto, hífen ou sublinhado.';
 
   @override
   String get authUsernameTaken => 'Este usuário já está em uso.';
@@ -141,124 +130,125 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get authAlreadyRegistered =>
-      'Esta sessão já pertence a uma conta registrada.';
+      'Este aparelho já está ligado a uma conta.';
 
   @override
-  String get authUnauthorized => 'Sessão não autorizada.';
+  String get authUnauthorized => 'Sua sessão expirou. Entre de novo.';
 
   @override
-  String get authFailed => 'Falha de autenticação';
+  String get authFailed => 'Não deu para entrar agora. Tente de novo.';
 
   @override
   String billingRateLimitedWait(String wait) {
-    return 'Limite de tentativas atingido. Aguarde $wait.';
+    return 'Muitas tentativas. Espere $wait e tente de novo.';
   }
 
   @override
   String get billingRateLimited =>
-      'Limite de tentativas atingido. Aguarde um pouco e tente novamente.';
+      'Muitas tentativas. Espere um pouco e tente de novo.';
 
   @override
   String get billingProductionNeedsBackend =>
-      'Modo produção exige backend remoto configurado.';
+      'Assinaturas indisponíveis no momento. Tente mais tarde.';
 
   @override
   String get billingPlayNeedsBackend =>
-      'Checkout no Google Play exige backend remoto configurado.';
+      'Assinaturas indisponíveis no momento. Tente mais tarde.';
 
   @override
-  String get billingProductionNeedsUser =>
-      'Modo produção exige usuário autenticado.';
+  String get billingProductionNeedsUser => 'Entre na sua conta para assinar.';
 
   @override
   String get billingProductNotFound =>
-      'Produto de assinatura não encontrado no Google Play.';
+      'Este plano não está disponível na Google Play agora.';
 
   @override
   String get billingCheckoutNotStarted =>
-      'Não foi possível iniciar checkout no Google Play.';
+      'Não deu para abrir o pagamento na Google Play. Tente de novo.';
 
   @override
-  String get billingProductMissing => 'Produto da assinatura não informado.';
+  String get billingProductMissing =>
+      'Não deu para identificar o plano. Tente de novo.';
 
   @override
-  String get billingTokenMissing => 'Token de compra ausente. Tente novamente.';
+  String get billingTokenMissing =>
+      'Não deu para confirmar a compra. Tente de novo.';
 
   @override
   String get billingPurchaseNotActive =>
-      'Compra ainda não está ativa no Google Play.';
+      'A Google Play ainda está processando sua compra. Tente de novo em alguns minutos.';
 
   @override
-  String get billingPurchaseNotFound => 'Compra não encontrada no Google Play.';
+  String get billingPurchaseNotFound =>
+      'Não encontramos essa compra na Google Play.';
 
   @override
   String get billingProductMismatch =>
-      'Produto da compra não corresponde ao plano selecionado.';
+      'A compra não corresponde ao plano escolhido.';
 
   @override
-  String get billingPackageMismatch => 'Compra vinculada a outro aplicativo.';
+  String get billingPackageMismatch => 'Essa compra pertence a outro app.';
 
   @override
   String get billingPlayUnauthorized =>
-      'Backend sem permissão para validar Google Play. Verifique credenciais.';
+      'Não deu para confirmar a compra agora. Tente de novo mais tarde.';
 
   @override
   String get billingValidationUnavailable =>
-      'Não foi possível validar a compra no Google Play agora.';
+      'Não deu para confirmar a compra agora. Tente de novo mais tarde.';
 
   @override
   String get billingPendingWebhook =>
-      'Pagamento ainda não confirmado pelo webhook. Aguarde alguns segundos e tente novamente.';
+      'Seu pagamento ainda está sendo confirmado. Tente de novo em alguns segundos.';
 
   @override
   String get billingPixUnavailable =>
-      'Gateway Pix indisponível no momento. Tente novamente em instantes.';
+      'O Pix está indisponível no momento. Tente de novo em instantes.';
 
   @override
   String get billingInvalidWebhook =>
-      'Webhook do pagamento inválido. Contate o suporte.';
+      'Não deu para confirmar o pagamento. Fale com o suporte.';
 
   @override
   String get billingSessionExpiredOrForbidden =>
-      'Sessão expirada ou sem permissão. Faça login novamente.';
+      'Sua sessão expirou. Entre de novo.';
 
   @override
-  String get billingSessionExpired => 'Sessão expirada. Faça login novamente.';
+  String get billingSessionExpired => 'Sua sessão expirou. Entre de novo.';
 
   @override
   String get billingGenericFailure =>
-      'Não foi possível processar a assinatura agora.';
+      'Não deu para concluir a assinatura agora. Tente de novo.';
 
   @override
   String get planExpiredBackToFree =>
-      'Assinatura expirada. O app voltou para o plano gratuito.';
+      'Sua assinatura terminou. Você voltou para o plano Grátis.';
 
   @override
   String get subscriptionInitializing =>
-      'Assinatura ainda está inicializando. Tente novamente.';
+      'Os planos ainda estão carregando. Tente de novo em instantes.';
 
   @override
-  String get planFreeActivated => 'Plano gratuito ativado.';
+  String get planFreeActivated => 'Você está no plano Grátis.';
 
   @override
-  String get authNoBackendForLogin =>
-      'Backend remoto não configurado para login.';
+  String get authNoBackendForLogin => 'Contas indisponíveis no momento.';
 
   @override
   String authAccountCreated(String user) {
-    return 'Conta criada para $user.';
+    return 'Conta criada. Boas-vindas, $user!';
   }
 
   @override
   String authSignedIn(String user) {
-    return 'Login concluído para $user.';
+    return 'Você entrou como $user.';
   }
 
   @override
   String get authCreateAccount => 'Criar conta';
 
   @override
-  String get authSignInMonthly => 'Entrar no plano mensal';
+  String get authSignInMonthly => 'Entrar na sua conta';
 
   @override
   String get authUsernameLabel => 'Usuário';
@@ -277,46 +267,46 @@ class AppLocalizationsPt extends AppLocalizations {
   String get actionCancel => 'Cancelar';
 
   @override
-  String get authCreating => 'Criando...';
+  String get authCreating => 'Criando…';
 
   @override
-  String get authSigningIn => 'Entrando...';
+  String get authSigningIn => 'Entrando…';
 
   @override
   String get authSignIn => 'Entrar';
 
   @override
-  String get authNoSession => 'Não existe sessão autenticada.';
+  String get authNoSession => 'Você não entrou em nenhuma conta.';
 
   @override
-  String get authSignedOut => 'Sessão encerrada.';
+  String get authSignedOut => 'Você saiu da sua conta.';
 
   @override
-  String get authSignOutFailed => 'Não foi possível encerrar sessão agora.';
+  String get authSignOutFailed => 'Não deu para sair agora. Tente de novo.';
 
   @override
   String get playFinishPayment =>
-      'Finalize o pagamento no Google Play para ativar o plano.';
+      'Conclua o pagamento na Google Play para ativar o plano.';
 
   @override
-  String get playPurchaseFailed => 'Falha ao processar compra no Google Play.';
+  String get playPurchaseFailed =>
+      'Não deu para concluir a compra na Google Play.';
 
   @override
-  String get playPaymentCanceled => 'Pagamento cancelado no Google Play.';
+  String get playPaymentCanceled => 'Pagamento cancelado.';
 
   @override
-  String playUnknownProduct(String id) {
-    return 'Produto desconhecido no Google Play: $id';
-  }
+  String get playUnknownProduct =>
+      'Este plano não é reconhecido. Atualize o app e tente de novo.';
 
   @override
   String planActivatedSuccess(String plan) {
-    return 'Assinatura $plan ativada com sucesso.';
+    return 'Plano $plan ativado!';
   }
 
   @override
   String get playFinalizeFailed =>
-      'Compra validada, mas não foi possível finalizar no Google Play.';
+      'Compra confirmada. A Google Play ainda está finalizando o pagamento.';
 
   @override
   String get priceFreeMonthly => 'R\$ 0/mês';
@@ -330,16 +320,16 @@ class AppLocalizationsPt extends AppLocalizations {
   String get planCurrent => 'Plano atual';
 
   @override
-  String get planContinueFree => 'Continuar grátis';
+  String get planContinueFree => 'Continuar no Grátis';
 
   @override
-  String get planBackToFree => 'Voltar ao gratuito';
+  String get planBackToFree => 'Voltar ao Grátis';
 
   @override
   String get planSubscribe => 'Assinar';
 
   @override
-  String get planUpgrade => 'Fazer upgrade';
+  String get planUpgrade => 'Subir de plano';
 
   @override
   String get planChange => 'Trocar plano';
@@ -356,11 +346,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get planStartFreeTrial => 'Começar teste grátis';
 
   @override
-  String get planMostPopular => 'MAIS POPULAR';
+  String get planMostPopular => 'RECOMENDADO';
 
   @override
-  String get planInstantAccess =>
-      'Acesso imediato e cancelamento quando quiser.';
+  String get planInstantAccess => 'Acesso imediato. Cancele quando quiser.';
 
   @override
   String get planFeatureLiveOccupancy => 'Lotação em tempo real';
@@ -369,7 +358,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get planFeatureHistory => 'Histórico 24h';
 
   @override
-  String get planFeaturePeakCompare => 'Pico e comparativo';
+  String get planFeaturePeakCompare => 'Picos e comparativo';
 
   @override
   String get planFeatureForecast => 'Previsão e alertas';
@@ -397,26 +386,20 @@ class AppLocalizationsPt extends AppLocalizations {
   String get planUnavailable => 'Indisponível';
 
   @override
-  String get paywallTitle => 'Desbloqueie o máximo do GymMap';
+  String get paywallTitle => 'Aproveite o GymMap ao máximo';
 
   @override
   String get paywallSubtitle =>
       'Escolha o plano ideal para lotação, previsão e comparativos.';
 
   @override
-  String get paywallSocialProof => '+10.000 usuários premium ativos';
-
-  @override
-  String get paywallRating => 'Nota média 4.8/5 em avaliações verificadas.';
-
-  @override
-  String get subscriptionLoading => 'Carregando assinatura...';
+  String get subscriptionLoading => 'Carregando assinatura…';
 
   @override
   String get authSignOut => 'Sair';
 
   @override
-  String get planContinueWithFree => 'Continuar com plano gratuito';
+  String get planContinueWithFree => 'Continuar no plano Grátis';
 
   @override
   String get actionClose => 'Fechar';
@@ -507,14 +490,14 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String communityThanksValidation(String points) {
-    return 'Obrigado por validar! +$points pontos na comunidade.';
+    return 'Obrigado por confirmar! +$points pontos.';
   }
 
   @override
   String get communityTitle => 'Comunidade';
 
   @override
-  String get communityLoadingReports => 'Carregando relatos da sua região...';
+  String get communityLoadingReports => 'Carregando relatos da sua região…';
 
   @override
   String get communityNoReportsYet =>
@@ -526,10 +509,10 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get communityFeedDescription =>
-      'Feed de relatos recentes com validação colaborativa.';
+      'Relatos recentes de quem treina perto de você.';
 
   @override
-  String get communityTopContributors => 'Top contribuidores da semana';
+  String get communityTopContributors => 'Quem mais contribuiu na semana';
 
   @override
   String communityYourPosition(String rank) {
@@ -542,18 +525,19 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get communityNotEnoughRanking => 'Ainda não há ranking suficiente.';
+  String get communityNotEnoughRanking =>
+      'Ainda não há relatos suficientes para um ranking.';
 
   @override
   String get communityEnableLocationRanking =>
-      'Ative a localização para carregar ranking real.';
+      'Ative a localização para ver o ranking da sua região.';
 
   @override
   String get communityRealDataWeek => 'Dados reais dos últimos 7 dias';
 
   @override
   String communityPointsShort(String points) {
-    return '$points pts';
+    return '$points pontos';
   }
 
   @override
@@ -562,7 +546,7 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get communityPointsPerValidation => '+2 por validação';
+  String get communityPointsPerValidation => '+2 pontos por confirmação';
 
   @override
   String get communityContributeOnMap => 'Contribuir no mapa';
@@ -662,11 +646,10 @@ class AppLocalizationsPt extends AppLocalizations {
       'Permite que seu nome e foto apareçam na comunidade.';
 
   @override
-  String get profilePushTitle => 'Notificações push';
+  String get profilePushTitle => 'Notificações';
 
   @override
-  String get profilePushSubtitle =>
-      'Receber alertas de lotação e atualizações.';
+  String get profilePushSubtitle => 'Receber alertas de lotação e novidades.';
 
   @override
   String get profileLocationAlertsTitle => 'Alertas por localização';
@@ -676,13 +659,13 @@ class AppLocalizationsPt extends AppLocalizations {
       'Avisar quando houver academia com lotação baixa perto de você.';
 
   @override
-  String get profileHapticsTitle => 'Feedback vibratório';
+  String get profileHapticsTitle => 'Vibração';
 
   @override
-  String get profileHapticsSubtitle => 'Usar vibração em ações importantes.';
+  String get profileHapticsSubtitle => 'Vibrar em ações importantes.';
 
   @override
-  String get profileDataSaverTitle => 'Modo economia de dados';
+  String get profileDataSaverTitle => 'Economia de dados';
 
   @override
   String get profileDataSaverSubtitle =>
@@ -745,7 +728,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get headerOpenRanking => 'Abrir ranking da comunidade';
 
   @override
-  String get headerPlanSettings => 'Configurações de plano';
+  String get headerPlanSettings => 'Planos e assinatura';
 
   @override
   String get headerPlanSettingsHint => 'Toque para abrir opções de assinatura';
@@ -789,14 +772,13 @@ class AppLocalizationsPt extends AppLocalizations {
       'Nenhum resultado encontrado para sua busca.';
 
   @override
-  String get emptyNoNearbyGyms =>
-      'Nenhuma academia cadastrada próxima da sua localização.';
+  String get emptyNoNearbyGyms => 'Nenhuma academia encontrada perto de você.';
 
   @override
   String get filterClearAll => 'Limpar filtros';
 
   @override
-  String get adLabel => 'Publicidade: faça upgrade para remover anúncios.';
+  String get adLabel => 'Anúncio · assine um plano para remover.';
 
   @override
   String get tutorialTitle => 'Dicas rápidas do mapa';
@@ -805,10 +787,11 @@ class AppLocalizationsPt extends AppLocalizations {
   String get tutorialSearch => 'Use a busca para academia, bairro ou cidade.';
 
   @override
-  String get tutorialFilters => 'Ative os toggles para filtrar os resultados.';
+  String get tutorialFilters => 'Use os filtros para refinar os resultados.';
 
   @override
-  String get tutorialPin => 'Toque no pin para abrir detalhes e enviar relato.';
+  String get tutorialPin =>
+      'Toque no pino para ver detalhes e enviar um relato.';
 
   @override
   String get tutorialGotIt => 'Entendi';
@@ -839,16 +822,16 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String panelStatus(String status) {
-    return 'Status: $status';
+    return 'Lotação: $status';
   }
 
   @override
   String get panelClosedNotice =>
-      'Academia fechada agora. Lotação oculta no mapa.';
+      'Academia fechada agora. A lotação volta a aparecer quando abrir.';
 
   @override
   String panelReportsSummary(String total, String recent) {
-    return '$total relatos totais | $recent relatos recentes';
+    return '$total relatos no total · $recent recentes';
   }
 
   @override
@@ -857,20 +840,20 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get panelViewRoute => 'Ver rota';
+  String get panelViewRoute => 'Ver trajeto';
 
   @override
-  String get panelUpdateOccupancy => 'Atualize a lotação desta academia';
+  String get panelUpdateOccupancy => 'Como está a lotação agora?';
 
   @override
-  String get panelSendingReport => 'Enviando relato...';
+  String get panelSendingReport => 'Enviando relato…';
 
   @override
-  String get panelContribute => 'Contribuir';
+  String get panelContribute => 'Enviar relato';
 
   @override
   String get panelContributeClosed =>
-      'Contribuição de lotação disponível apenas com academia aberta.';
+      'Você pode enviar relatos quando a academia estiver aberta.';
 
   @override
   String get chartPeak => 'Pico';
@@ -889,7 +872,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String reportBlockedWait(String minutes) {
-    return 'Envio bloqueado temporariamente. Aguarde $minutes min para novo relato.';
+    return 'Você enviou um relato há pouco. Envie outro em $minutes min.';
   }
 
   @override
@@ -897,7 +880,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String planUnlocked(String plan) {
-    return 'Plano $plan liberado com sucesso.';
+    return 'Plano $plan liberado!';
   }
 
   @override
@@ -913,57 +896,56 @@ class AppLocalizationsPt extends AppLocalizations {
   String get communityNoRanking => 'sem ranking';
 
   @override
-  String get communityTop10 => 'Top 10 contribuidores da semana';
+  String get communityTop10 => 'As 10 pessoas que mais contribuíram na semana';
 
   @override
   String communityCurrentPosition(String rank, String points) {
-    return 'Sua posição atual: $rank  .  $points pts';
+    return 'Sua posição: $rank · $points pontos';
   }
 
   @override
-  String get communityRankingUpdating => 'Atualizando ranking...';
+  String get communityRankingUpdating => 'Atualizando ranking…';
 
   @override
   String get communityRankingRealInfo =>
-      'Pontuação real dos últimos 7 dias. Cada envio válido soma +5 pontos.';
+      'Pontos dos últimos 7 dias. Cada relato válido vale +5 pontos.';
 
   @override
   String get communityRankingInfo =>
-      'Cada envio válido soma +5 pontos. Continue contribuindo para subir no ranking.';
+      'Cada relato válido vale +5 pontos. Continue contribuindo para subir no ranking.';
 
   @override
   String get communityRankingEmpty =>
-      'Ainda não há pontuação suficiente nesta região.';
+      'Ainda não há pontos suficientes nesta região.';
 
   @override
-  String get locationNotificationTitle => 'GymMap localização ativa';
+  String get locationNotificationTitle => 'GymMap está usando sua localização';
 
   @override
   String get locationNotificationText =>
-      'GymMap está atualizando sua localização em segundo plano.';
+      'Para avisar sobre academias tranquilas perto de você.';
 
   @override
-  String get locationEnableGps =>
-      'Ative o GPS para centralizar sua localização.';
+  String get locationEnableGps => 'Ative o GPS para ver onde você está.';
 
   @override
   String get locationNoPermission =>
-      'Sem permissão de localização. Você pode ativar isso depois nas configurações.';
+      'Sem acesso à localização. Você pode permitir depois nas configurações.';
 
   @override
   String get locationDeniedForever =>
-      'Permissão de localização negada permanentemente. Ajuste nas configurações do aparelho.';
+      'O acesso à localização foi negado. Permita nas configurações do aparelho.';
 
   @override
-  String get locationDenied => 'Permissão de localização negada.';
+  String get locationDenied => 'Acesso à localização negado.';
 
   @override
   String get locationTimeout =>
-      'Tempo esgotado ao obter localização. Tente novamente em instantes.';
+      'Sua localização demorou a responder. Tente de novo.';
 
   @override
   String get locationUnavailable =>
-      'Não foi possível obter sua localização no momento.';
+      'Não deu para encontrar sua localização agora.';
 
   @override
   String get locationPromptTitle => 'Permitir localização?';
@@ -1002,7 +984,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get controlsUpdatingGymsLabel => 'Atualizando academias no mapa';
 
   @override
-  String get controlsUpdatingGyms => 'Atualizando academias...';
+  String get controlsUpdatingGyms => 'Atualizando academias…';
 
   @override
   String get controlsYourLocation => 'Sua localização no mapa';
@@ -1057,17 +1039,18 @@ class AppLocalizationsPt extends AppLocalizations {
   String get mapDisabledInTest => 'Mapa desativado no modo de teste';
 
   @override
-  String get mapLocatingYou => 'Localizando você...';
+  String get mapLocatingYou => 'Localizando você…';
 
   @override
-  String get mapUnavailableRetry => 'Mapa indisponível. Tentar novamente';
+  String get mapUnavailableRetry =>
+      'Mapa indisponível. Toque para tentar de novo';
 
   @override
-  String get mapLoading => 'Carregando mapa...';
+  String get mapLoading => 'Carregando mapa…';
 
   @override
   String get mapOpenGoogleMapsFailed =>
-      'Não foi possível abrir o Google Maps agora.';
+      'Não deu para abrir o Google Maps agora.';
 
   @override
   String favoriteAdded(String gym) {
@@ -1084,7 +1067,7 @@ class AppLocalizationsPt extends AppLocalizations {
       'Nenhuma academia disponível para destacar agora.';
 
   @override
-  String get searchFailed => 'Não foi possível buscar esta localização agora.';
+  String get searchFailed => 'Não deu para buscar esse local agora.';
 
   @override
   String get searchNotFound =>
@@ -1092,13 +1075,13 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get searchParseFailed =>
-      'Não foi possível interpretar essa localização.';
+      'Não entendemos esse local. Tente outro endereço.';
 
   @override
-  String get searchTimeout => 'Tempo esgotado ao buscar essa localização.';
+  String get searchTimeout => 'A busca demorou demais. Tente de novo.';
 
   @override
-  String get searchError => 'Não foi possível buscar essa localização.';
+  String get searchError => 'Não deu para buscar esse local.';
 
   @override
   String get occupancyLevelVeryHigh => 'Muito alta';
@@ -1111,12 +1094,12 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String timeMinutesAgo(String count) {
-    return '$count min atrás';
+    return 'há $count min';
   }
 
   @override
   String timeHoursAgo(String count) {
-    return '$count h atrás';
+    return 'há $count h';
   }
 
   @override
@@ -1138,7 +1121,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String reportThanks(String gym, String percent, String trust) {
-    return 'Obrigado por contribuir! +5 pontos\n$gym atualizado para $percent% (conf. $trust%).';
+    return 'Obrigado pelo relato! +5 pontos\n$gym agora em $percent% (confiança de $trust%).';
   }
 
   @override
@@ -1147,27 +1130,26 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String alertBestWindow(String hour, String percent) {
-    return 'Melhor janela prevista perto de ${hour}h ($percent%).';
+    return 'Melhor horário previsto: por volta das ${hour}h ($percent%).';
   }
 
   @override
   String alertLessCrowded(String gym, String delta) {
-    return '$gym está $delta pp menos lotada agora.';
+    return '$gym está menos cheia agora ($delta pontos a menos).';
   }
 
   @override
-  String get alertStableFlow =>
-      'Fluxo estável nas próximas horas para esta academia.';
+  String get alertStableFlow => 'Movimento estável nas próximas horas.';
 
   @override
-  String get pushChannelName => 'Alertas contextuais';
+  String get pushChannelName => 'Alertas de lotação';
 
   @override
   String get pushChannelDescription =>
-      'Alertas quando houver academia com lotação baixa próxima.';
+      'Avisos de academias tranquilas perto de você.';
 
   @override
-  String get pushLowCrowdTitle => 'Academia com lotação baixa perto';
+  String get pushLowCrowdTitle => 'Academia tranquila perto de você';
 
   @override
   String pushLowCrowdBody(String gym, String percent, String distance) {
@@ -1209,7 +1191,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get placesEducation => 'Educação';
 
   @override
-  String get placesServices => 'Serviços (bancos, correios...)';
+  String get placesServices => 'Serviços (bancos, correios…)';
 
   @override
   String get placesLeisure => 'Lazer e turismo';
@@ -1224,7 +1206,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get gymUnnamed => 'Academia';
 
   @override
-  String get routeCalculating => 'Calculando trajeto...';
+  String get routeCalculating => 'Calculando trajeto…';
 
   @override
   String get routeFailed => 'Não foi possível calcular o trajeto agora.';
@@ -1257,7 +1239,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get routeEnd => 'Encerrar trajeto';
 
   @override
-  String get routeRecalculating => 'Recalculando trajeto...';
+  String get routeRecalculating => 'Recalculando trajeto…';
 
   @override
   String get routeArrived => 'Você chegou à academia.';

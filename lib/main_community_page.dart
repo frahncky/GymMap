@@ -1154,12 +1154,17 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  Text(
-                                    _t.communityPointsPerValidation,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.black54,
-                                      fontSize: 12,
+                                  Flexible(
+                                    child: Text(
+                                      _t.communityPointsPerValidation,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.end,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.black54,
+                                        fontSize: 12,
+                                      ),
                                     ),
                                   ),
                                 ],

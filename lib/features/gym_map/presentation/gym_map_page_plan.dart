@@ -73,19 +73,6 @@ extension _GymMapPagePlan on _GymMapPageState {
     return _t.authNotSignedIn;
   }
 
-  String _playBillingStatusLabel() {
-    if (_isLoadingPlayProducts) {
-      return _t.playLoadingProducts;
-    }
-    if (!_isPlayStoreAvailable) {
-      return _t.playUnavailable;
-    }
-    if (_playProducts.length < _GymMapPageState._planProductIds.length) {
-      return _t.playProductsMissing;
-    }
-    return _t.playReady;
-  }
-
   Future<void> _initializePlayStoreBilling() async {
     try {
       final isAvailable = await _inAppPurchase.isAvailable();
@@ -146,7 +133,7 @@ extension _GymMapPagePlan on _GymMapPageState {
       if (response.error != null) {
         _showMapSnack(_t.playLoadProductsFailed);
       } else if (response.notFoundIDs.isNotEmpty) {
-        _showMapSnack(_t.playProductsNotFound(response.notFoundIDs.join(', ')));
+        _showMapSnack(_t.playProductsNotFound);
       }
     } catch (_) {
       if (!mounted) {
@@ -889,7 +876,7 @@ extension _GymMapPagePlan on _GymMapPageState {
           },
         ),
       );
-      _showMapSnack(_t.playUnknownProduct(productId));
+      _showMapSnack(_t.playUnknownProduct);
       return;
     }
     final processingKey = '${purchase.purchaseID ?? 'no-id'}|$productId|$token';
@@ -1545,76 +1532,6 @@ extension _GymMapPagePlan on _GymMapPageState {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      color: withUiOpacity(
-                        Theme.of(context).colorScheme.primary,
-                        0.08,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.auto_awesome, size: 16),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _t.paywallSocialProof,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  color: GymMapColors.textStrong,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Icon(
-                              Icons.star_rounded,
-                              size: 14,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                            Icon(
-                              Icons.star_rounded,
-                              size: 14,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                            Icon(
-                              Icons.star_rounded,
-                              size: 14,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                            Icon(
-                              Icons.star_rounded,
-                              size: 14,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                            Icon(
-                              Icons.star_half_rounded,
-                              size: 14,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _t.paywallRating,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: GymMapColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 6),
                   if (promoLabel != null) ...[
                     Container(
                       width: double.infinity,
@@ -1665,15 +1582,6 @@ extension _GymMapPagePlan on _GymMapPageState {
                   const SizedBox(height: 6),
                   Text(
                     _planAuthStatusLabel(),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: GymMapColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    _playBillingStatusLabel(),
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,

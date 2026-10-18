@@ -161,103 +161,85 @@ abstract class AppLocalizations {
   /// No description provided for @authInitializing.
   ///
   /// In pt, this message translates to:
-  /// **'Autenticação ainda inicializando'**
+  /// **'Carregando sua conta…'**
   String get authInitializing;
 
   /// No description provided for @authProductionNoBackend.
   ///
   /// In pt, this message translates to:
-  /// **'Modo produção ativo sem backend remoto configurado'**
+  /// **'Contas indisponíveis no momento.'**
   String get authProductionNoBackend;
 
   /// No description provided for @authNoBackend.
   ///
   /// In pt, this message translates to:
-  /// **'Backend remoto não configurado no app'**
+  /// **'Contas indisponíveis no momento.'**
   String get authNoBackend;
 
   /// No description provided for @authProductionNeedsSession.
   ///
   /// In pt, this message translates to:
-  /// **'Modo produção exige sessão autenticada'**
+  /// **'Entre na sua conta para assinar.'**
   String get authProductionNeedsSession;
 
   /// No description provided for @authAnonymousAccount.
   ///
   /// In pt, this message translates to:
-  /// **'Conta anônima neste aparelho. Crie uma conta para não perder sua assinatura ao trocar de celular.'**
+  /// **'Você está usando o app sem conta. Crie uma para não perder sua assinatura ao trocar de celular.'**
   String get authAnonymousAccount;
 
   /// No description provided for @authSessionActive.
   ///
   /// In pt, this message translates to:
-  /// **'Sessão ativa para {user}'**
+  /// **'Conectado como {user}'**
   String authSessionActive(String user);
 
   /// No description provided for @authNotSignedIn.
   ///
   /// In pt, this message translates to:
-  /// **'Sessão não autenticada'**
+  /// **'Você não entrou na sua conta.'**
   String get authNotSignedIn;
-
-  /// No description provided for @playLoadingProducts.
-  ///
-  /// In pt, this message translates to:
-  /// **'Google Play: carregando produtos...'**
-  String get playLoadingProducts;
 
   /// No description provided for @playUnavailable.
   ///
   /// In pt, this message translates to:
-  /// **'Google Play indisponível neste aparelho.'**
+  /// **'A Google Play não está disponível neste aparelho.'**
   String get playUnavailable;
-
-  /// No description provided for @playProductsMissing.
-  ///
-  /// In pt, this message translates to:
-  /// **'Google Play: um ou mais produtos ainda não encontrados.'**
-  String get playProductsMissing;
-
-  /// No description provided for @playReady.
-  ///
-  /// In pt, this message translates to:
-  /// **'Google Play pronto para checkout.'**
-  String get playReady;
 
   /// No description provided for @playListenFailed.
   ///
   /// In pt, this message translates to:
-  /// **'Falha ao escutar compras do Google Play.'**
+  /// **'Não deu para acompanhar suas compras agora. Tente de novo mais tarde.'**
   String get playListenFailed;
 
   /// No description provided for @playLoadProductsFailed.
   ///
   /// In pt, this message translates to:
-  /// **'Não foi possível carregar produtos do Google Play.'**
+  /// **'Não deu para carregar os planos agora. Tente de novo mais tarde.'**
   String get playLoadProductsFailed;
 
   /// No description provided for @playProductsNotFound.
   ///
   /// In pt, this message translates to:
-  /// **'Produtos não encontrados no Google Play: {ids}'**
-  String playProductsNotFound(String ids);
+  /// **'Alguns planos não estão disponíveis agora.'**
+  String get playProductsNotFound;
 
   /// No description provided for @playLoadProductsError.
   ///
   /// In pt, this message translates to:
-  /// **'Falha ao carregar produtos do Google Play.'**
+  /// **'Não deu para carregar os planos agora. Tente de novo mais tarde.'**
   String get playLoadProductsError;
 
   /// No description provided for @authTooManyAttemptsWait.
   ///
   /// In pt, this message translates to:
-  /// **'Muitas tentativas de login. Aguarde {wait}.'**
+  /// **'Muitas tentativas de entrar. Espere {wait} e tente de novo.'**
   String authTooManyAttemptsWait(String wait);
 
   /// No description provided for @authTooManyAttempts.
   ///
   /// In pt, this message translates to:
-  /// **'Muitas tentativas de login. Aguarde um pouco e tente novamente.'**
+  /// **'Muitas tentativas de entrar. Espere um pouco e tente de novo.'**
   String get authTooManyAttempts;
 
   /// No description provided for @authInvalidCredentials.
@@ -275,7 +257,7 @@ abstract class AppLocalizations {
   /// No description provided for @authInvalidUsername.
   ///
   /// In pt, this message translates to:
-  /// **'Usuário deve ter de 3 a 32 caracteres: letras minúsculas, números, ponto, hífen ou sublinhado.'**
+  /// **'O usuário deve ter de 3 a 32 caracteres: letras minúsculas, números, ponto, hífen ou sublinhado.'**
   String get authInvalidUsername;
 
   /// No description provided for @authUsernameTaken.
@@ -293,181 +275,181 @@ abstract class AppLocalizations {
   /// No description provided for @authAlreadyRegistered.
   ///
   /// In pt, this message translates to:
-  /// **'Esta sessão já pertence a uma conta registrada.'**
+  /// **'Este aparelho já está ligado a uma conta.'**
   String get authAlreadyRegistered;
 
   /// No description provided for @authUnauthorized.
   ///
   /// In pt, this message translates to:
-  /// **'Sessão não autorizada.'**
+  /// **'Sua sessão expirou. Entre de novo.'**
   String get authUnauthorized;
 
   /// No description provided for @authFailed.
   ///
   /// In pt, this message translates to:
-  /// **'Falha de autenticação'**
+  /// **'Não deu para entrar agora. Tente de novo.'**
   String get authFailed;
 
   /// No description provided for @billingRateLimitedWait.
   ///
   /// In pt, this message translates to:
-  /// **'Limite de tentativas atingido. Aguarde {wait}.'**
+  /// **'Muitas tentativas. Espere {wait} e tente de novo.'**
   String billingRateLimitedWait(String wait);
 
   /// No description provided for @billingRateLimited.
   ///
   /// In pt, this message translates to:
-  /// **'Limite de tentativas atingido. Aguarde um pouco e tente novamente.'**
+  /// **'Muitas tentativas. Espere um pouco e tente de novo.'**
   String get billingRateLimited;
 
   /// No description provided for @billingProductionNeedsBackend.
   ///
   /// In pt, this message translates to:
-  /// **'Modo produção exige backend remoto configurado.'**
+  /// **'Assinaturas indisponíveis no momento. Tente mais tarde.'**
   String get billingProductionNeedsBackend;
 
   /// No description provided for @billingPlayNeedsBackend.
   ///
   /// In pt, this message translates to:
-  /// **'Checkout no Google Play exige backend remoto configurado.'**
+  /// **'Assinaturas indisponíveis no momento. Tente mais tarde.'**
   String get billingPlayNeedsBackend;
 
   /// No description provided for @billingProductionNeedsUser.
   ///
   /// In pt, this message translates to:
-  /// **'Modo produção exige usuário autenticado.'**
+  /// **'Entre na sua conta para assinar.'**
   String get billingProductionNeedsUser;
 
   /// No description provided for @billingProductNotFound.
   ///
   /// In pt, this message translates to:
-  /// **'Produto de assinatura não encontrado no Google Play.'**
+  /// **'Este plano não está disponível na Google Play agora.'**
   String get billingProductNotFound;
 
   /// No description provided for @billingCheckoutNotStarted.
   ///
   /// In pt, this message translates to:
-  /// **'Não foi possível iniciar checkout no Google Play.'**
+  /// **'Não deu para abrir o pagamento na Google Play. Tente de novo.'**
   String get billingCheckoutNotStarted;
 
   /// No description provided for @billingProductMissing.
   ///
   /// In pt, this message translates to:
-  /// **'Produto da assinatura não informado.'**
+  /// **'Não deu para identificar o plano. Tente de novo.'**
   String get billingProductMissing;
 
   /// No description provided for @billingTokenMissing.
   ///
   /// In pt, this message translates to:
-  /// **'Token de compra ausente. Tente novamente.'**
+  /// **'Não deu para confirmar a compra. Tente de novo.'**
   String get billingTokenMissing;
 
   /// No description provided for @billingPurchaseNotActive.
   ///
   /// In pt, this message translates to:
-  /// **'Compra ainda não está ativa no Google Play.'**
+  /// **'A Google Play ainda está processando sua compra. Tente de novo em alguns minutos.'**
   String get billingPurchaseNotActive;
 
   /// No description provided for @billingPurchaseNotFound.
   ///
   /// In pt, this message translates to:
-  /// **'Compra não encontrada no Google Play.'**
+  /// **'Não encontramos essa compra na Google Play.'**
   String get billingPurchaseNotFound;
 
   /// No description provided for @billingProductMismatch.
   ///
   /// In pt, this message translates to:
-  /// **'Produto da compra não corresponde ao plano selecionado.'**
+  /// **'A compra não corresponde ao plano escolhido.'**
   String get billingProductMismatch;
 
   /// No description provided for @billingPackageMismatch.
   ///
   /// In pt, this message translates to:
-  /// **'Compra vinculada a outro aplicativo.'**
+  /// **'Essa compra pertence a outro app.'**
   String get billingPackageMismatch;
 
   /// No description provided for @billingPlayUnauthorized.
   ///
   /// In pt, this message translates to:
-  /// **'Backend sem permissão para validar Google Play. Verifique credenciais.'**
+  /// **'Não deu para confirmar a compra agora. Tente de novo mais tarde.'**
   String get billingPlayUnauthorized;
 
   /// No description provided for @billingValidationUnavailable.
   ///
   /// In pt, this message translates to:
-  /// **'Não foi possível validar a compra no Google Play agora.'**
+  /// **'Não deu para confirmar a compra agora. Tente de novo mais tarde.'**
   String get billingValidationUnavailable;
 
   /// No description provided for @billingPendingWebhook.
   ///
   /// In pt, this message translates to:
-  /// **'Pagamento ainda não confirmado pelo webhook. Aguarde alguns segundos e tente novamente.'**
+  /// **'Seu pagamento ainda está sendo confirmado. Tente de novo em alguns segundos.'**
   String get billingPendingWebhook;
 
   /// No description provided for @billingPixUnavailable.
   ///
   /// In pt, this message translates to:
-  /// **'Gateway Pix indisponível no momento. Tente novamente em instantes.'**
+  /// **'O Pix está indisponível no momento. Tente de novo em instantes.'**
   String get billingPixUnavailable;
 
   /// No description provided for @billingInvalidWebhook.
   ///
   /// In pt, this message translates to:
-  /// **'Webhook do pagamento inválido. Contate o suporte.'**
+  /// **'Não deu para confirmar o pagamento. Fale com o suporte.'**
   String get billingInvalidWebhook;
 
   /// No description provided for @billingSessionExpiredOrForbidden.
   ///
   /// In pt, this message translates to:
-  /// **'Sessão expirada ou sem permissão. Faça login novamente.'**
+  /// **'Sua sessão expirou. Entre de novo.'**
   String get billingSessionExpiredOrForbidden;
 
   /// No description provided for @billingSessionExpired.
   ///
   /// In pt, this message translates to:
-  /// **'Sessão expirada. Faça login novamente.'**
+  /// **'Sua sessão expirou. Entre de novo.'**
   String get billingSessionExpired;
 
   /// No description provided for @billingGenericFailure.
   ///
   /// In pt, this message translates to:
-  /// **'Não foi possível processar a assinatura agora.'**
+  /// **'Não deu para concluir a assinatura agora. Tente de novo.'**
   String get billingGenericFailure;
 
   /// No description provided for @planExpiredBackToFree.
   ///
   /// In pt, this message translates to:
-  /// **'Assinatura expirada. O app voltou para o plano gratuito.'**
+  /// **'Sua assinatura terminou. Você voltou para o plano Grátis.'**
   String get planExpiredBackToFree;
 
   /// No description provided for @subscriptionInitializing.
   ///
   /// In pt, this message translates to:
-  /// **'Assinatura ainda está inicializando. Tente novamente.'**
+  /// **'Os planos ainda estão carregando. Tente de novo em instantes.'**
   String get subscriptionInitializing;
 
   /// No description provided for @planFreeActivated.
   ///
   /// In pt, this message translates to:
-  /// **'Plano gratuito ativado.'**
+  /// **'Você está no plano Grátis.'**
   String get planFreeActivated;
 
   /// No description provided for @authNoBackendForLogin.
   ///
   /// In pt, this message translates to:
-  /// **'Backend remoto não configurado para login.'**
+  /// **'Contas indisponíveis no momento.'**
   String get authNoBackendForLogin;
 
   /// No description provided for @authAccountCreated.
   ///
   /// In pt, this message translates to:
-  /// **'Conta criada para {user}.'**
+  /// **'Conta criada. Boas-vindas, {user}!'**
   String authAccountCreated(String user);
 
   /// No description provided for @authSignedIn.
   ///
   /// In pt, this message translates to:
-  /// **'Login concluído para {user}.'**
+  /// **'Você entrou como {user}.'**
   String authSignedIn(String user);
 
   /// No description provided for @authCreateAccount.
@@ -479,7 +461,7 @@ abstract class AppLocalizations {
   /// No description provided for @authSignInMonthly.
   ///
   /// In pt, this message translates to:
-  /// **'Entrar no plano mensal'**
+  /// **'Entrar na sua conta'**
   String get authSignInMonthly;
 
   /// No description provided for @authUsernameLabel.
@@ -515,13 +497,13 @@ abstract class AppLocalizations {
   /// No description provided for @authCreating.
   ///
   /// In pt, this message translates to:
-  /// **'Criando...'**
+  /// **'Criando…'**
   String get authCreating;
 
   /// No description provided for @authSigningIn.
   ///
   /// In pt, this message translates to:
-  /// **'Entrando...'**
+  /// **'Entrando…'**
   String get authSigningIn;
 
   /// No description provided for @authSignIn.
@@ -533,55 +515,55 @@ abstract class AppLocalizations {
   /// No description provided for @authNoSession.
   ///
   /// In pt, this message translates to:
-  /// **'Não existe sessão autenticada.'**
+  /// **'Você não entrou em nenhuma conta.'**
   String get authNoSession;
 
   /// No description provided for @authSignedOut.
   ///
   /// In pt, this message translates to:
-  /// **'Sessão encerrada.'**
+  /// **'Você saiu da sua conta.'**
   String get authSignedOut;
 
   /// No description provided for @authSignOutFailed.
   ///
   /// In pt, this message translates to:
-  /// **'Não foi possível encerrar sessão agora.'**
+  /// **'Não deu para sair agora. Tente de novo.'**
   String get authSignOutFailed;
 
   /// No description provided for @playFinishPayment.
   ///
   /// In pt, this message translates to:
-  /// **'Finalize o pagamento no Google Play para ativar o plano.'**
+  /// **'Conclua o pagamento na Google Play para ativar o plano.'**
   String get playFinishPayment;
 
   /// No description provided for @playPurchaseFailed.
   ///
   /// In pt, this message translates to:
-  /// **'Falha ao processar compra no Google Play.'**
+  /// **'Não deu para concluir a compra na Google Play.'**
   String get playPurchaseFailed;
 
   /// No description provided for @playPaymentCanceled.
   ///
   /// In pt, this message translates to:
-  /// **'Pagamento cancelado no Google Play.'**
+  /// **'Pagamento cancelado.'**
   String get playPaymentCanceled;
 
   /// No description provided for @playUnknownProduct.
   ///
   /// In pt, this message translates to:
-  /// **'Produto desconhecido no Google Play: {id}'**
-  String playUnknownProduct(String id);
+  /// **'Este plano não é reconhecido. Atualize o app e tente de novo.'**
+  String get playUnknownProduct;
 
   /// No description provided for @planActivatedSuccess.
   ///
   /// In pt, this message translates to:
-  /// **'Assinatura {plan} ativada com sucesso.'**
+  /// **'Plano {plan} ativado!'**
   String planActivatedSuccess(String plan);
 
   /// No description provided for @playFinalizeFailed.
   ///
   /// In pt, this message translates to:
-  /// **'Compra validada, mas não foi possível finalizar no Google Play.'**
+  /// **'Compra confirmada. A Google Play ainda está finalizando o pagamento.'**
   String get playFinalizeFailed;
 
   /// No description provided for @priceFreeMonthly.
@@ -605,13 +587,13 @@ abstract class AppLocalizations {
   /// No description provided for @planContinueFree.
   ///
   /// In pt, this message translates to:
-  /// **'Continuar grátis'**
+  /// **'Continuar no Grátis'**
   String get planContinueFree;
 
   /// No description provided for @planBackToFree.
   ///
   /// In pt, this message translates to:
-  /// **'Voltar ao gratuito'**
+  /// **'Voltar ao Grátis'**
   String get planBackToFree;
 
   /// No description provided for @planSubscribe.
@@ -623,7 +605,7 @@ abstract class AppLocalizations {
   /// No description provided for @planUpgrade.
   ///
   /// In pt, this message translates to:
-  /// **'Fazer upgrade'**
+  /// **'Subir de plano'**
   String get planUpgrade;
 
   /// No description provided for @planChange.
@@ -653,13 +635,13 @@ abstract class AppLocalizations {
   /// No description provided for @planMostPopular.
   ///
   /// In pt, this message translates to:
-  /// **'MAIS POPULAR'**
+  /// **'RECOMENDADO'**
   String get planMostPopular;
 
   /// No description provided for @planInstantAccess.
   ///
   /// In pt, this message translates to:
-  /// **'Acesso imediato e cancelamento quando quiser.'**
+  /// **'Acesso imediato. Cancele quando quiser.'**
   String get planInstantAccess;
 
   /// No description provided for @planFeatureLiveOccupancy.
@@ -677,7 +659,7 @@ abstract class AppLocalizations {
   /// No description provided for @planFeaturePeakCompare.
   ///
   /// In pt, this message translates to:
-  /// **'Pico e comparativo'**
+  /// **'Picos e comparativo'**
   String get planFeaturePeakCompare;
 
   /// No description provided for @planFeatureForecast.
@@ -725,7 +707,7 @@ abstract class AppLocalizations {
   /// No description provided for @paywallTitle.
   ///
   /// In pt, this message translates to:
-  /// **'Desbloqueie o máximo do GymMap'**
+  /// **'Aproveite o GymMap ao máximo'**
   String get paywallTitle;
 
   /// No description provided for @paywallSubtitle.
@@ -734,22 +716,10 @@ abstract class AppLocalizations {
   /// **'Escolha o plano ideal para lotação, previsão e comparativos.'**
   String get paywallSubtitle;
 
-  /// No description provided for @paywallSocialProof.
-  ///
-  /// In pt, this message translates to:
-  /// **'+10.000 usuários premium ativos'**
-  String get paywallSocialProof;
-
-  /// No description provided for @paywallRating.
-  ///
-  /// In pt, this message translates to:
-  /// **'Nota média 4.8/5 em avaliações verificadas.'**
-  String get paywallRating;
-
   /// No description provided for @subscriptionLoading.
   ///
   /// In pt, this message translates to:
-  /// **'Carregando assinatura...'**
+  /// **'Carregando assinatura…'**
   String get subscriptionLoading;
 
   /// No description provided for @authSignOut.
@@ -761,7 +731,7 @@ abstract class AppLocalizations {
   /// No description provided for @planContinueWithFree.
   ///
   /// In pt, this message translates to:
-  /// **'Continuar com plano gratuito'**
+  /// **'Continuar no plano Grátis'**
   String get planContinueWithFree;
 
   /// No description provided for @actionClose.
@@ -917,7 +887,7 @@ abstract class AppLocalizations {
   /// No description provided for @communityThanksValidation.
   ///
   /// In pt, this message translates to:
-  /// **'Obrigado por validar! +{points} pontos na comunidade.'**
+  /// **'Obrigado por confirmar! +{points} pontos.'**
   String communityThanksValidation(String points);
 
   /// No description provided for @communityTitle.
@@ -929,7 +899,7 @@ abstract class AppLocalizations {
   /// No description provided for @communityLoadingReports.
   ///
   /// In pt, this message translates to:
-  /// **'Carregando relatos da sua região...'**
+  /// **'Carregando relatos da sua região…'**
   String get communityLoadingReports;
 
   /// No description provided for @communityNoReportsYet.
@@ -947,13 +917,13 @@ abstract class AppLocalizations {
   /// No description provided for @communityFeedDescription.
   ///
   /// In pt, this message translates to:
-  /// **'Feed de relatos recentes com validação colaborativa.'**
+  /// **'Relatos recentes de quem treina perto de você.'**
   String get communityFeedDescription;
 
   /// No description provided for @communityTopContributors.
   ///
   /// In pt, this message translates to:
-  /// **'Top contribuidores da semana'**
+  /// **'Quem mais contribuiu na semana'**
   String get communityTopContributors;
 
   /// No description provided for @communityYourPosition.
@@ -971,13 +941,13 @@ abstract class AppLocalizations {
   /// No description provided for @communityNotEnoughRanking.
   ///
   /// In pt, this message translates to:
-  /// **'Ainda não há ranking suficiente.'**
+  /// **'Ainda não há relatos suficientes para um ranking.'**
   String get communityNotEnoughRanking;
 
   /// No description provided for @communityEnableLocationRanking.
   ///
   /// In pt, this message translates to:
-  /// **'Ative a localização para carregar ranking real.'**
+  /// **'Ative a localização para ver o ranking da sua região.'**
   String get communityEnableLocationRanking;
 
   /// No description provided for @communityRealDataWeek.
@@ -989,7 +959,7 @@ abstract class AppLocalizations {
   /// No description provided for @communityPointsShort.
   ///
   /// In pt, this message translates to:
-  /// **'{points} pts'**
+  /// **'{points} pontos'**
   String communityPointsShort(String points);
 
   /// No description provided for @communityYourPoints.
@@ -1001,7 +971,7 @@ abstract class AppLocalizations {
   /// No description provided for @communityPointsPerValidation.
   ///
   /// In pt, this message translates to:
-  /// **'+2 por validação'**
+  /// **'+2 pontos por confirmação'**
   String get communityPointsPerValidation;
 
   /// No description provided for @communityContributeOnMap.
@@ -1181,13 +1151,13 @@ abstract class AppLocalizations {
   /// No description provided for @profilePushTitle.
   ///
   /// In pt, this message translates to:
-  /// **'Notificações push'**
+  /// **'Notificações'**
   String get profilePushTitle;
 
   /// No description provided for @profilePushSubtitle.
   ///
   /// In pt, this message translates to:
-  /// **'Receber alertas de lotação e atualizações.'**
+  /// **'Receber alertas de lotação e novidades.'**
   String get profilePushSubtitle;
 
   /// No description provided for @profileLocationAlertsTitle.
@@ -1205,19 +1175,19 @@ abstract class AppLocalizations {
   /// No description provided for @profileHapticsTitle.
   ///
   /// In pt, this message translates to:
-  /// **'Feedback vibratório'**
+  /// **'Vibração'**
   String get profileHapticsTitle;
 
   /// No description provided for @profileHapticsSubtitle.
   ///
   /// In pt, this message translates to:
-  /// **'Usar vibração em ações importantes.'**
+  /// **'Vibrar em ações importantes.'**
   String get profileHapticsSubtitle;
 
   /// No description provided for @profileDataSaverTitle.
   ///
   /// In pt, this message translates to:
-  /// **'Modo economia de dados'**
+  /// **'Economia de dados'**
   String get profileDataSaverTitle;
 
   /// No description provided for @profileDataSaverSubtitle.
@@ -1319,7 +1289,7 @@ abstract class AppLocalizations {
   /// No description provided for @headerPlanSettings.
   ///
   /// In pt, this message translates to:
-  /// **'Configurações de plano'**
+  /// **'Planos e assinatura'**
   String get headerPlanSettings;
 
   /// No description provided for @headerPlanSettingsHint.
@@ -1397,7 +1367,7 @@ abstract class AppLocalizations {
   /// No description provided for @emptyNoNearbyGyms.
   ///
   /// In pt, this message translates to:
-  /// **'Nenhuma academia cadastrada próxima da sua localização.'**
+  /// **'Nenhuma academia encontrada perto de você.'**
   String get emptyNoNearbyGyms;
 
   /// No description provided for @filterClearAll.
@@ -1409,7 +1379,7 @@ abstract class AppLocalizations {
   /// No description provided for @adLabel.
   ///
   /// In pt, this message translates to:
-  /// **'Publicidade: faça upgrade para remover anúncios.'**
+  /// **'Anúncio · assine um plano para remover.'**
   String get adLabel;
 
   /// No description provided for @tutorialTitle.
@@ -1427,13 +1397,13 @@ abstract class AppLocalizations {
   /// No description provided for @tutorialFilters.
   ///
   /// In pt, this message translates to:
-  /// **'Ative os toggles para filtrar os resultados.'**
+  /// **'Use os filtros para refinar os resultados.'**
   String get tutorialFilters;
 
   /// No description provided for @tutorialPin.
   ///
   /// In pt, this message translates to:
-  /// **'Toque no pin para abrir detalhes e enviar relato.'**
+  /// **'Toque no pino para ver detalhes e enviar um relato.'**
   String get tutorialPin;
 
   /// No description provided for @tutorialGotIt.
@@ -1493,19 +1463,19 @@ abstract class AppLocalizations {
   /// No description provided for @panelStatus.
   ///
   /// In pt, this message translates to:
-  /// **'Status: {status}'**
+  /// **'Lotação: {status}'**
   String panelStatus(String status);
 
   /// No description provided for @panelClosedNotice.
   ///
   /// In pt, this message translates to:
-  /// **'Academia fechada agora. Lotação oculta no mapa.'**
+  /// **'Academia fechada agora. A lotação volta a aparecer quando abrir.'**
   String get panelClosedNotice;
 
   /// No description provided for @panelReportsSummary.
   ///
   /// In pt, this message translates to:
-  /// **'{total} relatos totais | {recent} relatos recentes'**
+  /// **'{total} relatos no total · {recent} recentes'**
   String panelReportsSummary(String total, String recent);
 
   /// No description provided for @panelLastReport.
@@ -1517,31 +1487,31 @@ abstract class AppLocalizations {
   /// No description provided for @panelViewRoute.
   ///
   /// In pt, this message translates to:
-  /// **'Ver rota'**
+  /// **'Ver trajeto'**
   String get panelViewRoute;
 
   /// No description provided for @panelUpdateOccupancy.
   ///
   /// In pt, this message translates to:
-  /// **'Atualize a lotação desta academia'**
+  /// **'Como está a lotação agora?'**
   String get panelUpdateOccupancy;
 
   /// No description provided for @panelSendingReport.
   ///
   /// In pt, this message translates to:
-  /// **'Enviando relato...'**
+  /// **'Enviando relato…'**
   String get panelSendingReport;
 
   /// No description provided for @panelContribute.
   ///
   /// In pt, this message translates to:
-  /// **'Contribuir'**
+  /// **'Enviar relato'**
   String get panelContribute;
 
   /// No description provided for @panelContributeClosed.
   ///
   /// In pt, this message translates to:
-  /// **'Contribuição de lotação disponível apenas com academia aberta.'**
+  /// **'Você pode enviar relatos quando a academia estiver aberta.'**
   String get panelContributeClosed;
 
   /// No description provided for @chartPeak.
@@ -1577,7 +1547,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportBlockedWait.
   ///
   /// In pt, this message translates to:
-  /// **'Envio bloqueado temporariamente. Aguarde {minutes} min para novo relato.'**
+  /// **'Você enviou um relato há pouco. Envie outro em {minutes} min.'**
   String reportBlockedWait(String minutes);
 
   /// No description provided for @subscriptionActivated.
@@ -1589,7 +1559,7 @@ abstract class AppLocalizations {
   /// No description provided for @planUnlocked.
   ///
   /// In pt, this message translates to:
-  /// **'Plano {plan} liberado com sucesso.'**
+  /// **'Plano {plan} liberado!'**
   String planUnlocked(String plan);
 
   /// No description provided for @actionContinue.
@@ -1619,85 +1589,85 @@ abstract class AppLocalizations {
   /// No description provided for @communityTop10.
   ///
   /// In pt, this message translates to:
-  /// **'Top 10 contribuidores da semana'**
+  /// **'As 10 pessoas que mais contribuíram na semana'**
   String get communityTop10;
 
   /// No description provided for @communityCurrentPosition.
   ///
   /// In pt, this message translates to:
-  /// **'Sua posição atual: {rank}  .  {points} pts'**
+  /// **'Sua posição: {rank} · {points} pontos'**
   String communityCurrentPosition(String rank, String points);
 
   /// No description provided for @communityRankingUpdating.
   ///
   /// In pt, this message translates to:
-  /// **'Atualizando ranking...'**
+  /// **'Atualizando ranking…'**
   String get communityRankingUpdating;
 
   /// No description provided for @communityRankingRealInfo.
   ///
   /// In pt, this message translates to:
-  /// **'Pontuação real dos últimos 7 dias. Cada envio válido soma +5 pontos.'**
+  /// **'Pontos dos últimos 7 dias. Cada relato válido vale +5 pontos.'**
   String get communityRankingRealInfo;
 
   /// No description provided for @communityRankingInfo.
   ///
   /// In pt, this message translates to:
-  /// **'Cada envio válido soma +5 pontos. Continue contribuindo para subir no ranking.'**
+  /// **'Cada relato válido vale +5 pontos. Continue contribuindo para subir no ranking.'**
   String get communityRankingInfo;
 
   /// No description provided for @communityRankingEmpty.
   ///
   /// In pt, this message translates to:
-  /// **'Ainda não há pontuação suficiente nesta região.'**
+  /// **'Ainda não há pontos suficientes nesta região.'**
   String get communityRankingEmpty;
 
   /// No description provided for @locationNotificationTitle.
   ///
   /// In pt, this message translates to:
-  /// **'GymMap localização ativa'**
+  /// **'GymMap está usando sua localização'**
   String get locationNotificationTitle;
 
   /// No description provided for @locationNotificationText.
   ///
   /// In pt, this message translates to:
-  /// **'GymMap está atualizando sua localização em segundo plano.'**
+  /// **'Para avisar sobre academias tranquilas perto de você.'**
   String get locationNotificationText;
 
   /// No description provided for @locationEnableGps.
   ///
   /// In pt, this message translates to:
-  /// **'Ative o GPS para centralizar sua localização.'**
+  /// **'Ative o GPS para ver onde você está.'**
   String get locationEnableGps;
 
   /// No description provided for @locationNoPermission.
   ///
   /// In pt, this message translates to:
-  /// **'Sem permissão de localização. Você pode ativar isso depois nas configurações.'**
+  /// **'Sem acesso à localização. Você pode permitir depois nas configurações.'**
   String get locationNoPermission;
 
   /// No description provided for @locationDeniedForever.
   ///
   /// In pt, this message translates to:
-  /// **'Permissão de localização negada permanentemente. Ajuste nas configurações do aparelho.'**
+  /// **'O acesso à localização foi negado. Permita nas configurações do aparelho.'**
   String get locationDeniedForever;
 
   /// No description provided for @locationDenied.
   ///
   /// In pt, this message translates to:
-  /// **'Permissão de localização negada.'**
+  /// **'Acesso à localização negado.'**
   String get locationDenied;
 
   /// No description provided for @locationTimeout.
   ///
   /// In pt, this message translates to:
-  /// **'Tempo esgotado ao obter localização. Tente novamente em instantes.'**
+  /// **'Sua localização demorou a responder. Tente de novo.'**
   String get locationTimeout;
 
   /// No description provided for @locationUnavailable.
   ///
   /// In pt, this message translates to:
-  /// **'Não foi possível obter sua localização no momento.'**
+  /// **'Não deu para encontrar sua localização agora.'**
   String get locationUnavailable;
 
   /// No description provided for @locationPromptTitle.
@@ -1769,7 +1739,7 @@ abstract class AppLocalizations {
   /// No description provided for @controlsUpdatingGyms.
   ///
   /// In pt, this message translates to:
-  /// **'Atualizando academias...'**
+  /// **'Atualizando academias…'**
   String get controlsUpdatingGyms;
 
   /// No description provided for @controlsYourLocation.
@@ -1859,25 +1829,25 @@ abstract class AppLocalizations {
   /// No description provided for @mapLocatingYou.
   ///
   /// In pt, this message translates to:
-  /// **'Localizando você...'**
+  /// **'Localizando você…'**
   String get mapLocatingYou;
 
   /// No description provided for @mapUnavailableRetry.
   ///
   /// In pt, this message translates to:
-  /// **'Mapa indisponível. Tentar novamente'**
+  /// **'Mapa indisponível. Toque para tentar de novo'**
   String get mapUnavailableRetry;
 
   /// No description provided for @mapLoading.
   ///
   /// In pt, this message translates to:
-  /// **'Carregando mapa...'**
+  /// **'Carregando mapa…'**
   String get mapLoading;
 
   /// No description provided for @mapOpenGoogleMapsFailed.
   ///
   /// In pt, this message translates to:
-  /// **'Não foi possível abrir o Google Maps agora.'**
+  /// **'Não deu para abrir o Google Maps agora.'**
   String get mapOpenGoogleMapsFailed;
 
   /// No description provided for @favoriteAdded.
@@ -1901,7 +1871,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchFailed.
   ///
   /// In pt, this message translates to:
-  /// **'Não foi possível buscar esta localização agora.'**
+  /// **'Não deu para buscar esse local agora.'**
   String get searchFailed;
 
   /// No description provided for @searchNotFound.
@@ -1913,19 +1883,19 @@ abstract class AppLocalizations {
   /// No description provided for @searchParseFailed.
   ///
   /// In pt, this message translates to:
-  /// **'Não foi possível interpretar essa localização.'**
+  /// **'Não entendemos esse local. Tente outro endereço.'**
   String get searchParseFailed;
 
   /// No description provided for @searchTimeout.
   ///
   /// In pt, this message translates to:
-  /// **'Tempo esgotado ao buscar essa localização.'**
+  /// **'A busca demorou demais. Tente de novo.'**
   String get searchTimeout;
 
   /// No description provided for @searchError.
   ///
   /// In pt, this message translates to:
-  /// **'Não foi possível buscar essa localização.'**
+  /// **'Não deu para buscar esse local.'**
   String get searchError;
 
   /// No description provided for @occupancyLevelVeryHigh.
@@ -1949,13 +1919,13 @@ abstract class AppLocalizations {
   /// No description provided for @timeMinutesAgo.
   ///
   /// In pt, this message translates to:
-  /// **'{count} min atrás'**
+  /// **'há {count} min'**
   String timeMinutesAgo(String count);
 
   /// No description provided for @timeHoursAgo.
   ///
   /// In pt, this message translates to:
-  /// **'{count} h atrás'**
+  /// **'há {count} h'**
   String timeHoursAgo(String count);
 
   /// No description provided for @markerOccupancySemantics.
@@ -1991,7 +1961,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportThanks.
   ///
   /// In pt, this message translates to:
-  /// **'Obrigado por contribuir! +5 pontos\n{gym} atualizado para {percent}% (conf. {trust}%).'**
+  /// **'Obrigado pelo relato! +5 pontos\n{gym} agora em {percent}% (confiança de {trust}%).'**
   String reportThanks(String gym, String percent, String trust);
 
   /// No description provided for @alertVeryHighNow.
@@ -2003,37 +1973,37 @@ abstract class AppLocalizations {
   /// No description provided for @alertBestWindow.
   ///
   /// In pt, this message translates to:
-  /// **'Melhor janela prevista perto de {hour}h ({percent}%).'**
+  /// **'Melhor horário previsto: por volta das {hour}h ({percent}%).'**
   String alertBestWindow(String hour, String percent);
 
   /// No description provided for @alertLessCrowded.
   ///
   /// In pt, this message translates to:
-  /// **'{gym} está {delta} pp menos lotada agora.'**
+  /// **'{gym} está menos cheia agora ({delta} pontos a menos).'**
   String alertLessCrowded(String gym, String delta);
 
   /// No description provided for @alertStableFlow.
   ///
   /// In pt, this message translates to:
-  /// **'Fluxo estável nas próximas horas para esta academia.'**
+  /// **'Movimento estável nas próximas horas.'**
   String get alertStableFlow;
 
   /// No description provided for @pushChannelName.
   ///
   /// In pt, this message translates to:
-  /// **'Alertas contextuais'**
+  /// **'Alertas de lotação'**
   String get pushChannelName;
 
   /// No description provided for @pushChannelDescription.
   ///
   /// In pt, this message translates to:
-  /// **'Alertas quando houver academia com lotação baixa próxima.'**
+  /// **'Avisos de academias tranquilas perto de você.'**
   String get pushChannelDescription;
 
   /// No description provided for @pushLowCrowdTitle.
   ///
   /// In pt, this message translates to:
-  /// **'Academia com lotação baixa perto'**
+  /// **'Academia tranquila perto de você'**
   String get pushLowCrowdTitle;
 
   /// No description provided for @pushLowCrowdBody.
@@ -2111,7 +2081,7 @@ abstract class AppLocalizations {
   /// No description provided for @placesServices.
   ///
   /// In pt, this message translates to:
-  /// **'Serviços (bancos, correios...)'**
+  /// **'Serviços (bancos, correios…)'**
   String get placesServices;
 
   /// No description provided for @placesLeisure.
@@ -2141,7 +2111,7 @@ abstract class AppLocalizations {
   /// No description provided for @routeCalculating.
   ///
   /// In pt, this message translates to:
-  /// **'Calculando trajeto...'**
+  /// **'Calculando trajeto…'**
   String get routeCalculating;
 
   /// No description provided for @routeFailed.
@@ -2207,7 +2177,7 @@ abstract class AppLocalizations {
   /// No description provided for @routeRecalculating.
   ///
   /// In pt, this message translates to:
-  /// **'Recalculando trajeto...'**
+  /// **'Recalculando trajeto…'**
   String get routeRecalculating;
 
   /// No description provided for @routeArrived.
