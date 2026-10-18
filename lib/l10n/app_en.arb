@@ -338,5 +338,6 @@
   "placesServices": "Services (banks, post offices...)",
   "placesLeisure": "Leisure and tourism",
   "placesReligion": "Places of worship",
-  "placesOther": "Other"
+  "placesOther": "Other",
+  "gymUnnamed": "Gym"
 }

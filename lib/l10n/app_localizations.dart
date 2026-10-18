@@ -2131,6 +2131,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Outros'**
   String get placesOther;
+
+  /// No description provided for @gymUnnamed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Academia'**
+  String get gymUnnamed;
 }
 
 class _AppLocalizationsDelegate

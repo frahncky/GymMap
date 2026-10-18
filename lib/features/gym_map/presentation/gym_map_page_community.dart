@@ -462,7 +462,7 @@ extension _GymMapPageCommunity on _GymMapPageState {
     final gym = preferredGym;
     if (gym != null) {
       final address = gym.address.trim();
-      if (address.isNotEmpty && address != 'Academia encontrada no mapa') {
+      if (address.isNotEmpty && address != kMapGymAddress) {
         return address;
       }
     }
@@ -473,7 +473,7 @@ extension _GymMapPageCommunity on _GymMapPageState {
     if (selected != null) {
       final selectedAddress = selected.address.trim();
       if (selectedAddress.isNotEmpty &&
-          selectedAddress != 'Academia encontrada no mapa') {
+          selectedAddress != kMapGymAddress) {
         return selectedAddress;
       }
     }

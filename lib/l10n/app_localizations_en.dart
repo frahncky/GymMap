@@ -1206,4 +1206,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get placesOther => 'Other';
+
+  @override
+  String get gymUnnamed => 'Gym';
 }

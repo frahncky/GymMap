@@ -1219,4 +1219,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get placesOther => 'Outros';
+
+  @override
+  String get gymUnnamed => 'Academia';
 }

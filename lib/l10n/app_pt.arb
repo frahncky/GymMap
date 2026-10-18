@@ -728,5 +728,6 @@
   "placesServices": "Serviços (bancos, correios...)",
   "placesLeisure": "Lazer e turismo",
   "placesReligion": "Templos e igrejas",
-  "placesOther": "Outros"
+  "placesOther": "Outros",
+  "gymUnnamed": "Academia"
 }

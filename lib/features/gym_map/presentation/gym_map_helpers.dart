@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/l10n/l10n.dart';
+import '../domain/gym_models.dart';
 import 'gym_map_colors.dart';
 
 /// Compatibilidade entre versoes do Flutter sem depender de withValues/withOpacity.
@@ -57,6 +58,11 @@ Color occupancyColorForValue(double percent) {
 }
 
 /// Converte percentual em descricao de status.
+/// Nome da academia para exibir: o nome genérico gravado para academias sem
+/// nome no OpenStreetMap ([kUnnamedGymName]) aparece traduzido.
+String displayGymName(String name) =>
+    name == kUnnamedGymName ? AppL10n.current.gymUnnamed : name;
+
 String occupancyLabel(int percent) {
   if (percent <= 35) {
     return AppL10n.current.occupancyLevelLow;

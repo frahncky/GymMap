@@ -108,7 +108,7 @@ extension _GymMapPageInteractions on _GymMapPageState {
       return Gym(
         id: poi.id,
         name: poi.name,
-        address: 'Academia encontrada no mapa',
+        address: kMapGymAddress,
         position: poi.position,
         capacity: capacity,
         baseOccupancyPercent: base,

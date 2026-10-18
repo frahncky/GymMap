@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../domain/gym_models.dart';
+
 class CachedGymLocation {
   const CachedGymLocation({
     required this.id,
@@ -45,17 +47,17 @@ class CachedGymLocation {
       return null;
     }
 
-    final name = '${raw['name'] ?? 'Academia'}'.trim();
-    final address = '${raw['address'] ?? 'Academia encontrada no mapa'}'.trim();
+    final name = '${raw['name'] ?? kUnnamedGymName}'.trim();
+    final address = '${raw['address'] ?? kMapGymAddress}'.trim();
     final updatedAtRaw = '${raw['updatedAtUtc'] ?? ''}'.trim();
     final updatedAt =
         DateTime.tryParse(updatedAtRaw)?.toUtc() ?? DateTime.now().toUtc();
 
     return CachedGymLocation(
       id: id,
-      name: name.isEmpty ? 'Academia' : name,
+      name: name.isEmpty ? kUnnamedGymName : name,
       position: LatLng(lat, lng),
-      address: address.isEmpty ? 'Academia encontrada no mapa' : address,
+      address: address.isEmpty ? kMapGymAddress : address,
       updatedAtUtc: updatedAt,
     );
   }
@@ -333,8 +335,8 @@ class GymLocationCacheService {
     final address = source.address.trim();
     return CachedGymLocation(
       id: source.id.trim(),
-      name: name.isEmpty ? 'Academia' : name,
-      address: address.isEmpty ? 'Academia encontrada no mapa' : address,
+      name: name.isEmpty ? kUnnamedGymName : name,
+      address: address.isEmpty ? kMapGymAddress : address,
       position: source.position,
       updatedAtUtc: updatedAtUtc,
     );

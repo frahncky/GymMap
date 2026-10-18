@@ -64,7 +64,7 @@ class GymMapPoiController {
           (poi) => CachedGymLocation(
             id: poi.id,
             name: poi.name,
-            address: 'Academia encontrada no mapa',
+            address: kMapGymAddress,
             position: poi.position,
             updatedAtUtc: now,
           ),
@@ -226,11 +226,11 @@ class GymMapPoiController {
         continue;
       }
 
-      String name = 'Academia';
+      String name = kUnnamedGymName;
       if (tags['name'] is String) {
         name = (tags['name'] as String).trim();
         if (name.isEmpty) {
-          name = 'Academia';
+          name = kUnnamedGymName;
         }
       }
 
@@ -328,7 +328,7 @@ class GymMapPoiController {
         }
         var name = '${item['name'] ?? ''}'.trim();
         if (name.isEmpty) {
-          name = 'Academia';
+          name = kUnnamedGymName;
         }
         poiList.add(MapGymPoi(id: key, position: position, name: name));
       }

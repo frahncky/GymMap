@@ -501,7 +501,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
 
   String _communityRegionLabel(String rawAddress) {
     final normalized = rawAddress.trim();
-    if (normalized.isEmpty || normalized == 'Academia encontrada no mapa') {
+    if (normalized.isEmpty || normalized == kMapGymAddress) {
       return _t.distanceUnknown;
     }
     final tokens = normalized

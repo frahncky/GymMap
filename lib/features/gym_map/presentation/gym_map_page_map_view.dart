@@ -39,7 +39,7 @@ extension _GymMapPageMapView on _GymMapPageState {
                 scale: markerScale,
                 alignment: Alignment.bottomCenter,
                 child: GymMarkerBubble(
-                  label: gym.name,
+                  label: displayGymName(gym.name),
                   percent:
                       snapshotsByGymId[gym.id]?.occupancyPercent ??
                       gym.baseOccupancyPercent,
@@ -488,7 +488,7 @@ extension _GymMapPageMapView on _GymMapPageState {
           scale: markerScale,
           alignment: Alignment.bottomCenter,
           child: GymMarkerBubble(
-            label: poi.name,
+            label: displayGymName(poi.name),
             percent: poiPercent,
             isOpenNow: _isGymOpenNow(poiGym),
             isFavorite: _isFavoriteGymId(poiGym.id),

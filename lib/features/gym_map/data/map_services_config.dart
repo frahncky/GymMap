@@ -8,13 +8,6 @@
 class MapServicesConfig {
   const MapServicesConfig._();
 
-  /// Template no formato do flutter_map, ex.:
-  /// `https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=SUA_CHAVE`
-  static const String tileUrlTemplate = String.fromEnvironment(
-    'MAP_TILE_URL_TEMPLATE',
-    defaultValue: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-  );
-
   /// Crédito exibido no mapa. Os dados são do OpenStreetMap em qualquer
   /// provedor, então o padrão continua obrigatório; acrescente o do provedor
   /// separado por `|` (ex.: `MapTiler|OpenStreetMap contributors`).

@@ -126,7 +126,7 @@ class SelectedGymPanel extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        gym.name,
+                        displayGymName(gym.name),
                         style: const TextStyle(
                           fontSize: 21,
                           fontWeight: FontWeight.w800,
@@ -135,7 +135,7 @@ class SelectedGymPanel extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        gym.address == 'Academia encontrada no mapa'
+                        gym.address == kMapGymAddress
                             ? _t.gymFoundOnMap
                             : gym.address,
                         style: const TextStyle(

@@ -1,5 +1,13 @@
 import 'package:latlong2/latlong.dart';
 
+/// Nome gravado para academias sem nome no OpenStreetMap. É dado (cache e
+/// servidor); na tela use `displayGymName`, que traduz.
+const String kUnnamedGymName = 'Academia';
+
+/// Endereço gravado para academias vindas do mapa, sem endereço conhecido.
+/// É dado; na tela é traduzido.
+const String kMapGymAddress = 'Academia encontrada no mapa';
+
 /// Representa uma academia no mapa.
 class Gym {
   const Gym({
