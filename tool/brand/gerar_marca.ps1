@@ -24,6 +24,7 @@ if (-not $edge) { throw 'Microsoft Edge não encontrado.' }
 $svg = Get-Content $symbol -Raw
 # Mesma fonte do app (Plus Jakarta Sans) no nome do splash.
 $fontUrl = 'file:///' + ((Join-Path $root 'assets\fonts\PlusJakartaSans-ExtraBold.ttf') -replace '\\', '/')
+$fontSemiUrl = 'file:///' + ((Join-Path $root 'assets\fonts\PlusJakartaSans-SemiBold.ttf') -replace '\\', '/')
 $mapSvg = Get-Content (Join-Path $PSScriptRoot 'folded_map.svg') -Raw
 $work = Join-Path ([IO.Path]::GetTempPath()) 'gymmap-brand'
 New-Item -ItemType Directory -Force -Path $work | Out-Null
@@ -35,6 +36,7 @@ html,body{margin:0;width:${width}px;height:${height}px;overflow:hidden;backgroun
 body{display:flex;flex-direction:column;align-items:center;justify-content:center}
 svg{display:block}
 @font-face{font-family:Jakarta;font-weight:800;src:url('$fontUrl')}
+@font-face{font-family:Jakarta;font-weight:600;src:url('$fontSemiUrl')}
 .word{font:800 150px Jakarta,'Segoe UI',Roboto,Arial,sans-serif;letter-spacing:-3px;color:#fff;margin-top:40px}
 .word b{background:linear-gradient(90deg,#3FC6F0,#22B7A8,#7EDB5A);-webkit-background-clip:text;color:transparent}
 </style></head><body>$body</body></html>
@@ -81,3 +83,24 @@ Render $genDir 'splash_logo' 1152 1152 (PinOnMap 520 620 '<div class="word">Gym<
 # própria imagem, logo abaixo do pino com o mapa, tudo dentro do círculo.
 $a12Name = '<div class="word" style="font-size:96px;margin-top:14px;letter-spacing:-2px">Gym<b>Map</b></div>'
 Render $genDir 'splash_android12' 1152 1152 (PinOnMap 290 380 $a12Name 10)
+
+# Loja (Google Play): ícone 512x512 e imagem de destaque 1024x500.
+$storeDir = Join-Path $genDir 'store'
+New-Item -ItemType Directory -Force -Path $storeDir | Out-Null
+Render $storeDir 'play_icon_512' 512 512 (PinOnMap 280 340 '' -10) '#1B222B'
+
+function FeatureGraphic([string]$tagline) {
+  $art = PinOnMap 300 360
+  return @"
+<div style="width:1024px;height:500px;display:flex;align-items:center;justify-content:center;gap:64px;
+  background:radial-gradient(circle at 25% 40%,#2E3A46 0%,#1B222B 70%)">
+  <div style="flex:0 0 auto">$art</div>
+  <div style="max-width:520px">
+    <div class="word" style="margin:0;font-size:104px;letter-spacing:-3px">Gym<b>Map</b></div>
+    <div style="font:600 31px Jakarta,'Segoe UI',sans-serif;color:#E8EDF2;line-height:1.25;margin-top:14px">$tagline</div>
+  </div>
+</div>
+"@
+}
+Render $storeDir 'feature_graphic_pt' 1024 500 (FeatureGraphic 'Academias perto de você, com a lotação em tempo real.')
+Render $storeDir 'feature_graphic_en' 1024 500 (FeatureGraphic 'Gyms near you, with live occupancy.')
