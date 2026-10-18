@@ -10,6 +10,7 @@
 
 **Encontre academias perto de você e saiba quão cheias elas estão — antes de sair de casa.**
 
+[![CI](https://github.com/frahncky/GymMap/actions/workflows/ci.yml/badge.svg)](https://github.com/frahncky/GymMap/actions/workflows/ci.yml)
 [![Flutter](https://img.shields.io/badge/Flutter-3.29+-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
 [![Dart](https://img.shields.io/badge/Dart-3.7+-0175C2?logo=dart&logoColor=white)](https://dart.dev)
 [![Plataformas](https://img.shields.io/badge/plataformas-Android%20·%20iOS-1FB5A3)](#-como-executar)

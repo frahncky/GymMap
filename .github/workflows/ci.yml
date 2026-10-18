@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  app:
+    name: App — análise e testes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Instalar dependências
+        run: flutter pub get
+
+      # backend/ é analisado no job próprio, com as regras dele.
+      - name: Análise estática
+        run: flutter analyze lib test tool
+
+      - name: Testes
+        run: flutter test
+
+  backend:
+    name: Backend — análise
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+
+      - name: Instalar dependências
+        run: dart pub get
+
+      # Falha em erros; os avisos antigos do servidor ainda não foram tratados.
+      - name: Análise estática
+        run: dart analyze --no-fatal-warnings
