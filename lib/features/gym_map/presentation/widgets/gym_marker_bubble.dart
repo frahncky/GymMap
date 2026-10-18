@@ -310,35 +310,6 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
                         ),
                       ),
                     ),
-                    if (!widget.isOpenNow)
-                      Positioned(
-                        right: 16,
-                        top: 8,
-                        child: Container(
-                          width: 16,
-                          height: 16,
-                          decoration: BoxDecoration(
-                            color: GymMapColors.occupancyCritical,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 1.2),
-                            boxShadow: [
-                              BoxShadow(
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
-                                color: withUiOpacity(
-                                  GymMapColors.occupancyCritical,
-                                  0.35,
-                                ),
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.close_rounded,
-                            size: 10,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
                   ],
                 ),
               ),
