@@ -2,9 +2,6 @@ part of 'main.dart';
 
 enum _CommunityVote { confirm, disagree }
 
-/// Legenda da foto de um relato; o texto vem da tradução na hora de exibir.
-enum _CommunityPhotoCaption { recent, record }
-
 class _CommunityReportItem {
   const _CommunityReportItem({
     required this.id,
@@ -14,8 +11,6 @@ class _CommunityReportItem {
     required this.occupancyPercent,
     required this.confirmCount,
     required this.disagreeCount,
-    this.hasPhoto = false,
-    this.photoCaption,
     this.userVote,
   });
 
@@ -26,30 +21,31 @@ class _CommunityReportItem {
   final int occupancyPercent;
   final int confirmCount;
   final int disagreeCount;
-  final bool hasPhoto;
-  final _CommunityPhotoCaption? photoCaption;
   final _CommunityVote? userVote;
 
-  _CommunityReportItem copyWith({
-    int? confirmCount,
-    int? disagreeCount,
-    _CommunityVote? userVote,
-    bool clearVote = false,
-  }) {
+  /// Relatos sem id no servidor (antigos) não aceitam voto.
+  bool get canVote => id.isNotEmpty;
+
+  /// Mesmo relato com os votos que o servidor devolveu.
+  _CommunityReportItem withVotes(CrowdReport report) {
     return _CommunityReportItem(
       id: id,
       gymName: gymName,
       address: address,
       createdAt: createdAt,
       occupancyPercent: occupancyPercent,
-      confirmCount: confirmCount ?? this.confirmCount,
-      disagreeCount: disagreeCount ?? this.disagreeCount,
-      hasPhoto: hasPhoto,
-      photoCaption: photoCaption,
-      userVote: clearVote ? null : (userVote ?? this.userVote),
+      confirmCount: report.confirmCount,
+      disagreeCount: report.disagreeCount,
+      userVote: _communityVoteFrom(report.userVote),
     );
   }
 }
+
+_CommunityVote? _communityVoteFrom(String? vote) => switch (vote) {
+  'confirm' => _CommunityVote.confirm,
+  'disagree' => _CommunityVote.disagree,
+  _ => null,
+};
 
 class _CommunityFeedPage extends StatefulWidget {
   const _CommunityFeedPage({
@@ -69,13 +65,14 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
   static const String _profileDisplayNamePrefKey = 'gymmap_profile_name_v1';
   static const String _profileVisiblePrefKey = 'gymmap_profile_visible_v1';
   static const String _localCrowdReporterId = 'local-device-user';
-  static const int _verificationPoints = 2;
   static const Duration _communityReloadInterval = Duration(minutes: 3);
   static const int _leaderboardWindowDays = 7;
   static const int _leaderboardLimit = 10;
 
   late final List<_CommunityReportItem> _reports;
   int _communityPoints = 0;
+  CrowdReportRemoteService? _remoteService;
+  final Set<String> _votingReportIds = <String>{};
   bool _isLoadingLocalizedReports = false;
   bool _isLocationScopedReports = false;
   bool _hasLocationContext = false;
@@ -170,6 +167,8 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
       await cacheService.pullRemoteToLocal();
       final cachedLocations = await cacheService.loadLocations();
       final remoteService = await CrowdReportRemoteService.create();
+      _remoteService = remoteService;
+      unawaited(_loadServerPoints(remoteService));
       unawaited(
         _refreshRegionalLeaderboard(
           remoteService: remoteService,
@@ -201,17 +200,12 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
         for (final location in scopedLocations) location.id: location,
       };
       var mappedReports = const <_CommunityReportItem>[];
-      var ownReportedGymIds = <String>{};
       if (remoteService.hasRemoteBackend && locationsById.isNotEmpty) {
         final remoteReports = await remoteService.loadReportsForGyms(
           gymIds: locationsById.keys,
           limitPerGym: 40,
         );
         final ownReporterIds = _resolveOwnReporterIds(remoteService.userId);
-        ownReportedGymIds = _extractOwnReportedGymIds(
-          reports: remoteReports,
-          ownReporterIds: ownReporterIds,
-        );
         mappedReports = _mapRemoteReportsToCommunityItems(
           remoteReports: remoteReports,
           locationsById: locationsById,
@@ -219,17 +213,6 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
         );
       }
 
-      if (mappedReports.isEmpty && hasLocationContext) {
-        final fallbackLocations =
-            ownReportedGymIds.isEmpty
-                ? scopedLocations
-                : scopedLocations
-                    .where(
-                      (location) => !ownReportedGymIds.contains(location.id),
-                    )
-                    .toList(growable: false);
-        mappedReports = _buildNearbyFallbackReports(fallbackLocations);
-      }
       if (!mounted) {
         return;
       }
@@ -406,20 +389,16 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
         continue;
       }
       final report = entry.value;
-      final seed = _stableSeed('${location.id}-${report.createdAt.toUtc()}');
-      final confirmCount = (6 + (seed % 13)).clamp(1, 99).toInt();
-      final disagreeCount = (seed % 5).clamp(0, 30).toInt();
       items.add(
         _CommunityReportItem(
-          id: 'remote-${location.id}',
+          id: report.id ?? '',
           gymName: location.name,
           address: location.address,
           createdAt: report.createdAt,
           occupancyPercent: report.occupancyPercent.clamp(0, 100).toInt(),
-          confirmCount: confirmCount,
-          disagreeCount: disagreeCount,
-          hasPhoto: seed % 4 == 0,
-          photoCaption: seed % 4 == 0 ? _CommunityPhotoCaption.recent : null,
+          confirmCount: report.confirmCount,
+          disagreeCount: report.disagreeCount,
+          userVote: _communityVoteFrom(report.userVote),
         ),
       );
     }
@@ -439,26 +418,6 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     return ownReporterIds;
   }
 
-  Set<String> _extractOwnReportedGymIds({
-    required List<CrowdReport> reports,
-    required Set<String> ownReporterIds,
-  }) {
-    if (reports.isEmpty || ownReporterIds.isEmpty) {
-      return const <String>{};
-    }
-    final ownGymIds = <String>{};
-    for (final report in reports) {
-      if (!_isOwnReportedCrowdEntry(report, ownReporterIds)) {
-        continue;
-      }
-      final gymId = report.gymId.trim();
-      if (gymId.isNotEmpty) {
-        ownGymIds.add(gymId);
-      }
-    }
-    return ownGymIds;
-  }
-
   bool _isOwnReportedCrowdEntry(
     CrowdReport report,
     Set<String> ownReporterIds,
@@ -468,41 +427,6 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
       return false;
     }
     return ownReporterIds.contains(reporterId);
-  }
-
-  List<_CommunityReportItem> _buildNearbyFallbackReports(
-    List<CachedGymLocation> locations,
-  ) {
-    if (locations.isEmpty) {
-      return const <_CommunityReportItem>[];
-    }
-    final now = DateTime.now().toUtc();
-    final items = <_CommunityReportItem>[];
-    final cappedLocations = locations.take(8).toList(growable: false);
-    for (var i = 0; i < cappedLocations.length; i++) {
-      final location = cappedLocations[i];
-      final seed = _stableSeed(location.id);
-      final reportMinutesAgo = 6 + (seed % 52) + (i * 2);
-      final createdAt = now.subtract(Duration(minutes: reportMinutesAgo));
-      final occupancy = 24 + (seed % 62);
-      final confirmCount = 5 + (seed % 11);
-      final disagreeCount = seed % 4;
-      items.add(
-        _CommunityReportItem(
-          id: 'nearby-${location.id}',
-          gymName: location.name,
-          address: location.address,
-          createdAt: createdAt,
-          occupancyPercent: occupancy.clamp(0, 100).toInt(),
-          confirmCount: confirmCount,
-          disagreeCount: disagreeCount,
-          hasPhoto: seed % 5 == 0,
-          photoCaption: seed % 5 == 0 ? _CommunityPhotoCaption.record : null,
-        ),
-      );
-    }
-    items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    return items;
   }
 
   String _communityRegionLabel(String rawAddress) {
@@ -534,14 +458,6 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
       return _t.timeAgoHours('${delta.inHours}');
     }
     return _t.timeAgoDays('${delta.inDays}');
-  }
-
-  int _stableSeed(String raw) {
-    var seed = 17;
-    for (final code in raw.codeUnits) {
-      seed = ((seed * 37) + code) & 0x7fffffff;
-    }
-    return seed;
   }
 
   double _distanceSquaredMeters(LatLng from, LatLng to) {
@@ -587,16 +503,22 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     }
     setState(() {
       _communityPoints = points.clamp(0, 1000000).toInt();
-      _syncLeaderboardPointsWithLocal();
     });
   }
 
-  Future<void> _persistCommunityPoints() async {
+  /// Saldo de pontos do servidor, quando conectado (vale mais que o do
+  /// aparelho, que não conta confirmações nem comodidades).
+  Future<void> _loadServerPoints(CrowdReportRemoteService remoteService) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(_communityPointsPrefKey, _communityPoints);
+      final rewards = await remoteService.loadRewards();
+      if (!mounted || rewards == null) {
+        return;
+      }
+      setState(() {
+        _communityPoints = rewards.balance;
+      });
     } catch (_) {
-      // Falha local não bloqueia uso da comunidade.
+      // Sem servidor, fica o saldo do aparelho.
     }
   }
 
@@ -613,19 +535,6 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     final latBucket = (point.latitude * 10).round() / 10;
     final lngBucket = (point.longitude * 10).round() / 10;
     return '${latBucket.toStringAsFixed(1)},${lngBucket.toStringAsFixed(1)}';
-  }
-
-  void _syncLeaderboardPointsWithLocal() {
-    if (_leaderboardEntries.isEmpty) {
-      return;
-    }
-    final localUserPoints = _communityPoints.clamp(0, 1000000).toInt();
-    _leaderboardEntries = <({String name, int points, bool isCurrentUser})>[
-      for (final entry in _leaderboardEntries)
-        entry.isCurrentUser
-            ? (name: entry.name, points: localUserPoints, isCurrentUser: true)
-            : entry,
-    ];
   }
 
   void _setLeaderboardEmpty({
@@ -849,73 +758,43 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     );
   }
 
-  void _vote(String reportId, _CommunityVote vote) {
-    var pointsDelta = 0;
-    setState(() {
-      final index = _reports.indexWhere((item) => item.id == reportId);
-      if (index < 0) {
-        return;
-      }
-      final current = _reports[index];
-      final previousVote = current.userVote;
-
-      var confirms = current.confirmCount;
-      var disagrees = current.disagreeCount;
-
-      if (previousVote == vote) {
-        if (vote == _CommunityVote.confirm && confirms > 0) {
-          confirms--;
-        } else if (vote == _CommunityVote.disagree && disagrees > 0) {
-          disagrees--;
-        }
-        if (previousVote != null) {
-          pointsDelta = -_verificationPoints;
-        }
-        if (pointsDelta != 0) {
-          _communityPoints =
-              (_communityPoints + pointsDelta).clamp(0, 1000000).toInt();
-          _syncLeaderboardPointsWithLocal();
-        }
-        _reports[index] = current.copyWith(
-          confirmCount: confirms,
-          disagreeCount: disagrees,
-          clearVote: true,
-        );
-        return;
-      }
-
-      if (previousVote == _CommunityVote.confirm && confirms > 0) {
-        confirms--;
-      } else if (previousVote == _CommunityVote.disagree && disagrees > 0) {
-        disagrees--;
-      }
-
-      if (vote == _CommunityVote.confirm) {
-        confirms++;
-      } else {
-        disagrees++;
-      }
-
-      if (previousVote == null) {
-        pointsDelta = _verificationPoints;
-      }
-      if (pointsDelta != 0) {
-        _communityPoints =
-            (_communityPoints + pointsDelta).clamp(0, 1000000).toInt();
-        _syncLeaderboardPointsWithLocal();
-      }
-
-      _reports[index] = current.copyWith(
-        confirmCount: confirms,
-        disagreeCount: disagrees,
-        userVote: vote,
+  /// Confirma ou discorda no servidor; tocar de novo no mesmo botão retira
+  /// o voto. Quem vota não ganha pontos (quem enviou o relato ganha).
+  Future<void> _vote(String reportId, _CommunityVote vote) async {
+    final remoteService = _remoteService;
+    final index = _reports.indexWhere((item) => item.id == reportId);
+    if (remoteService == null ||
+        index < 0 ||
+        !_reports[index].canVote ||
+        !_votingReportIds.add(reportId)) {
+      return;
+    }
+    final next = _reports[index].userVote == vote ? null : vote;
+    try {
+      final updated = await remoteService.voteOnReport(
+        reportId: reportId,
+        vote: switch (next) {
+          _CommunityVote.confirm => 'confirm',
+          _CommunityVote.disagree => 'disagree',
+          null => null,
+        },
       );
-    });
-    if (pointsDelta != 0) {
-      unawaited(_persistCommunityPoints());
-      if (pointsDelta > 0) {
-        _showCommunitySnack(_t.communityThanksValidation('$pointsDelta'));
+      if (!mounted) {
+        return;
       }
+      setState(() {
+        final position = _reports.indexWhere((item) => item.id == reportId);
+        if (position >= 0) {
+          _reports[position] = _reports[position].withVotes(updated);
+        }
+      });
+      if (next != null) {
+        _showCommunitySnack(_t.communityThanksVote);
+      }
+    } catch (_) {
+      _showCommunitySnack(_t.communityVoteFailed);
+    } finally {
+      _votingReportIds.remove(reportId);
     }
   }
 
@@ -1319,60 +1198,6 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                            if (report.hasPhoto) ...[
-                              const SizedBox(height: 10),
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: primary.withValues(alpha: 0.06),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: primary.withValues(alpha: 0.18),
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 56,
-                                      height: 44,
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(10),
-                                        gradient: LinearGradient(
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                          colors: [
-                                            tone.withValues(alpha: 0.28),
-                                            primary.withValues(alpha: 0.24),
-                                          ],
-                                        ),
-                                      ),
-                                      child: Icon(
-                                        Icons.photo_camera_rounded,
-                                        size: 18,
-                                        color: primary.withValues(alpha: 0.82),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Text(
-                                        switch (report.photoCaption) {
-                                          _CommunityPhotoCaption.recent =>
-                                            _t.communityPhotoCaptionRecent,
-                                          _CommunityPhotoCaption.record =>
-                                            _t.communityPhotoCaptionRecord,
-                                          null => _t.communityPhotoByCommunity,
-                                        },
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          color: Colors.black87,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
                             const SizedBox(height: 10),
                             Row(
                               children: [

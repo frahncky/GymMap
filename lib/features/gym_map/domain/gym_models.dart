@@ -118,6 +118,10 @@ class CrowdReport {
     required this.createdAt,
     this.reporterId = 'anonymous',
     this.reliabilityWeight = 1.0,
+    this.id,
+    this.confirmCount = 0,
+    this.disagreeCount = 0,
+    this.userVote,
   });
 
   final String gymId;
@@ -125,6 +129,16 @@ class CrowdReport {
   final DateTime createdAt;
   final String reporterId;
   final double reliabilityWeight;
+
+  /// Id no servidor (para confirmar ou discordar); `null` em relatos locais.
+  final String? id;
+
+  /// Votos de outras pessoas no relato, contados no servidor.
+  final int confirmCount;
+  final int disagreeCount;
+
+  /// Voto de quem está usando o app: `confirm`, `disagree` ou `null`.
+  final String? userVote;
 }
 
 /// Resultado agregado para exibir lotação e metadados no app.

@@ -238,6 +238,37 @@ class CrowdReportRemoteService {
     );
   }
 
+  /// Confirma (`confirm`), discorda (`disagree`) ou retira o voto (`null`)
+  /// num relato de outra pessoa; devolve o relato com os votos atualizados.
+  Future<CrowdReport> voteOnReport({
+    required String reportId,
+    required String? vote,
+  }) async {
+    if (!hasRemoteBackend) {
+      throw StateError('Backend crowd service not configured');
+    }
+    refreshAuthFromStorage();
+    final response = await _httpClient
+        .post(
+          _buildRemoteUri(<String>['v1', 'crowd', 'reports', 'votes']),
+          headers: _remoteHeaders(contentTypeJson: true),
+          body: jsonEncode(<String, dynamic>{
+            'userId': _userId,
+            'reportId': reportId,
+            'vote': vote,
+          }),
+        )
+        .timeout(_requestTimeout);
+    if (response.statusCode != HttpStatus.ok) {
+      throw StateError(_parseBackendError(response));
+    }
+    final report = _crowdReportFromJson(_decodeJsonMap(response.body));
+    if (report == null) {
+      throw const FormatException('Invalid report payload');
+    }
+    return report;
+  }
+
   /// Comodidades votadas de cada academia em [gymIds] (até 80 por vez).
   Future<Map<String, List<GymAmenityVotes>>> loadAmenities(
     Iterable<String> gymIds,
@@ -613,12 +644,19 @@ class CrowdReportRemoteService {
         json['reliabilityWeight'] ?? json['reliability_weight'];
     final reliability = double.tryParse('$reliabilityRaw') ?? 1.0;
 
+    final id = '${json['id'] ?? ''}'.trim();
+    final userVote = json['userVote'];
     return CrowdReport(
       gymId: gymId,
       occupancyPercent: occupancy.clamp(0, 100),
       createdAt: createdAt,
       reporterId: reporterId.isEmpty ? 'anonymous' : reporterId,
       reliabilityWeight: reliability.clamp(0.2, 1.6),
+      id: id.isEmpty ? null : id,
+      confirmCount: int.tryParse('${json['confirmCount'] ?? ''}') ?? 0,
+      disagreeCount: int.tryParse('${json['disagreeCount'] ?? ''}') ?? 0,
+      userVote:
+          userVote == 'confirm' || userVote == 'disagree' ? '$userVote' : null,
     );
   }
 }

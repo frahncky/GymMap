@@ -818,18 +818,6 @@ abstract class AppLocalizations {
   /// **'{km} km de você'**
   String distanceKmFromYou(String km);
 
-  /// No description provided for @communityPhotoCaptionRecent.
-  ///
-  /// In pt, this message translates to:
-  /// **'Foto recente enviada por quem treinou na unidade.'**
-  String get communityPhotoCaptionRecent;
-
-  /// No description provided for @communityPhotoCaptionRecord.
-  ///
-  /// In pt, this message translates to:
-  /// **'Registro recente da comunidade nessa academia.'**
-  String get communityPhotoCaptionRecord;
-
   /// No description provided for @distanceUnknown.
   ///
   /// In pt, this message translates to:
@@ -883,12 +871,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Você'**
   String get communityYou;
-
-  /// No description provided for @communityThanksValidation.
-  ///
-  /// In pt, this message translates to:
-  /// **'Obrigado por confirmar! +{points} pontos.'**
-  String communityThanksValidation(String points);
 
   /// No description provided for @communityTitle.
   ///
@@ -971,7 +953,7 @@ abstract class AppLocalizations {
   /// No description provided for @communityPointsPerValidation.
   ///
   /// In pt, this message translates to:
-  /// **'+2 pontos por confirmação'**
+  /// **'+2 por relato seu confirmado'**
   String get communityPointsPerValidation;
 
   /// No description provided for @communityContributeOnMap.
@@ -1009,12 +991,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Ative sua localização para ver relatos recentes da sua região.'**
   String get communityEnableLocationReports;
-
-  /// No description provided for @communityPhotoByCommunity.
-  ///
-  /// In pt, this message translates to:
-  /// **'Foto enviada pela comunidade.'**
-  String get communityPhotoByCommunity;
 
   /// No description provided for @communityConfirm.
   ///
@@ -2419,6 +2395,18 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Hoje: {ranges}'**
   String hoursTodayList(String ranges);
+
+  /// No description provided for @communityThanksVote.
+  ///
+  /// In pt, this message translates to:
+  /// **'Obrigado! Seu voto ajuda a saber se o relato está certo.'**
+  String get communityThanksVote;
+
+  /// No description provided for @communityVoteFailed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não deu para registrar seu voto agora. Tente de novo mais tarde.'**
+  String get communityVoteFailed;
 }
 
 class _AppLocalizationsDelegate

@@ -120,8 +120,6 @@
   "communityRegionUnavailable": "Region unavailable",
   "distanceMetersFromYou": "{meters} m from you",
   "distanceKmFromYou": "{km} km from you",
-  "communityPhotoCaptionRecent": "Recent photo from someone who trained here.",
-  "communityPhotoCaptionRecord": "Recent community record at this gym.",
   "distanceUnknown": "Distance not available",
   "timeAgoMinutes": "{count} min ago",
   "timeAgoHours": "{count} h ago",
@@ -131,7 +129,6 @@
   "occupancyLevelHigh": "High",
   "communityAnonymousUser": "Anonymous user",
   "communityYou": "You",
-  "communityThanksValidation": "Thanks for confirming! +{points} points.",
   "communityTitle": "Community",
   "communityLoadingReports": "Loading reports from your region…",
   "communityNoReportsYet": "There are no recent reports from gyms in your region yet.",
@@ -145,14 +142,13 @@
   "communityRealDataWeek": "Real data from the last 7 days",
   "communityPointsShort": "{points} points",
   "communityYourPoints": "Your points: {points}",
-  "communityPointsPerValidation": "+2 points per confirmation",
+  "communityPointsPerValidation": "+2 per report of yours confirmed",
   "communityContributeOnMap": "Contribute on the map",
   "communityRecentRegionTitle": "Recent reports in your region",
   "communityRecentTitle": "Recent reports",
   "communityRefreshReports": "Refresh reports",
   "communityEmptyRegion": "No recent reports in your region right now. Open the map and contribute to show up here.",
   "communityEnableLocationReports": "Turn on your location to see recent reports from your region.",
-  "communityPhotoByCommunity": "Photo sent by the community.",
   "communityConfirm": "Confirm ({count})",
   "communityDisagree": "Disagree ({count})",
   "profileDefaultName": "GymMap user",
@@ -475,5 +471,7 @@
         "type": "String"
       }
     }
-  }
+  },
+  "communityThanksVote": "Thanks! Your vote helps tell whether the report is right.",
+  "communityVoteFailed": "Couldn't save your vote right now. Try again later."
 }

@@ -238,8 +238,6 @@
       }
     }
   },
-  "communityPhotoCaptionRecent": "Foto recente enviada por quem treinou na unidade.",
-  "communityPhotoCaptionRecord": "Registro recente da comunidade nessa academia.",
   "distanceUnknown": "Distância não informada",
   "timeAgoMinutes": "há {count} min",
   "@timeAgoMinutes": {
@@ -270,14 +268,6 @@
   "occupancyLevelHigh": "Alta",
   "communityAnonymousUser": "Usuário anônimo",
   "communityYou": "Você",
-  "communityThanksValidation": "Obrigado por confirmar! +{points} pontos.",
-  "@communityThanksValidation": {
-    "placeholders": {
-      "points": {
-        "type": "String"
-      }
-    }
-  },
   "communityTitle": "Comunidade",
   "communityLoadingReports": "Carregando relatos da sua região…",
   "communityNoReportsYet": "Ainda não há relatos recentes das academias da sua região.",
@@ -319,14 +309,13 @@
       }
     }
   },
-  "communityPointsPerValidation": "+2 pontos por confirmação",
+  "communityPointsPerValidation": "+2 por relato seu confirmado",
   "communityContributeOnMap": "Contribuir no mapa",
   "communityRecentRegionTitle": "Relatos recentes da sua região",
   "communityRecentTitle": "Relatos recentes",
   "communityRefreshReports": "Atualizar relatos",
   "communityEmptyRegion": "Sem relatos recentes na sua região agora. Abra o mapa e contribua para aparecer aqui.",
   "communityEnableLocationReports": "Ative sua localização para ver relatos recentes da sua região.",
-  "communityPhotoByCommunity": "Foto enviada pela comunidade.",
   "communityConfirm": "Confirmo ({count})",
   "@communityConfirm": {
     "placeholders": {
@@ -841,5 +830,7 @@
         "type": "String"
       }
     }
-  }
+  },
+  "communityThanksVote": "Obrigado! Seu voto ajuda a saber se o relato está certo.",
+  "communityVoteFailed": "Não deu para registrar seu voto agora. Tente de novo mais tarde."
 }

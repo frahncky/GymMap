@@ -303,6 +303,9 @@ class _PixBillingBackend {
   // confirmar (até 20 por dia), 100 pontos = 7 dias do plano Essencial.
   static const int _pointsPerCrowdReport = 5;
   static const int _pointsPerAmenityVote = 2;
+  // Quem enviou o relato ganha 2 pontos a cada confirmação, até 3 por relato.
+  static const int _pointsPerReportConfirmation = 2;
+  static const int _maxRewardedConfirmationsPerReport = 3;
   static const int _maxAmenityPointsPerDay = 20;
   static const int _rewardCostPoints = 100;
   static const int _rewardPlanDays = 7;
@@ -1110,8 +1113,81 @@ class _PixBillingBackend {
 
         return _json(req, HttpStatus.ok, <String, dynamic>{
           'userId': userId,
-          'reports': limitedByGym,
+          'reports': <Map<String, dynamic>>[
+            for (final report in limitedByGym)
+              _publicCrowdReport(report, viewerId: userId),
+          ],
         });
+      }
+
+      // Confirmar ou discordar de um relato de outra pessoa. Quem confirma
+      // não ganha pontos; quem enviou ganha a cada confirmação (até 3).
+      if (req.method == 'POST' &&
+          segments.length == 4 &&
+          segments[0] == 'v1' &&
+          segments[1] == 'crowd' &&
+          segments[2] == 'reports' &&
+          segments[3] == 'votes') {
+        final payload = await _readJson(req);
+        final requested = '${payload['userId'] ?? ''}'.trim();
+        final authUser = _authenticate(req, expectedUserId: requested);
+        if (_jwtEnabled && authUser == null) {
+          return _json(req, HttpStatus.unauthorized, <String, dynamic>{
+            'error': 'unauthorized',
+          });
+        }
+        final userId = _jwtEnabled ? authUser! : requested;
+        final reportId = '${payload['reportId'] ?? ''}'.trim();
+        final vote = payload['vote'];
+        final report = crowdReports[reportId];
+        if (userId.isEmpty ||
+            report == null ||
+            (vote != null && vote != 'confirm' && vote != 'disagree')) {
+          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+            'error': 'invalid_vote',
+          });
+        }
+        if ('${report['userId'] ?? ''}' == userId) {
+          return _json(req, HttpStatus.conflict, <String, dynamic>{
+            'error': 'own_report',
+          });
+        }
+        final votes = <String, dynamic>{
+          if (report['votes'] is Map)
+            ...Map<String, dynamic>.from(report['votes'] as Map),
+        };
+        final previous = votes[userId];
+        if (vote == null) {
+          votes.remove(userId);
+        } else {
+          votes[userId] = vote;
+        }
+        report['votes'] = votes;
+        // Cada pessoa rende pontos ao autor uma vez só, mesmo que retire e
+        // confirme de novo.
+        final rewardedBy = <String>[
+          if (report['rewardedConfirmations'] is List)
+            for (final id in report['rewardedConfirmations'] as List) '$id',
+        ];
+        final reporterId = '${report['userId'] ?? ''}'.trim();
+        if (vote == 'confirm' &&
+            previous != 'confirm' &&
+            reporterId.isNotEmpty &&
+            !rewardedBy.contains(userId) &&
+            rewardedBy.length < _maxRewardedConfirmationsPerReport) {
+          report['rewardedConfirmations'] = <String>[...rewardedBy, userId];
+          _awardPoints(
+            reporterId,
+            _pointsPerReportConfirmation,
+            DateTime.now().toUtc(),
+          );
+        }
+        await _persist();
+        return _json(
+          req,
+          HttpStatus.ok,
+          _publicCrowdReport(report, viewerId: userId),
+        );
       }
 
       if (req.method == 'POST' &&
@@ -2153,7 +2229,8 @@ class _PixBillingBackend {
     if (segments.length == 4 &&
         segments[0] == 'v1' &&
         segments[1] == 'crowd' &&
-        segments[2] == 'reports') {
+        segments[2] == 'reports' &&
+        segments[3] != 'votes') {
       return '$method /v1/crowd/reports/:userId';
     }
     if (segments.length == 3 &&
@@ -3007,6 +3084,26 @@ class _PixBillingBackend {
     ledger['amenityDayPoints'] = usedToday + points;
     ledger['earned'] = _ledgerInt(ledger, 'earned') + points;
     return points;
+  }
+
+  /// Relato como sai para os apps: contagem de votos e o voto de
+  /// [viewerId], sem a lista de quem votou.
+  Map<String, dynamic> _publicCrowdReport(
+    Map<String, dynamic> report, {
+    required String viewerId,
+  }) {
+    final votes =
+        report['votes'] is Map
+            ? Map<String, dynamic>.from(report['votes'] as Map)
+            : const <String, dynamic>{};
+    return <String, dynamic>{
+      for (final entry in report.entries)
+        if (entry.key != 'votes' && entry.key != 'rewardedConfirmations')
+          entry.key: entry.value,
+      'confirmCount': votes.values.where((v) => v == 'confirm').length,
+      'disagreeCount': votes.values.where((v) => v == 'disagree').length,
+      'userVote': votes[viewerId],
+    };
   }
 
   Set<String> _confirmedAmenities(String gymId) => <String>{

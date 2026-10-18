@@ -94,6 +94,41 @@ void main() {
     },
   );
 
+  test('votes on a report and reads the real counts back', () async {
+    late Map<String, dynamic> sent;
+    final service = await CrowdReportRemoteService.create(
+      backendBaseUrl: 'http://backend.test',
+      httpClient: MockClient((request) async {
+        expect(request.url.path, '/v1/crowd/reports/votes');
+        sent = jsonDecode(request.body) as Map<String, dynamic>;
+        return http.Response(
+          jsonEncode(<String, Object?>{
+            'id': 'rpt_1',
+            'gymId': 'node-1',
+            'occupancyPercent': 40,
+            'createdAt': '2026-10-19T12:00:00Z',
+            'confirmCount': 2,
+            'disagreeCount': 1,
+            'userVote': 'confirm',
+          }),
+          200,
+        );
+      }),
+    );
+
+    final report = await service.voteOnReport(
+      reportId: 'rpt_1',
+      vote: 'confirm',
+    );
+
+    expect(sent['reportId'], 'rpt_1');
+    expect(sent['vote'], 'confirm');
+    expect(report.id, 'rpt_1');
+    expect(report.confirmCount, 2);
+    expect(report.disagreeCount, 1);
+    expect(report.userVote, 'confirm');
+  });
+
   test('reads the rewards balance and reports why it cannot redeem', () async {
     final service = await CrowdReportRemoteService.create(
       backendBaseUrl: 'http://backend.test',

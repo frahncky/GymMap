@@ -448,14 +448,6 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get communityPhotoCaptionRecent =>
-      'Foto recente enviada por quem treinou na unidade.';
-
-  @override
-  String get communityPhotoCaptionRecord =>
-      'Registro recente da comunidade nessa academia.';
-
-  @override
   String get distanceUnknown => 'Distância não informada';
 
   @override
@@ -487,11 +479,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get communityYou => 'Você';
-
-  @override
-  String communityThanksValidation(String points) {
-    return 'Obrigado por confirmar! +$points pontos.';
-  }
 
   @override
   String get communityTitle => 'Comunidade';
@@ -546,7 +533,7 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get communityPointsPerValidation => '+2 pontos por confirmação';
+  String get communityPointsPerValidation => '+2 por relato seu confirmado';
 
   @override
   String get communityContributeOnMap => 'Contribuir no mapa';
@@ -567,9 +554,6 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get communityEnableLocationReports =>
       'Ative sua localização para ver relatos recentes da sua região.';
-
-  @override
-  String get communityPhotoByCommunity => 'Foto enviada pela comunidade.';
 
   @override
   String communityConfirm(String count) {
@@ -1388,4 +1372,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String hoursTodayList(String ranges) {
     return 'Hoje: $ranges';
   }
+
+  @override
+  String get communityThanksVote =>
+      'Obrigado! Seu voto ajuda a saber se o relato está certo.';
+
+  @override
+  String get communityVoteFailed =>
+      'Não deu para registrar seu voto agora. Tente de novo mais tarde.';
 }
