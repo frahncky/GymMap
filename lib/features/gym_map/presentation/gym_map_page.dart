@@ -629,7 +629,9 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                                   ],
                                 ),
                               ),
-                              if (selectedGym == null)
+                              // Com trajeto, o cartão da rota ocupa a parte
+                              // de baixo; a dica não aparece.
+                              if (selectedGym == null && routeGym == null)
                                 Positioned(
                                   left: 14,
                                   right: 14,
@@ -645,7 +647,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                                     onClearFilters: _clearAllQuickFilters,
                                   ),
                                 )
-                              else
+                              else if (selectedGym != null)
                                 Positioned(
                                   left: 14,
                                   right: 14,

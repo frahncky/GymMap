@@ -586,6 +586,11 @@ extension _GymMapPageMapView on _GymMapPageState {
       _isLoadingRoute = true;
       if (!isReroute) {
         _isRouteCardOpen = true;
+        // O painel da academia fecha para o cartão da rota aparecer.
+        _selectedGym = null;
+        _isPanelDragging = false;
+        _panelFlex = _GymMapPageState._panelMinFlex;
+        _panelDragOffset = 0;
       }
     });
     if (!wasTracking) {
