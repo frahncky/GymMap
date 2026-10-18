@@ -9,5 +9,6 @@
   "MAPLIBRE_STYLE_URL": "https://api.maptiler.com/maps/streets-v2/style.json?key=SUA_CHAVE",
   "MAP_TILE_ATTRIBUTION": "MapTiler|OpenStreetMap contributors",
   "OVERPASS_API_URL": "https://overpass.seudominio.com/api/interpreter",
-  "NOMINATIM_BASE_URL": "https://nominatim.seudominio.com"
+  "NOMINATIM_BASE_URL": "https://nominatim.seudominio.com",
+  "OSRM_BASE_URL": "https://osrm.seudominio.com/routed-{profile}"
 }

@@ -1222,4 +1222,25 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get gymUnnamed => 'Academia';
+
+  @override
+  String get routeCalculating => 'Calculando trajeto...';
+
+  @override
+  String get routeFailed => 'Não foi possível calcular o trajeto agora.';
+
+  @override
+  String get routeClose => 'Fechar trajeto';
+
+  @override
+  String get routeWalking => 'A pé';
+
+  @override
+  String get routeCycling => 'Bicicleta';
+
+  @override
+  String get routeDriving => 'Carro';
+
+  @override
+  String get routeOpenInGoogleMaps => 'Navegar no Google Maps';
 }

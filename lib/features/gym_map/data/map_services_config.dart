@@ -26,7 +26,34 @@ class MapServicesConfig {
     defaultValue: 'https://nominatim.openstreetmap.org',
   );
 
+  /// Servidor OSRM dos trajetos. `{profile}` vira `foot`, `bike` ou `car`;
+  /// para um servidor próprio de um só perfil, basta omitir o marcador.
+  static const String _routingBaseUrl = String.fromEnvironment(
+    'OSRM_BASE_URL',
+    defaultValue: 'https://routing.openstreetmap.de/routed-{profile}',
+  );
+
   static Uri get overpassUri => Uri.parse(_overpassApiUrl);
+
+  /// URL do trajeto entre `lng,lat;lng,lat` ([coordinates]), com o desenho
+  /// completo em GeoJSON.
+  static Uri routeUri({required String profile, required String coordinates}) {
+    final base = Uri.parse(_routingBaseUrl.replaceAll('{profile}', profile));
+    final baseSegments = base.pathSegments.where((s) => s.isNotEmpty);
+    return base.replace(
+      pathSegments: <String>[
+        ...baseSegments,
+        'route',
+        'v1',
+        'driving',
+        coordinates,
+      ],
+      queryParameters: const <String, String>{
+        'overview': 'full',
+        'geometries': 'geojson',
+      },
+    );
+  }
 
   static Uri nominatimSearchUri(Map<String, String> queryParameters) {
     final base = Uri.parse(_nominatimBaseUrl);

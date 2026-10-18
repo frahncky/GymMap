@@ -129,6 +129,22 @@ extension _GymMapPageMapView on _GymMapPageState {
               }()
             else
               _buildOfflineFallbackLayer(),
+            if (_activeRoute case final route?)
+              PolylineLayer(
+                polylines: <Polyline>[
+                  Polyline(
+                    points: route.points,
+                    strokeWidth: 6,
+                    color: Theme.of(context).colorScheme.primary,
+                    borderStrokeWidth: 2.5,
+                    borderColor: Colors.white,
+                    pattern:
+                        route.mode == GymRouteMode.walking
+                            ? StrokePattern.dotted(spacingFactor: 1.6)
+                            : const StrokePattern.solid(),
+                  ),
+                ],
+              ),
             MarkerLayer(
               key: ValueKey<String>('marker-layer-$_mapVisualReloadTick'),
               markers: markers,
@@ -156,6 +172,8 @@ extension _GymMapPageMapView on _GymMapPageState {
             ),
           ],
         ),
+        if (_routeGymId != null)
+          Positioned(left: 12, right: 12, bottom: 28, child: _buildRouteCard()),
         if (_vectorMapStyle == null)
           Positioned(
             left: 12,
@@ -518,20 +536,203 @@ extension _GymMapPageMapView on _GymMapPageState {
     return _t.distanceKmFromYou((distanceMeters / 1000).toStringAsFixed(1));
   }
 
-  Future<void> _openRouteForGym(Gym gym) async {
-    _moveMapTo(gym.position, 15.6);
+  /// Desenha no mapa o trajeto da posição atual até [gym]. Sem localização,
+  /// abre o Google Maps, como antes. Sem [mode], escolhe a pé para academias
+  /// a até 1,5 km em linha reta e carro para as mais distantes.
+  Future<void> _showRouteToGym(Gym gym, {GymRouteMode? mode}) async {
+    final origin = _userLocation;
+    if (origin == null) {
+      await _openGymInGoogleMaps(gym);
+      return;
+    }
+    final selectedMode =
+        mode ??
+        (_isWithinDistanceMeters(origin, gym.position, 1500)
+            ? GymRouteMode.walking
+            : GymRouteMode.driving);
+    final requestId = ++_routeRequestId;
+    _setStateIfMapVisible(() {
+      _routeGymId = gym.id;
+      _routeMode = selectedMode;
+      _isLoadingRoute = true;
+    });
+
+    final route = await _routeService.fetchRoute(
+      origin: origin,
+      destination: gym.position,
+      mode: selectedMode,
+    );
+    // Outro pedido (outro modo ou outra academia) chegou depois deste.
+    if (!mounted || requestId != _routeRequestId) {
+      return;
+    }
+    _setStateIfMapVisible(() {
+      _isLoadingRoute = false;
+      _activeRoute = route;
+    });
+    if (route == null) {
+      _showMapSnack(_t.routeFailed);
+      return;
+    }
+    try {
+      _mapController.fitCamera(
+        CameraFit.coordinates(
+          coordinates: route.points,
+          padding: const EdgeInsets.fromLTRB(48, 150, 80, 170),
+          maxZoom: 17,
+        ),
+      );
+    } catch (_) {
+      // Sem o mapa montado, o trajeto aparece quando ele estiver pronto.
+    }
+  }
+
+  String _formatRouteDistance(double meters) {
+    if (meters < 1000) {
+      return '${meters.round()} m';
+    }
+    final km = NumberFormat('0.0', _t.localeName).format(meters / 1000);
+    return '$km km';
+  }
+
+  String _formatRouteDuration(double seconds) {
+    final minutes = (seconds / 60).round().clamp(1, 100000);
+    if (minutes < 60) {
+      return '$minutes min';
+    }
+    final rest = minutes % 60;
+    return rest == 0 ? '${minutes ~/ 60} h' : '${minutes ~/ 60} h $rest min';
+  }
+
+  /// Cartão sobre o mapa: resumo do trajeto, escolha do meio de transporte e
+  /// atalho para navegar no Google Maps.
+  Widget _buildRouteCard() {
+    final route = _activeRoute;
+    final gym = _selectedGym;
+    final summary =
+        _isLoadingRoute || route == null
+            ? _t.routeCalculating
+            : '${_formatRouteDistance(route.distanceMeters)} · '
+                '${_formatRouteDuration(route.durationSeconds)}';
+    return Material(
+      color: Colors.white,
+      elevation: 6,
+      shadowColor: GymMapColors.floatingControlShadow,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 6, 4, 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.route_rounded, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    summary,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15,
+                      color: GymMapColors.textPrimary,
+                    ),
+                  ),
+                ),
+                if (_isLoadingRoute)
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                IconButton(
+                  tooltip: _t.routeClose,
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: _clearRoute,
+                ),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: SegmentedButton<GymRouteMode>(
+                showSelectedIcon: false,
+                segments: <ButtonSegment<GymRouteMode>>[
+                  ButtonSegment(
+                    value: GymRouteMode.walking,
+                    icon: const Icon(Icons.directions_walk_rounded),
+                    label: Text(_t.routeWalking),
+                  ),
+                  ButtonSegment(
+                    value: GymRouteMode.cycling,
+                    icon: const Icon(Icons.pedal_bike_rounded),
+                    label: Text(_t.routeCycling),
+                  ),
+                  ButtonSegment(
+                    value: GymRouteMode.driving,
+                    icon: const Icon(Icons.directions_car_rounded),
+                    label: Text(_t.routeDriving),
+                  ),
+                ],
+                selected: <GymRouteMode>{_routeMode},
+                onSelectionChanged: (selection) {
+                  if (gym == null || selection.isEmpty) return;
+                  unawaited(_showRouteToGym(gym, mode: selection.first));
+                },
+              ),
+            ),
+            if (gym != null)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed:
+                      () => unawaited(
+                        _openGymInGoogleMaps(gym, mode: _routeMode),
+                      ),
+                  icon: const Icon(Icons.navigation_rounded, size: 18),
+                  label: Text(_t.routeOpenInGoogleMaps),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _clearRoute() {
+    _routeRequestId++;
+    if (_routeGymId == null && _activeRoute == null) {
+      return;
+    }
+    _setStateIfMapVisible(() {
+      _routeGymId = null;
+      _activeRoute = null;
+      _isLoadingRoute = false;
+    });
+  }
+
+  Future<void> _openGymInGoogleMaps(
+    Gym gym, {
+    GymRouteMode mode = GymRouteMode.driving,
+  }) async {
     final latitude = gym.position.latitude.toStringAsFixed(6);
     final longitude = gym.position.longitude.toStringAsFixed(6);
     final destination = '$latitude,$longitude';
+    final (androidMode, travelMode) = switch (mode) {
+      GymRouteMode.walking => ('w', 'walking'),
+      GymRouteMode.cycling => ('b', 'bicycling'),
+      GymRouteMode.driving => ('d', 'driving'),
+    };
 
-    final androidUri = Uri.parse('google.navigation:q=$destination');
+    final androidUri = Uri.parse(
+      'google.navigation:q=$destination&mode=$androidMode',
+    );
     final iosUri = Uri.parse(
-      'comgooglemaps://?daddr=$destination&directionsmode=driving',
+      'comgooglemaps://?daddr=$destination&directionsmode=$travelMode',
     );
     final webFallbackUri = Uri.https('www.google.com', '/maps/dir/', {
       'api': '1',
       'destination': destination,
-      'travelmode': 'driving',
+      'travelmode': travelMode,
     });
 
     try {
@@ -611,7 +812,7 @@ extension _GymMapPageMapView on _GymMapPageState {
       isSubmittingCrowdReport: _isSubmittingCrowdReport,
       onSubmitCrowdReport: _submitCrowdReport,
       onOpenRoute: () {
-        unawaited(_openRouteForGym(gym));
+        unawaited(_showRouteToGym(gym));
       },
       onVerticalDragStart: _onPanelDismissDragStart,
       onVerticalDragUpdate: _onPanelDismissDragUpdate,

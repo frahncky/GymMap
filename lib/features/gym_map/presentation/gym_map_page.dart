@@ -24,6 +24,7 @@ import '../data/crowd_report_remote_service.dart';
 import '../data/map/basemap_style_filter.dart';
 import '../data/map/map_vector_style_service.dart';
 import '../data/map/vector_map_style_loader.dart';
+import '../data/gym_route_service.dart';
 import '../data/map_services_config.dart';
 import '../data/plan_subscription_service.dart';
 import '../domain/gym_models.dart';
@@ -159,6 +160,14 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   // Controlador do mapa vetorial (flutter_map + vector_map_tiles).
   final MapController _mapController = MapController();
   final VectorMapStyleLoader _vectorMapStyleLoader = VectorMapStyleLoader();
+
+  // Trajeto até a academia, desenhado no próprio mapa.
+  final GymRouteService _routeService = GymRouteService();
+  GymRoute? _activeRoute;
+  String? _routeGymId;
+  GymRouteMode _routeMode = GymRouteMode.walking;
+  bool _isLoadingRoute = false;
+  int _routeRequestId = 0;
   vmt.Style? _vectorMapStyle;
   bool _vectorMapFailed = false;
   // Categorias de pontos de interesse do mapa base (paradas de ônibus,
@@ -431,6 +440,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     _positionStreamSubscription?.cancel();
     _mapPoiReloadController.dispose();
     _mapPoiController.dispose();
+    _routeService.dispose();
     _mapController.dispose();
     _searchController.dispose();
     super.dispose();

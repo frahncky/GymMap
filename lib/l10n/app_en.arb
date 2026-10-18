@@ -339,5 +339,12 @@
   "placesLeisure": "Leisure and tourism",
   "placesReligion": "Places of worship",
   "placesOther": "Other",
-  "gymUnnamed": "Gym"
+  "gymUnnamed": "Gym",
+  "routeCalculating": "Calculating route...",
+  "routeFailed": "Couldn't calculate the route right now.",
+  "routeClose": "Close route",
+  "routeWalking": "Walk",
+  "routeCycling": "Bike",
+  "routeDriving": "Car",
+  "routeOpenInGoogleMaps": "Navigate in Google Maps"
 }

@@ -109,6 +109,7 @@ flutter run --dart-define PLAN_BACKEND_BASE_URL=http://10.0.2.2:8080
 | `MAP_TILE_ATTRIBUTION` | `OpenStreetMap contributors` | Créditos exibidos no mapa (separados por `\|`) |
 | `OVERPASS_API_URL` | `overpass-api.de` | Busca de academias; espelhos públicos e o Nominatim entram como reserva |
 | `NOMINATIM_BASE_URL` | `nominatim.openstreetmap.org` | Busca de endereços e reserva da busca de academias |
+| `OSRM_BASE_URL` | `routing.openstreetmap.de/routed-{profile}` | Trajetos até a academia (a pé, bicicleta e carro); `{profile}` vira `foot`, `bike` ou `car` |
 
 Os servidores públicos do OpenStreetMap servem para desenvolvimento; em produção, use instâncias próprias ou um provedor pago.
 

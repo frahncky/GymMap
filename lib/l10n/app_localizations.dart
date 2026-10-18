@@ -2137,6 +2137,48 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Academia'**
   String get gymUnnamed;
+
+  /// No description provided for @routeCalculating.
+  ///
+  /// In pt, this message translates to:
+  /// **'Calculando trajeto...'**
+  String get routeCalculating;
+
+  /// No description provided for @routeFailed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível calcular o trajeto agora.'**
+  String get routeFailed;
+
+  /// No description provided for @routeClose.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fechar trajeto'**
+  String get routeClose;
+
+  /// No description provided for @routeWalking.
+  ///
+  /// In pt, this message translates to:
+  /// **'A pé'**
+  String get routeWalking;
+
+  /// No description provided for @routeCycling.
+  ///
+  /// In pt, this message translates to:
+  /// **'Bicicleta'**
+  String get routeCycling;
+
+  /// No description provided for @routeDriving.
+  ///
+  /// In pt, this message translates to:
+  /// **'Carro'**
+  String get routeDriving;
+
+  /// No description provided for @routeOpenInGoogleMaps.
+  ///
+  /// In pt, this message translates to:
+  /// **'Navegar no Google Maps'**
+  String get routeOpenInGoogleMaps;
 }
 
 class _AppLocalizationsDelegate

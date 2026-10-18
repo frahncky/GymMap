@@ -729,5 +729,12 @@
   "placesLeisure": "Lazer e turismo",
   "placesReligion": "Templos e igrejas",
   "placesOther": "Outros",
-  "gymUnnamed": "Academia"
+  "gymUnnamed": "Academia",
+  "routeCalculating": "Calculando trajeto...",
+  "routeFailed": "Não foi possível calcular o trajeto agora.",
+  "routeClose": "Fechar trajeto",
+  "routeWalking": "A pé",
+  "routeCycling": "Bicicleta",
+  "routeDriving": "Carro",
+  "routeOpenInGoogleMaps": "Navegar no Google Maps"
 }

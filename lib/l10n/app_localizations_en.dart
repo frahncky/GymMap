@@ -1209,4 +1209,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get gymUnnamed => 'Gym';
+
+  @override
+  String get routeCalculating => 'Calculating route...';
+
+  @override
+  String get routeFailed => 'Couldn\'t calculate the route right now.';
+
+  @override
+  String get routeClose => 'Close route';
+
+  @override
+  String get routeWalking => 'Walk';
+
+  @override
+  String get routeCycling => 'Bike';
+
+  @override
+  String get routeDriving => 'Car';
+
+  @override
+  String get routeOpenInGoogleMaps => 'Navigate in Google Maps';
 }

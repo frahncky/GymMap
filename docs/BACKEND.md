@@ -228,6 +228,7 @@ Optional app auth variable:
 - `MAP_TILE_ATTRIBUTION` map credits, separated by `|` (default: OpenStreetMap contributors)
 - `OVERPASS_API_URL` Overpass instance used to load gyms
 - `NOMINATIM_BASE_URL` Nominatim instance used for address search
+- `OSRM_BASE_URL` OSRM server for routes to the gym (default: `https://routing.openstreetmap.de/routed-{profile}`, where `{profile}` becomes `foot`, `bike` or `car`)
 - app path for auth session: `Configuracoes de plano` -> `Entrar`
 - Play Billing subscriptions renew automatically according to Google Play rules
 - app warns when plan is close to expiration (last 3 days)

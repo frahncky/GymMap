@@ -25,6 +25,9 @@ extension _GymMapPageInteractions on _GymMapPageState {
   }
 
   void _selectGym(Gym gym, {bool moveMap = true}) {
+    if (_routeGymId != null && _routeGymId != gym.id) {
+      _clearRoute();
+    }
     _setStateIfMapVisible(() {
       _selectedGym = gym;
       _showMarkerDetails = true;
@@ -184,6 +187,7 @@ extension _GymMapPageInteractions on _GymMapPageState {
     if (_selectedGym == null) {
       return;
     }
+    _clearRoute();
     _setStateIfMapVisible(() {
       _selectedGym = null;
       _isPanelDragging = false;
