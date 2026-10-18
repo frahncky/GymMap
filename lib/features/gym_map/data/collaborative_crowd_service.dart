@@ -147,7 +147,7 @@ class CollaborativeCrowdService {
     );
   }
 
-  /// Serie horaria das últimas 24h para habilitar o plano Smart+.
+  /// Serie horaria das últimas 24h para habilitar o plano Essencial+.
   List<HourlyOccupancyPoint> history24hFor(Gym gym, {DateTime? now}) {
     final refNow = now ?? DateTime.now();
     final currentHour = DateTime(
