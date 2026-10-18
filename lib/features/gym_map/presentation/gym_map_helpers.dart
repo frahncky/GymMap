@@ -73,6 +73,16 @@ String displayAmenity(String amenity) => switch (amenity) {
   _ => amenity,
 };
 
+/// Ícone da marca para a comodidade (tool/brand/gerar_marca.ps1), ou `null`
+/// para as que não têm ícone próprio.
+String? amenityIconAsset(String amenity) => switch (amenity) {
+  kAmenityWeights => 'assets/brand/amenity_weights.png',
+  kAmenityCardio => 'assets/brand/amenity_cardio.png',
+  kAmenityGroupClasses => 'assets/brand/amenity_classes.png',
+  kAmenityPool => 'assets/brand/amenity_pool.png',
+  _ => null,
+};
+
 String occupancyLabel(int percent) {
   if (percent <= 35) {
     return AppL10n.current.occupancyLevelLow;

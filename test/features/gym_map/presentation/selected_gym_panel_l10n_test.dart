@@ -102,11 +102,14 @@ void main() {
     final texts = <String>[
       for (final widget in tester.widgetList<Text>(find.byType(Text)))
         widget.data ?? widget.textSpan?.toPlainText() ?? '',
+      // Comodidades são ícones; o nome fica no balão.
+      for (final tooltip in tester.widgetList<Tooltip>(find.byType(Tooltip)))
+        tooltip.message ?? '',
     ];
     final portuguese = texts.where(_portuguese.hasMatch).toList();
 
     expect(portuguese, isEmpty, reason: 'Textos em português: $portuguese');
-    expect(texts, contains('Weight training'));
+    expect(find.byTooltip('Weight training'), findsOneWidget);
     expect(texts, contains('Gym'));
   });
 }

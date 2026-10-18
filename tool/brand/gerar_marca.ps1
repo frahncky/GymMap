@@ -2,14 +2,14 @@
 # (tool/brand/gymmap_symbol.svg): pino do mapa, ícone do app e splash.
 #
 #   pwsh tool/brand/gerar_marca.ps1   (pinos em assets/brand; ícone e splash em tool/brand/out)
-#   pwsh tool/brand/gerar_marca.ps1 -SoPinos   (só os pinos do mapa)
+#   pwsh tool/brand/gerar_marca.ps1 -SoApp   (só o que fica em assets/brand: pinos e ícones)
 #   dart run flutter_launcher_icons
 #   dart run flutter_native_splash:create
 #
 # Usa o Microsoft Edge em modo headless para rasterizar, com fundo
 # transparente. Cores da marca: grafite #1B222B (fundo do ícone e do splash).
 
-param([switch]$SoPinos)
+param([switch]$SoApp)
 
 $ErrorActionPreference = 'Stop'
 $root = Resolve-Path (Join-Path $PSScriptRoot '..\..')
@@ -78,7 +78,46 @@ foreach ($level in $levels.Keys) {
   Render $pinDir "pin_$level" 384 512 (Symbol 512 $levelSvg)
 }
 
-if ($SoPinos) { return }
+# Ícones das comodidades (painel da academia): verde-água da marca com um
+# detalhe no laranja da mochila; 96 px para ~24 dp em telas 4x.
+$teal = '#13897E'
+$orange = '#EC6A2C'
+$amenityIcons = [ordered]@{
+  weights = @"
+<rect x="1.5" y="9" width="2.5" height="6" rx="1" fill="$teal"/>
+<rect x="4.5" y="6.5" width="3" height="11" rx="1.2" fill="$teal"/>
+<rect x="16.5" y="6.5" width="3" height="11" rx="1.2" fill="$teal"/>
+<rect x="20" y="9" width="2.5" height="6" rx="1" fill="$teal"/>
+<rect x="7.5" y="11" width="9" height="2" rx="1" fill="$orange"/>
+"@
+  cardio = @"
+<path d="M12 21s-7.6-4.6-9.6-9.3C.9 8.1 3.2 4 7.1 4c2.1 0 3.5 1.1 4.9 2.9C13.4 5.1 14.8 4 16.9 4c3.9 0 6.2 4.1 4.7 7.7C19.6 16.4 12 21 12 21z" fill="$teal"/>
+<polyline points="3.5,12 8,12 9.8,9 12.4,15.2 14.4,10.6 15.8,12 20.5,12" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+"@
+  classes = @"
+<g fill="$teal" opacity="0.55">
+  <circle cx="5.2" cy="8.6" r="2.1"/><path d="M1 19.5c0-2.8 1.8-4.6 4.2-4.6s4.2 1.8 4.2 4.6z"/>
+  <circle cx="18.8" cy="8.6" r="2.1"/><path d="M14.6 19.5c0-2.8 1.8-4.6 4.2-4.6s4.2 1.8 4.2 4.6z"/>
+</g>
+<circle cx="12" cy="6.8" r="2.7" fill="$teal"/>
+<path d="M6.6 20.5c0-3.5 2.4-5.9 5.4-5.9s5.4 2.4 5.4 5.9z" fill="$teal"/>
+<circle cx="12" cy="17.6" r="1.1" fill="$orange"/>
+"@
+  pool = @"
+<g fill="none" stroke="$teal" stroke-width="1.9" stroke-linecap="round">
+  <path d="M8 13V5.5a2 2 0 0 1 4 0"/><path d="M15 13V5.5a2 2 0 0 1 4 0"/>
+  <path d="M8 8h7M8 11h7"/>
+  <path d="M2 16.5c1.7 0 1.7-1.3 3.3-1.3s1.7 1.3 3.4 1.3 1.6-1.3 3.3-1.3 1.7 1.3 3.3 1.3 1.7-1.3 3.4-1.3 1.6 1.3 3.3 1.3"/>
+</g>
+<path d="M2 20.5c1.7 0 1.7-1.3 3.3-1.3s1.7 1.3 3.4 1.3 1.6-1.3 3.3-1.3 1.7 1.3 3.3 1.3 1.7-1.3 3.4-1.3 1.6 1.3 3.3 1.3" fill="none" stroke="$orange" stroke-width="1.9" stroke-linecap="round"/>
+"@
+}
+foreach ($name in $amenityIcons.Keys) {
+  $icon = "<svg xmlns=""http://www.w3.org/2000/svg"" viewBox=""0 0 24 24"" width=""96"" height=""96"">$($amenityIcons[$name])</svg>"
+  Render $pinDir "amenity_$name" 96 96 $icon
+}
+
+if ($SoApp) { return }
 
 # Pino apoiado no mapa dobrado (a composição da marca), em HTML.
 function PinOnMap([int]$pinHeight, [int]$mapWidth, [string]$extra = '', [int]$offsetY = 0) {

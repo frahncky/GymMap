@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../domain/gym_models.dart';
 import '../../domain/plan_insight_models.dart';
 import '../../../../core/l10n/l10n.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../gym_map_colors.dart';
 import '../gym_map_helpers.dart';
 
@@ -133,7 +134,19 @@ class SelectedGymPanel extends StatelessWidget {
                           color: GymMapColors.panelTitle,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      if (gym.amenities.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            for (final item in gym.amenities)
+                              _AmenityChip(amenity: item),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                      ] else
+                        const SizedBox(height: 4),
                       Text(
                         gym.address == kMapGymAddress
                             ? _t.gymFoundOnMap
@@ -468,33 +481,6 @@ class SelectedGymPanel extends StatelessWidget {
               _EliteInsightsCard(forecast: forecast, alerts: alerts),
             ],
             const SizedBox(height: 10),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children:
-                  gym.amenities
-                      .map(
-                        (item) => Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: GymMapColors.chipBackground,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            displayAmenity(item),
-                            style: const TextStyle(
-                              color: GymMapColors.tagText,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      )
-                      .toList(),
-            ),
-            const SizedBox(height: 10),
             const Divider(height: 1),
             const SizedBox(height: 10),
             if (showOccupancy)
@@ -580,6 +566,58 @@ class SelectedGymPanel extends StatelessWidget {
                 ),
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Comodidade como ícone da marca; o nome vem no balão ao tocar e no leitor
+/// de tela. As que não têm ícone próprio aparecem por escrito.
+class _AmenityChip extends StatelessWidget {
+  const _AmenityChip({required this.amenity});
+
+  final String amenity;
+
+  @override
+  Widget build(BuildContext context) {
+    final iconAsset = amenityIconAsset(amenity);
+    final label = displayAmenity(amenity);
+    final decoration = BoxDecoration(
+      color: withUiOpacity(AppBrand.teal, 0.10),
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: withUiOpacity(AppBrand.teal, 0.22)),
+    );
+    if (iconAsset == null) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: decoration,
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: GymMapColors.tagText,
+            fontWeight: FontWeight.w700,
+            fontSize: 13,
+          ),
+        ),
+      );
+    }
+    return Tooltip(
+      message: label,
+      triggerMode: TooltipTriggerMode.tap,
+      child: Semantics(
+        label: label,
+        child: Container(
+          width: 36,
+          height: 36,
+          alignment: Alignment.center,
+          decoration: decoration,
+          child: Image.asset(
+            iconAsset,
+            width: 24,
+            height: 24,
+            excludeFromSemantics: true,
+          ),
         ),
       ),
     );
