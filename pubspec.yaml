@@ -129,6 +129,8 @@ flutter_launcher_icons:
   image_path: tool/brand/out/app_icon.png
   adaptive_icon_background: "#1B222B"
   adaptive_icon_foreground: tool/brand/out/app_icon_foreground.png
+  # A imagem já respeita a área segura; sem a margem padrão de 16%.
+  adaptive_icon_foreground_inset: 0
   min_sdk_android: 21
   remove_alpha_ios: true
 
