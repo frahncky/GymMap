@@ -63,6 +63,16 @@ Color occupancyColorForValue(double percent) {
 String displayGymName(String name) =>
     name == kUnnamedGymName ? AppL10n.current.gymUnnamed : name;
 
+/// Comodidade para exibir: as gravadas pelo app aparecem traduzidas; as que
+/// vierem de outra fonte ficam como estão.
+String displayAmenity(String amenity) => switch (amenity) {
+  kAmenityWeights => AppL10n.current.amenityWeights,
+  kAmenityCardio => AppL10n.current.amenityCardio,
+  kAmenityGroupClasses => AppL10n.current.amenityGroupClasses,
+  kAmenityPool => AppL10n.current.amenityPool,
+  _ => amenity,
+};
+
 String occupancyLabel(int percent) {
   if (percent <= 35) {
     return AppL10n.current.occupancyLevelLow;

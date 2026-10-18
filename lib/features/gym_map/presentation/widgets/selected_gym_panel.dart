@@ -484,7 +484,7 @@ class SelectedGymPanel extends StatelessWidget {
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
-                            item,
+                            displayAmenity(item),
                             style: const TextStyle(
                               color: GymMapColors.tagText,
                               fontWeight: FontWeight.w700,
@@ -998,7 +998,7 @@ class _ProInsightsCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      item.gymName,
+                      displayGymName(item.gymName),
                       style: const TextStyle(
                         fontWeight: FontWeight.w700,
                         color: GymMapColors.textStrong,

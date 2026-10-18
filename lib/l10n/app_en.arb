@@ -346,5 +346,9 @@
   "routeWalking": "Walk",
   "routeCycling": "Bike",
   "routeDriving": "Car",
-  "routeOpenInGoogleMaps": "Navigate in Google Maps"
+  "routeOpenInGoogleMaps": "Navigate in Google Maps",
+  "amenityWeights": "Weight training",
+  "amenityCardio": "Cardio",
+  "amenityGroupClasses": "Group classes",
+  "amenityPool": "Pool"
 }

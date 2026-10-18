@@ -115,7 +115,11 @@ extension _GymMapPageInteractions on _GymMapPageState {
         position: poi.position,
         capacity: capacity,
         baseOccupancyPercent: base,
-        amenities: const ['Musculação', 'Cardio', 'Aulas coletivas'],
+        amenities: const [
+          kAmenityWeights,
+          kAmenityCardio,
+          kAmenityGroupClasses,
+        ],
       );
     });
   }

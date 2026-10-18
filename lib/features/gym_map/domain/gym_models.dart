@@ -8,6 +8,13 @@ const String kUnnamedGymName = 'Academia';
 /// É dado; na tela é traduzido.
 const String kMapGymAddress = 'Academia encontrada no mapa';
 
+// Comodidades gravadas (os filtros "Aulas", "Cardio" e "Com piscina" procuram
+// por estes textos). Na tela use `displayAmenity`, que traduz.
+const String kAmenityWeights = 'Musculação';
+const String kAmenityCardio = 'Cardio';
+const String kAmenityGroupClasses = 'Aulas coletivas';
+const String kAmenityPool = 'Piscina';
+
 /// Representa uma academia no mapa.
 class Gym {
   const Gym({

@@ -1243,4 +1243,16 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get routeOpenInGoogleMaps => 'Navegar no Google Maps';
+
+  @override
+  String get amenityWeights => 'Musculação';
+
+  @override
+  String get amenityCardio => 'Cardio';
+
+  @override
+  String get amenityGroupClasses => 'Aulas coletivas';
+
+  @override
+  String get amenityPool => 'Piscina';
 }

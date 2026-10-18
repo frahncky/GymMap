@@ -2179,6 +2179,30 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Navegar no Google Maps'**
   String get routeOpenInGoogleMaps;
+
+  /// No description provided for @amenityWeights.
+  ///
+  /// In pt, this message translates to:
+  /// **'Musculação'**
+  String get amenityWeights;
+
+  /// No description provided for @amenityCardio.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cardio'**
+  String get amenityCardio;
+
+  /// No description provided for @amenityGroupClasses.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aulas coletivas'**
+  String get amenityGroupClasses;
+
+  /// No description provided for @amenityPool.
+  ///
+  /// In pt, this message translates to:
+  /// **'Piscina'**
+  String get amenityPool;
 }
 
 class _AppLocalizationsDelegate
