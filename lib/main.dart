@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/analytics/app_metrics_service.dart';
 import 'core/l10n/l10n.dart';
+import 'core/theme/app_theme.dart';
 import 'features/gym_map/data/crowd_report_remote_service.dart';
 import 'features/gym_map/data/gym_location_cache_service.dart';
 import 'features/gym_map/domain/gym_models.dart';
@@ -101,19 +102,9 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
-    final basePlanPrimary = PlanThemePalette.colorFor(
-      widget.initialPlanThemeTier,
-    );
-    final lightColorScheme = ColorScheme.fromSeed(
-      seedColor: basePlanPrimary,
-    ).copyWith(
-      primary: basePlanPrimary,
-      secondary: basePlanPrimary,
-      surface: Color.alphaBlend(
-        basePlanPrimary.withValues(alpha: 0.05),
-        Colors.white,
-      ),
-      onSurface: const Color(0xFF1F2730),
+    final theme = buildAppTheme(
+      primary: PlanThemePalette.colorFor(widget.initialPlanThemeTier),
+      onPrimary: PlanThemePalette.onColorFor(widget.initialPlanThemeTier),
     );
 
     return ValueListenableBuilder<AppLanguagePreference>(
@@ -130,85 +121,7 @@ class _MyAppState extends State<MyApp> {
             builder:
                 (context, child) =>
                     AppL10nScope(child: child ?? const SizedBox.shrink()),
-            theme: ThemeData(
-              useMaterial3: true,
-              colorScheme: lightColorScheme,
-              scaffoldBackgroundColor: Color.alphaBlend(
-                basePlanPrimary.withValues(alpha: 0.08),
-                Colors.white,
-              ),
-              fontFamily: 'PlusJakartaSans',
-              textTheme: const TextTheme(
-                titleLarge: TextStyle(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.2,
-                ),
-                titleMedium: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.1,
-                ),
-                bodyMedium: TextStyle(height: 1.28),
-              ),
-              inputDecorationTheme: InputDecorationTheme(
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 14,
-                ),
-                hintStyle: TextStyle(
-                  color: lightColorScheme.onSurface.withValues(alpha: 0.56),
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(
-                    color: lightColorScheme.primary.withValues(alpha: 0.18),
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(
-                    color: lightColorScheme.primary.withValues(alpha: 0.18),
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(
-                    color: lightColorScheme.primary,
-                    width: 1.4,
-                  ),
-                ),
-              ),
-              elevatedButtonTheme: ElevatedButtonThemeData(
-                style: ElevatedButton.styleFrom(
-                  elevation: 0,
-                  foregroundColor: Colors.white,
-                  backgroundColor: lightColorScheme.primary,
-                  padding: EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  textStyle: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.1,
-                  ),
-                ),
-              ),
-              sliderTheme: SliderThemeData(
-                trackHeight: 4.5,
-                activeTrackColor: lightColorScheme.primary,
-                inactiveTrackColor: lightColorScheme.primary.withValues(
-                  alpha: 0.20,
-                ),
-                thumbColor: lightColorScheme.primary,
-                overlayColor: lightColorScheme.primary.withValues(alpha: 0.18),
-                valueIndicatorColor: lightColorScheme.primary,
-                valueIndicatorTextStyle: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
+            theme: theme,
             home: AppShell(
               showMap: widget.showMap,
               initialPlanThemeTier: widget.initialPlanThemeTier,
@@ -329,75 +242,16 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     });
   }
 
-  ThemeData _themeForActivePlan(BuildContext context) {
-    final baseTheme = Theme.of(context);
-    final primary = _planThemeColor(_activePlanThemeTier);
-    final onPrimary = PlanThemePalette.onColorFor(_activePlanThemeTier);
-    final scheme = baseTheme.colorScheme.copyWith(
-      primary: primary,
-      secondary: primary,
-      onPrimary: onPrimary,
-    );
-    final focusedBorder = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(16),
-      borderSide: BorderSide(color: primary, width: 1.4),
-    );
-    final enabledBorder = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(16),
-      borderSide: BorderSide(color: primary.withValues(alpha: 0.18)),
-    );
-    return baseTheme.copyWith(
-      colorScheme: scheme,
-      scaffoldBackgroundColor: Color.alphaBlend(
-        primary.withValues(alpha: 0.08),
-        Colors.white,
-      ),
-      inputDecorationTheme: baseTheme.inputDecorationTheme.copyWith(
-        hintStyle: TextStyle(color: scheme.onSurface.withValues(alpha: 0.56)),
-        border: enabledBorder,
-        enabledBorder: enabledBorder,
-        focusedBorder: focusedBorder,
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          elevation: 0,
-          foregroundColor: onPrimary,
-          backgroundColor: primary,
-          padding: EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          textStyle: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.1),
-        ),
-      ),
-      sliderTheme: baseTheme.sliderTheme.copyWith(
-        activeTrackColor: primary,
-        inactiveTrackColor: primary.withValues(alpha: 0.20),
-        thumbColor: primary,
-        overlayColor: primary.withValues(alpha: 0.18),
-        valueIndicatorColor: primary,
-      ),
-      navigationBarTheme: baseTheme.navigationBarTheme.copyWith(
-        indicatorColor: primary.withValues(alpha: 0.16),
-        iconTheme: WidgetStateProperty.resolveWith<IconThemeData?>((states) {
-          if (states.contains(WidgetState.selected)) {
-            return IconThemeData(color: primary);
-          }
-          return null;
-        }),
-        labelTextStyle: WidgetStateProperty.resolveWith<TextStyle?>((states) {
-          if (states.contains(WidgetState.selected)) {
-            return TextStyle(color: primary, fontWeight: FontWeight.w700);
-          }
-          return null;
-        }),
-      ),
+  ThemeData _themeForActivePlan() {
+    return buildAppTheme(
+      primary: _planThemeColor(_activePlanThemeTier),
+      onPrimary: PlanThemePalette.onColorFor(_activePlanThemeTier),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final themedData = _themeForActivePlan(context);
+    final themedData = _themeForActivePlan();
     final pages = <Widget>[
       GymMapPage(
         showMap: widget.showMap,

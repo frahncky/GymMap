@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../../../../core/l10n/l10n.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../gym_map_colors.dart';
 import '../gym_map_helpers.dart';
 
@@ -775,11 +776,7 @@ AppLocalizations get _t => AppL10n.current;
 class BrandWordmark extends StatelessWidget {
   const BrandWordmark({super.key, this.style});
 
-  static const List<Color> gradient = <Color>[
-    Color(0xFF3FC6F0),
-    Color(0xFF22B7A8),
-    Color(0xFF7EDB5A),
-  ];
+  static const List<Color> gradient = AppBrand.gradient;
 
   final TextStyle? style;
 
