@@ -1263,7 +1263,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String amenitySheetSubtitle(String needed) {
-    return 'Marque o que você sabe. Um item aparece para todos quando $needed pessoas confirmam.';
+    return 'Marque o que a academia tem e desmarque o que ela não tem. A mudança vale para todos quando $needed pessoas concordam.';
   }
 
   @override
@@ -1281,7 +1281,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get amenityPointsHint =>
-      'Você ganha 2 pontos por item quando a comunidade confirmar o que você marcou.';
+      'Você ganha 2 pontos por item quando a comunidade concordar com o que você marcou ou desmarcou.';
 
   @override
   String get amenitySave => 'Enviar';
@@ -1293,7 +1293,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get amenitySavedNoPoints =>
-      'Obrigado! Você ganha pontos quando outras pessoas confirmarem.';
+      'Obrigado! Você ganha pontos quando outras pessoas concordarem.';
 
   @override
   String get amenitySaveFailed =>
@@ -1318,7 +1318,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get rewardsHowToEarn =>
-      '+5 pontos por relato e +2 por item que você marcou e a comunidade confirmou.';
+      '+5 pontos por relato e +2 por item que você marcou ou desmarcou e a comunidade concordou.';
 
   @override
   String rewardsRedeem(String days) {
@@ -1377,4 +1377,9 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get communityVoteFailed =>
       'Não deu para registrar seu voto agora. Tente de novo mais tarde.';
+
+  @override
+  String amenityStatusRemovalPending(String count, String needed) {
+    return '$count de $needed dizem que não tem';
+  }
 }

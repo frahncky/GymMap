@@ -7,7 +7,9 @@ import '../gym_map_colors.dart';
 import '../gym_map_helpers.dart';
 
 /// Lista para marcar o que a academia oferece. Cada item mostra a situação
-/// na comunidade e uma caixa: marcada é "tem"; desmarcar retira o voto.
+/// na comunidade e uma caixa. Marcar um item que o card não mostra é dizer
+/// "tem"; desmarcar um que o card mostra é dizer "não tem". Nos dois casos a
+/// mudança só vale para todos quando a comunidade concorda.
 class AmenityVoteSheet extends StatefulWidget {
   const AmenityVoteSheet({
     super.key,
@@ -15,12 +17,12 @@ class AmenityVoteSheet extends StatefulWidget {
     required this.votes,
     required this.confirmThreshold,
     required this.onSubmit,
-    this.defaultChecked = const <GymAmenity>{},
+    this.shown = const <GymAmenity>{},
   });
 
-  /// O que o card já mostra: vem marcado quando a pessoa ainda não votou no
-  /// item. Só o que ela marcar ou desmarcar é enviado (e rende pontos).
-  final Set<GymAmenity> defaultChecked;
+  /// O que o card mostra hoje: vem marcado, a menos que a pessoa já tenha
+  /// dito "não tem". Só o que ela mudar é enviado.
+  final Set<GymAmenity> shown;
 
   final String gymName;
 
@@ -40,7 +42,7 @@ class _AmenityVoteSheetState extends State<AmenityVoteSheet> {
     for (final vote in widget.votes) vote.amenity: vote,
   };
   late final Map<GymAmenity, bool?> _initial = {
-    for (final amenity in widget.defaultChecked) amenity: true,
+    for (final amenity in widget.shown) amenity: true,
     for (final vote in widget.votes)
       if (vote.userVote != null) vote.amenity: vote.userVote,
   };
@@ -54,9 +56,14 @@ class _AmenityVoteSheetState extends State<AmenityVoteSheet> {
         amenity: _selection[amenity],
   };
 
+  /// Marcar = "tem". Desmarcar algo que o card mostra = "não tem"; desmarcar
+  /// algo que não aparece só retira a marcação.
   void _toggle(GymAmenity amenity) {
     setState(() {
-      _selection[amenity] = _selection[amenity] == true ? null : true;
+      _selection[amenity] =
+          _selection[amenity] == true
+              ? (widget.shown.contains(amenity) ? false : null)
+              : true;
     });
   }
 
@@ -104,6 +111,7 @@ class _AmenityVoteSheetState extends State<AmenityVoteSheet> {
                     amenity: amenity,
                     votes: _votesByAmenity[amenity],
                     confirmThreshold: widget.confirmThreshold,
+                    shown: widget.shown.contains(amenity),
                     checked: _selection[amenity] == true,
                     onToggle: () => _toggle(amenity),
                   );
@@ -148,6 +156,7 @@ class _AmenityVoteRow extends StatelessWidget {
     required this.amenity,
     required this.votes,
     required this.confirmThreshold,
+    required this.shown,
     required this.checked,
     required this.onToggle,
   });
@@ -155,6 +164,9 @@ class _AmenityVoteRow extends StatelessWidget {
   final GymAmenity amenity;
   final GymAmenityVotes? votes;
   final int confirmThreshold;
+
+  /// Se o card mostra o item (aí os votos que contam são os de "não tem").
+  final bool shown;
   final bool checked;
   final VoidCallback onToggle;
 
@@ -169,7 +181,12 @@ class _AmenityVoteRow extends StatelessWidget {
       ),
       AmenityVoteStatus.rejected => _t.amenityStatusRejected,
       AmenityVoteStatus.pending =>
-        current.yes > 0
+        shown && current.no > 0
+            ? _t.amenityStatusRemovalPending(
+              '${current.no}',
+              '$confirmThreshold',
+            )
+            : current.yes > 0
             ? _t.amenityStatusPending('${current.yes}', '$confirmThreshold')
             : null,
     };

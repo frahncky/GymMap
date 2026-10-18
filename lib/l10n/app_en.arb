@@ -362,7 +362,7 @@
       }
     }
   },
-  "amenitySheetSubtitle": "Mark what you know. An item shows for everyone once {needed} people confirm it.",
+  "amenitySheetSubtitle": "Check what the gym has and uncheck what it doesn't. A change shows for everyone once {needed} people agree.",
   "@amenitySheetSubtitle": {
     "placeholders": {
       "needed": {
@@ -390,7 +390,7 @@
     }
   },
   "amenityStatusRejected": "The community says it doesn't have this",
-  "amenityPointsHint": "You get 2 points per item once the community confirms what you marked.",
+  "amenityPointsHint": "You get 2 points per item once the community agrees with what you checked or unchecked.",
   "amenitySave": "Send",
   "amenitySaved": "Thanks! +{points} points.",
   "@amenitySaved": {
@@ -400,7 +400,7 @@
       }
     }
   },
-  "amenitySavedNoPoints": "Thanks! You get points once other people confirm.",
+  "amenitySavedNoPoints": "Thanks! You get points once other people agree.",
   "amenitySaveFailed": "Couldn't send right now. Try again later.",
   "amenityUnavailable": "Marking what a gym offers isn't available right now.",
   "rewardsTitle": "Use your points",
@@ -426,7 +426,7 @@
       }
     }
   },
-  "rewardsHowToEarn": "+5 points per report and +2 per item you marked that the community confirmed.",
+  "rewardsHowToEarn": "+5 points per report and +2 per item you checked or unchecked that the community agreed with.",
   "rewardsRedeem": "Get {days} days",
   "@rewardsRedeem": {
     "placeholders": {
@@ -472,5 +472,16 @@
     }
   },
   "communityThanksVote": "Thanks! Your vote helps tell whether the report is right.",
-  "communityVoteFailed": "Couldn't save your vote right now. Try again later."
+  "communityVoteFailed": "Couldn't save your vote right now. Try again later.",
+  "amenityStatusRemovalPending": "{count} of {needed} say it doesn't have this",
+  "@amenityStatusRemovalPending": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      },
+      "needed": {
+        "type": "String"
+      }
+    }
+  }
 }

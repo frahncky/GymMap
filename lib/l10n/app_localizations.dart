@@ -2231,7 +2231,7 @@ abstract class AppLocalizations {
   /// No description provided for @amenitySheetSubtitle.
   ///
   /// In pt, this message translates to:
-  /// **'Marque o que você sabe. Um item aparece para todos quando {needed} pessoas confirmam.'**
+  /// **'Marque o que a academia tem e desmarque o que ela não tem. A mudança vale para todos quando {needed} pessoas concordam.'**
   String amenitySheetSubtitle(String needed);
 
   /// No description provided for @amenityStatusConfirmed.
@@ -2255,7 +2255,7 @@ abstract class AppLocalizations {
   /// No description provided for @amenityPointsHint.
   ///
   /// In pt, this message translates to:
-  /// **'Você ganha 2 pontos por item quando a comunidade confirmar o que você marcou.'**
+  /// **'Você ganha 2 pontos por item quando a comunidade concordar com o que você marcou ou desmarcou.'**
   String get amenityPointsHint;
 
   /// No description provided for @amenitySave.
@@ -2273,7 +2273,7 @@ abstract class AppLocalizations {
   /// No description provided for @amenitySavedNoPoints.
   ///
   /// In pt, this message translates to:
-  /// **'Obrigado! Você ganha pontos quando outras pessoas confirmarem.'**
+  /// **'Obrigado! Você ganha pontos quando outras pessoas concordarem.'**
   String get amenitySavedNoPoints;
 
   /// No description provided for @amenitySaveFailed.
@@ -2309,7 +2309,7 @@ abstract class AppLocalizations {
   /// No description provided for @rewardsHowToEarn.
   ///
   /// In pt, this message translates to:
-  /// **'+5 pontos por relato e +2 por item que você marcou e a comunidade confirmou.'**
+  /// **'+5 pontos por relato e +2 por item que você marcou ou desmarcou e a comunidade concordou.'**
   String get rewardsHowToEarn;
 
   /// No description provided for @rewardsRedeem.
@@ -2401,6 +2401,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Não deu para registrar seu voto agora. Tente de novo mais tarde.'**
   String get communityVoteFailed;
+
+  /// No description provided for @amenityStatusRemovalPending.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count} de {needed} dizem que não tem'**
+  String amenityStatusRemovalPending(String count, String needed);
 }
 
 class _AppLocalizationsDelegate

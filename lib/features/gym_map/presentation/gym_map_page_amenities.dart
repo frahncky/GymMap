@@ -22,27 +22,32 @@ extension _GymMapPageAmenities on _GymMapPageState {
     }
   }
 
-  /// Comodidades confirmadas pela comunidade, ou `null` se a academia ainda
-  /// não tem nenhuma (aí o card mostra a lista gravada em [Gym.amenities]).
-  List<GymAmenity>? _confirmedAmenitiesFor(Gym gym) {
+  /// O que o card mostra: as comodidades confirmadas pela comunidade ou,
+  /// sem nenhuma, a lista gravada em [Gym.amenities]. O que a comunidade
+  /// negou não aparece.
+  List<GymAmenity> _shownAmenitiesFor(Gym gym) {
+    final votes = _amenityVotesByGymId[gym.id] ?? const <GymAmenityVotes>[];
     final confirmed = <GymAmenity>[
-      for (final vote in _amenityVotesByGymId[gym.id] ?? const [])
+      for (final vote in votes)
         if (vote.status == AmenityVoteStatus.confirmed) vote.amenity,
     ];
-    return confirmed.isEmpty ? null : confirmed;
+    if (confirmed.isNotEmpty) {
+      return confirmed;
+    }
+    final rejected = <GymAmenity>{
+      for (final vote in votes)
+        if (vote.status == AmenityVoteStatus.rejected) vote.amenity,
+    };
+    return <GymAmenity>[
+      for (final stored in gym.amenities)
+        if (GymAmenity.fromStored(stored) case final amenity?)
+          if (!rejected.contains(amenity)) amenity,
+    ];
   }
 
-  /// O que a academia oferece, para os filtros: as confirmadas ou, sem
-  /// nenhuma, as gravadas.
-  bool _gymOffers(Gym gym, GymAmenity amenity) {
-    final confirmed = _confirmedAmenitiesFor(gym);
-    if (confirmed != null) {
-      return confirmed.contains(amenity);
-    }
-    return gym.amenities.any(
-      (stored) => GymAmenity.fromStored(stored) == amenity,
-    );
-  }
+  /// O que a academia oferece, para os filtros: o mesmo que o card mostra.
+  bool _gymOffers(Gym gym, GymAmenity amenity) =>
+      _shownAmenitiesFor(gym).contains(amenity);
 
   void _openAmenitySheet(Gym gym) {
     final remoteService = _crowdReportRemoteService;
@@ -62,13 +67,7 @@ extension _GymMapPageAmenities on _GymMapPageState {
               gymName: displayGymName(gym.name),
               votes: _amenityVotesByGymId[gym.id] ?? const [],
               confirmThreshold: _GymMapPageState._amenityConfirmThreshold,
-              defaultChecked: <GymAmenity>{
-                ...?_confirmedAmenitiesFor(gym),
-                if (_confirmedAmenitiesFor(gym) == null)
-                  for (final stored in gym.amenities)
-                    if (GymAmenity.fromStored(stored) case final amenity?)
-                      amenity,
-              },
+              shown: _shownAmenitiesFor(gym).toSet(),
               onSubmit: (changes) => _submitAmenityVotes(gym, changes),
             ),
           ),

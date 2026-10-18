@@ -299,8 +299,9 @@ class _PixBillingBackend {
   final math.Random _secureRandom = math.Random.secure();
   static const Duration _crowdReportCooldownWindow = Duration(minutes: 10);
 
-  // Pontos: +5 por relato aceito, +2 por comodidade marcada que a comunidade
-  // confirmar (até 20 por dia), 100 pontos = 7 dias do plano Essencial.
+  // Pontos: +5 por relato aceito, +2 por comodidade marcada ou desmarcada
+  // quando a comunidade concordar (até 20 por dia), 100 pontos = 7 dias do
+  // plano Essencial.
   static const int _pointsPerCrowdReport = 5;
   static const int _pointsPerAmenityVote = 2;
   // Quem enviou o relato ganha 2 pontos a cada confirmação, até 3 por relato.
@@ -1336,7 +1337,7 @@ class _PixBillingBackend {
         }
 
         final now = DateTime.now().toUtc();
-        final confirmedBefore = _confirmedAmenities(gymId);
+        final statusBefore = _amenityStatuses(gymId);
         final touched = <String>{};
         for (final entry in votes.entries) {
           final amenity = '${entry.key}'.trim();
@@ -1361,25 +1362,29 @@ class _PixBillingBackend {
             'present': value,
             'createdAt': existing?['createdAt'] ?? now.toIso8601String(),
             'updatedAt': now.toIso8601String(),
-            // Quem marca um item já confirmado só repete o que todos veem.
-            if (existing == null && confirmedBefore.contains(amenity))
+            // Quem vota depois da decisão só repete o que todos já veem.
+            if (existing == null &&
+                ((value == true && statusBefore[amenity] == 'confirmed') ||
+                    (value == false && statusBefore[amenity] == 'rejected')))
               'rewarded': true,
           };
         }
 
-        // Pontos só quando a comunidade confirma: quem marcou "tem" antes
-        // da confirmação ganha os pontos daquele item.
+        // Pontos só quando a comunidade decide: ao confirmar, ganha quem
+        // marcou "tem"; ao negar, quem marcou "não tem" (antes da decisão).
         var pointsAwarded = 0;
-        final confirmedNow = _confirmedAmenities(gymId);
+        final statusNow = _amenityStatuses(gymId);
         for (final amenity in touched) {
-          if (confirmedBefore.contains(amenity) ||
-              !confirmedNow.contains(amenity)) {
+          final decided = statusNow[amenity];
+          if (decided == statusBefore[amenity] ||
+              (decided != 'confirmed' && decided != 'rejected')) {
             continue;
           }
+          final winningVote = decided == 'confirmed';
           for (final vote in amenityVotes.values) {
             if (vote['gymId'] != gymId ||
                 vote['amenity'] != amenity ||
-                vote['present'] != true ||
+                vote['present'] != winningVote ||
                 vote['rewarded'] == true) {
               continue;
             }
@@ -3106,9 +3111,9 @@ class _PixBillingBackend {
     };
   }
 
-  Set<String> _confirmedAmenities(String gymId) => <String>{
+  Map<String, String> _amenityStatuses(String gymId) => <String, String>{
     for (final item in _amenitySummary(gymId))
-      if (item['status'] == 'confirmed') '${item['amenity']}',
+      '${item['amenity']}': '${item['status']}',
   };
 
   /// Comodidades votadas de uma academia: contagem de "tem"/"não tem",

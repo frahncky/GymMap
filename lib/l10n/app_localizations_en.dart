@@ -1251,7 +1251,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String amenitySheetSubtitle(String needed) {
-    return 'Mark what you know. An item shows for everyone once $needed people confirm it.';
+    return 'Check what the gym has and uncheck what it doesn\'t. A change shows for everyone once $needed people agree.';
   }
 
   @override
@@ -1270,7 +1270,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get amenityPointsHint =>
-      'You get 2 points per item once the community confirms what you marked.';
+      'You get 2 points per item once the community agrees with what you checked or unchecked.';
 
   @override
   String get amenitySave => 'Send';
@@ -1282,7 +1282,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get amenitySavedNoPoints =>
-      'Thanks! You get points once other people confirm.';
+      'Thanks! You get points once other people agree.';
 
   @override
   String get amenitySaveFailed => 'Couldn\'t send right now. Try again later.';
@@ -1306,7 +1306,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get rewardsHowToEarn =>
-      '+5 points per report and +2 per item you marked that the community confirmed.';
+      '+5 points per report and +2 per item you checked or unchecked that the community agreed with.';
 
   @override
   String rewardsRedeem(String days) {
@@ -1365,4 +1365,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get communityVoteFailed =>
       'Couldn\'t save your vote right now. Try again later.';
+
+  @override
+  String amenityStatusRemovalPending(String count, String needed) {
+    return '$count of $needed say it doesn\'t have this';
+  }
 }

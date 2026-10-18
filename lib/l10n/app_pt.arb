@@ -721,7 +721,7 @@
       }
     }
   },
-  "amenitySheetSubtitle": "Marque o que você sabe. Um item aparece para todos quando {needed} pessoas confirmam.",
+  "amenitySheetSubtitle": "Marque o que a academia tem e desmarque o que ela não tem. A mudança vale para todos quando {needed} pessoas concordam.",
   "@amenitySheetSubtitle": {
     "placeholders": {
       "needed": {
@@ -749,7 +749,7 @@
     }
   },
   "amenityStatusRejected": "A comunidade diz que não tem",
-  "amenityPointsHint": "Você ganha 2 pontos por item quando a comunidade confirmar o que você marcou.",
+  "amenityPointsHint": "Você ganha 2 pontos por item quando a comunidade concordar com o que você marcou ou desmarcou.",
   "amenitySave": "Enviar",
   "amenitySaved": "Obrigado! +{points} pontos.",
   "@amenitySaved": {
@@ -759,7 +759,7 @@
       }
     }
   },
-  "amenitySavedNoPoints": "Obrigado! Você ganha pontos quando outras pessoas confirmarem.",
+  "amenitySavedNoPoints": "Obrigado! Você ganha pontos quando outras pessoas concordarem.",
   "amenitySaveFailed": "Não deu para enviar agora. Tente de novo mais tarde.",
   "amenityUnavailable": "Marcar o que a academia oferece não está disponível agora.",
   "rewardsTitle": "Troque seus pontos",
@@ -785,7 +785,7 @@
       }
     }
   },
-  "rewardsHowToEarn": "+5 pontos por relato e +2 por item que você marcou e a comunidade confirmou.",
+  "rewardsHowToEarn": "+5 pontos por relato e +2 por item que você marcou ou desmarcou e a comunidade concordou.",
   "rewardsRedeem": "Trocar por {days} dias",
   "@rewardsRedeem": {
     "placeholders": {
@@ -831,5 +831,16 @@
     }
   },
   "communityThanksVote": "Obrigado! Seu voto ajuda a saber se o relato está certo.",
-  "communityVoteFailed": "Não deu para registrar seu voto agora. Tente de novo mais tarde."
+  "communityVoteFailed": "Não deu para registrar seu voto agora. Tente de novo mais tarde.",
+  "amenityStatusRemovalPending": "{count} de {needed} dizem que não tem",
+  "@amenityStatusRemovalPending": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      },
+      "needed": {
+        "type": "String"
+      }
+    }
+  }
 }
