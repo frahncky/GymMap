@@ -183,6 +183,66 @@ foreach ($name in $amenityIcons.Keys) {
   Render $pinDir "amenity_$name" 96 96 $icon
 }
 
+# Ícones do menu inferior: contorno cinza (aba inativa) e preenchido no
+# verde-água da marca com detalhe laranja (aba ativa).
+$gray = '#5B6673'
+$mapShape = 'M3 6.6 8.6 4.6 15.4 7 21 5v12.4l-5.6 2-6.8-2.4L3 19z'
+$pinShape = 'M12 13.6s-3.1-2.8-3.1-5.3a3.1 3.1 0 0 1 6.2 0c0 2.5-3.1 5.3-3.1 5.3z'
+$heartShape = 'M12 20.2s-7.4-4.5-9.3-9C1.2 7.7 3.4 4.2 7 4.2c2 0 3.4 1 5 2.8 1.6-1.8 3-2.8 5-2.8 3.6 0 5.8 3.5 4.3 7-1.9 4.5-9.3 9-9.3 9z'
+$dropShape = 'M12 22s-7.2-6.3-7.2-12.1a7.2 7.2 0 0 1 14.4 0C19.2 15.7 12 22 12 22z'
+$navIcons = [ordered]@{
+  nav_map = @"
+<path d="$mapShape" fill="none" stroke="$gray" stroke-width="1.9" stroke-linejoin="round"/>
+<path d="M8.6 4.6v12.4M15.4 7v12.4" fill="none" stroke="$gray" stroke-width="1.6"/>
+<path d="$pinShape" fill="#fff" stroke="$gray" stroke-width="1.6" stroke-linejoin="round"/>
+"@
+  nav_map_active = @"
+<path d="$mapShape" fill="$teal" stroke="$teal" stroke-width="1.9" stroke-linejoin="round"/>
+<path d="M8.6 4.6v12.4M15.4 7v12.4" fill="none" stroke="#fff" stroke-opacity="0.4" stroke-width="1.4"/>
+<path d="$pinShape" fill="$orange" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/>
+<circle cx="12" cy="8.4" r="1.1" fill="#fff"/>
+"@
+  nav_favorites = @"
+<path d="$heartShape" fill="none" stroke="$gray" stroke-width="1.9" stroke-linejoin="round"/>
+"@
+  nav_favorites_active = @"
+<path d="$heartShape" fill="$teal"/>
+<path d="M6.2 8.6a2.8 2.8 0 0 1 2.4-2" fill="none" stroke="#fff" stroke-opacity="0.6" stroke-width="1.5" stroke-linecap="round"/>
+<circle cx="16.6" cy="9.4" r="1.6" fill="$orange"/>
+"@
+  nav_community = @"
+<g fill="none" stroke="$gray" stroke-width="1.7">
+  <circle cx="5.4" cy="8.8" r="1.9"/><path d="M1.6 18.8c0-2.6 1.6-4.2 3.8-4.2 1 0 1.9.3 2.5.9"/>
+  <circle cx="18.6" cy="8.8" r="1.9"/><path d="M22.4 18.8c0-2.6-1.6-4.2-3.8-4.2-1 0-1.9.3-2.5.9"/>
+  <circle cx="12" cy="7.2" r="2.5"/><path d="M7.2 19.6c0-3.3 2.1-5.5 4.8-5.5s4.8 2.2 4.8 5.5z" stroke-linejoin="round"/>
+</g>
+"@
+  nav_community_active = @"
+<g fill="$teal" opacity="0.55">
+  <circle cx="5.4" cy="8.8" r="2"/><path d="M1.4 19c0-2.7 1.7-4.4 4-4.4s4 1.7 4 4.4z"/>
+  <circle cx="18.6" cy="8.8" r="2"/><path d="M14.6 19c0-2.7 1.7-4.4 4-4.4s4 1.7 4 4.4z"/>
+</g>
+<circle cx="12" cy="7.1" r="2.7" fill="$teal"/>
+<path d="M6.8 20c0-3.5 2.3-5.8 5.2-5.8s5.2 2.3 5.2 5.8z" fill="$teal"/>
+<circle cx="12" cy="17.4" r="1.1" fill="$orange"/>
+"@
+  nav_profile = @"
+<path d="$dropShape" fill="none" stroke="$gray" stroke-width="1.8" stroke-linejoin="round"/>
+<circle cx="12" cy="8.4" r="2.3" fill="none" stroke="$gray" stroke-width="1.6"/>
+<path d="M8.1 14.6c.8-2 2.2-3 3.9-3s3.1 1 3.9 3" fill="none" stroke="$gray" stroke-width="1.6" stroke-linecap="round"/>
+"@
+  nav_profile_active = @"
+<path d="$dropShape" fill="$teal"/>
+<circle cx="12" cy="8.4" r="2.4" fill="#fff"/>
+<path d="M7.9 14.8c.8-2.1 2.3-3.2 4.1-3.2s3.3 1.1 4.1 3.2z" fill="#fff"/>
+<circle cx="12" cy="18.6" r="1" fill="$orange"/>
+"@
+}
+foreach ($name in $navIcons.Keys) {
+  $icon = "<svg xmlns=""http://www.w3.org/2000/svg"" viewBox=""0 0 24 24"" width=""96"" height=""96"">$($navIcons[$name])</svg>"
+  Render $pinDir $name 96 96 $icon
+}
+
 if ($SoApp) { return }
 
 # Pino apoiado no mapa dobrado (a composição da marca), em HTML.

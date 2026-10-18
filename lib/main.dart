@@ -302,29 +302,47 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
             },
             destinations: [
               NavigationDestination(
-                icon: Icon(Icons.map_outlined),
-                selectedIcon: Icon(Icons.map_rounded),
+                icon: const _NavIcon('nav_map'),
+                selectedIcon: const _NavIcon('nav_map_active'),
                 label: _t.navMap,
               ),
               NavigationDestination(
-                icon: Icon(Icons.favorite_border_rounded),
-                selectedIcon: Icon(Icons.favorite_rounded),
+                icon: const _NavIcon('nav_favorites'),
+                selectedIcon: const _NavIcon('nav_favorites_active'),
                 label: _t.navFavorites,
               ),
               NavigationDestination(
-                icon: Icon(Icons.groups_2_outlined),
-                selectedIcon: Icon(Icons.groups_2_rounded),
+                icon: const _NavIcon('nav_community'),
+                selectedIcon: const _NavIcon('nav_community_active'),
                 label: _t.navCommunity,
               ),
               NavigationDestination(
-                icon: Icon(Icons.person_outline_rounded),
-                selectedIcon: Icon(Icons.person_rounded),
+                icon: const _NavIcon('nav_profile'),
+                selectedIcon: const _NavIcon('nav_profile_active'),
                 label: _t.navProfile,
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Ícone da marca no menu inferior (tool/brand/gerar_marca.ps1): contorno
+/// cinza na aba inativa, preenchido na ativa.
+class _NavIcon extends StatelessWidget {
+  const _NavIcon(this.name);
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.asset(
+      'assets/brand/$name.png',
+      width: 26,
+      height: 26,
+      excludeFromSemantics: true,
     );
   }
 }
