@@ -382,6 +382,35 @@ extension _GymMapPageFilters on _GymMapPageState {
             return false;
           }
           try {
+            // 1) Lista compartilhada do backend: rápida e já com o que outros
+            // usuários encontraram. Com academias suficientes na área, não
+            // precisa consultar o Overpass público.
+            final shared = await _mapPoiController.fetchSharedPoisAround(
+              center: targetCenter,
+              knownGyms: _gyms,
+            );
+            if (!mounted) {
+              return false;
+            }
+            if (shared != null && shared.isNotEmpty) {
+              final visibleShared = _filterPoisByCurrentPlan(shared);
+              _mergeMapPois(visibleShared, targetCenter);
+              unawaited(
+                _syncCrowdReportsForGyms(
+                  _crowdSyncGymIds(
+                    extraGymIds: visibleShared.map((poi) => poi.id),
+                  ),
+                ),
+              );
+            }
+            if (shared != null &&
+                shared.length >=
+                    _GymMapPageState._minSharedGymsToSkipOverpass) {
+              return true;
+            }
+
+            // 2) Área pouco mapeada: busca no Overpass/Nominatim; o resultado
+            // vai para o backend e passa a valer para todos.
             final poiList = await _mapPoiController.fetchOverpassPoisAround(
               center: targetCenter,
               knownGyms: _gyms,

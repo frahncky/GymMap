@@ -126,5 +126,67 @@ void main() {
 
       expect(postCalls, 1);
     });
+
+    test('loads the shared gym list near a point from the backend', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      late Uri requested;
+      final service = await GymLocationCacheService.create(
+        backendBaseUrl: 'https://api.example.com',
+        httpClient: MockClient((request) async {
+          requested = request.url;
+          return http.Response(
+            jsonEncode(<String, Object?>{
+              'locations': <Map<String, Object?>>[
+                <String, Object?>{
+                  'id': 'node-9',
+                  'name': 'Academia Compartilhada',
+                  'address': 'Rua 9',
+                  'lat': -2.53,
+                  'lng': -44.28,
+                  'updatedAtUtc': '2026-10-01T00:00:00.000Z',
+                },
+              ],
+            }),
+            200,
+          );
+        }),
+      );
+
+      final shared = await service.loadSharedNearby(
+        center: const LatLng(-2.53, -44.28),
+        radiusKm: 25,
+      );
+
+      expect(requested.path, '/v1/gyms/nearby');
+      expect(requested.queryParameters['lat'], '-2.53000');
+      expect(requested.queryParameters['radiusKm'], '25.0');
+      expect(shared, isNotNull);
+      expect(shared!.single.id, 'node-9');
+      expect(shared.single.name, 'Academia Compartilhada');
+    });
+
+    test('shared list is null without a backend or when it fails', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final offline = await GymLocationCacheService.create(backendBaseUrl: '');
+      expect(
+        await offline.loadSharedNearby(
+          center: const LatLng(0, 0),
+          radiusKm: 25,
+        ),
+        isNull,
+      );
+
+      final failing = await GymLocationCacheService.create(
+        backendBaseUrl: 'https://api.example.com',
+        httpClient: MockClient((_) async => http.Response('erro', 500)),
+      );
+      expect(
+        await failing.loadSharedNearby(
+          center: const LatLng(0, 0),
+          radiusKm: 25,
+        ),
+        isNull,
+      );
+    });
   });
 }

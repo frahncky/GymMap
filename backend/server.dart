@@ -760,6 +760,39 @@ class _PixBillingBackend {
         });
       }
 
+      // Lista compartilhada: academias que qualquer usuário já encontrou perto
+      // de um ponto. Dados públicos do OpenStreetMap; não exige login.
+      if (req.method == 'GET' &&
+          segments.length == 3 &&
+          segments[0] == 'v1' &&
+          segments[1] == 'gyms' &&
+          segments[2] == 'nearby') {
+        final query = req.uri.queryParameters;
+        final lat = double.tryParse(query['lat'] ?? '');
+        final lng = double.tryParse(query['lng'] ?? '');
+        if (lat == null ||
+            lng == null ||
+            lat.abs() > 90 ||
+            lng.abs() > 180) {
+          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+            'error': 'invalid_coordinates',
+          });
+        }
+        final radiusKm =
+            (double.tryParse(query['radiusKm'] ?? '') ?? 25).clamp(0.5, 50.0);
+        final limit = (int.tryParse(query['limit'] ?? '') ?? 300).clamp(1, 500);
+        final locations = nearbyGymLocations(
+          gymLocations.values,
+          lat: lat,
+          lng: lng,
+          radiusKm: radiusKm.toDouble(),
+          limit: limit.toInt(),
+        );
+        return _json(req, HttpStatus.ok, <String, dynamic>{
+          'locations': locations,
+        });
+      }
+
       if (req.method == 'GET' &&
           segments.length == 4 &&
           segments[0] == 'v1' &&
@@ -1838,6 +1871,12 @@ class _PixBillingBackend {
         segments[0] == 'v1' &&
         segments[1] == 'subscriptions') {
       return '$method /v1/subscriptions/:userId';
+    }
+    if (segments.length == 3 &&
+        segments[0] == 'v1' &&
+        segments[1] == 'gyms' &&
+        segments[2] == 'nearby') {
+      return '$method /v1/gyms/nearby';
     }
     if (segments.length == 4 &&
         segments[0] == 'v1' &&
@@ -3805,4 +3844,62 @@ List<String> _validateProductionConfig({
 
 extension on String {
   String ifEmpty(String fallback) => isEmpty ? fallback : this;
+}
+
+/// Academias perto de ([lat], [lng]) juntando as encontradas por todos os
+/// usuários: uma por id (a atualização mais recente), até [radiusKm], das
+/// mais próximas para as mais distantes, no máximo [limit]. O resultado não
+/// expõe quem enviou cada academia.
+List<Map<String, dynamic>> nearbyGymLocations(
+  Iterable<Map<String, dynamic>> all, {
+  required double lat,
+  required double lng,
+  required double radiusKm,
+  int limit = 300,
+}) {
+  final byId = <String, Map<String, dynamic>>{};
+  final distanceById = <String, double>{};
+  for (final raw in all) {
+    final id = '${raw['id'] ?? ''}'.trim();
+    final gymLat = double.tryParse('${raw['lat'] ?? ''}');
+    final gymLng = double.tryParse('${raw['lng'] ?? ''}');
+    if (id.isEmpty || gymLat == null || gymLng == null) continue;
+    final distance = gymDistanceKm(lat, lng, gymLat, gymLng);
+    if (distance > radiusKm) continue;
+    final updatedAt = '${raw['updatedAtUtc'] ?? ''}'.trim();
+    final current = byId[id];
+    if (current != null &&
+        '${current['updatedAtUtc']}'.compareTo(updatedAt) >= 0) {
+      continue;
+    }
+    byId[id] = <String, dynamic>{
+      'id': id,
+      'name': '${raw['name'] ?? ''}'.trim(),
+      'address': '${raw['address'] ?? ''}'.trim(),
+      'lat': gymLat,
+      'lng': gymLng,
+      'updatedAtUtc': updatedAt,
+    };
+    distanceById[id] = distance;
+  }
+  final result =
+      byId.values.toList()..sort(
+        (a, b) => distanceById[a['id']]!.compareTo(distanceById[b['id']]!),
+      );
+  return result.take(limit).toList(growable: false);
+}
+
+/// Distância em km entre dois pontos (fórmula de haversine).
+double gymDistanceKm(double lat1, double lng1, double lat2, double lng2) {
+  const earthRadiusKm = 6371.0;
+  double rad(double degrees) => degrees * math.pi / 180;
+  final dLat = rad(lat2 - lat1);
+  final dLng = rad(lng2 - lng1);
+  final a =
+      math.sin(dLat / 2) * math.sin(dLat / 2) +
+      math.cos(rad(lat1)) *
+          math.cos(rad(lat2)) *
+          math.sin(dLng / 2) *
+          math.sin(dLng / 2);
+  return earthRadiusKm * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
 }

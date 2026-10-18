@@ -117,9 +117,7 @@ class GymLocationCacheService {
         }
       }
 
-      parsed.sort(
-        (a, b) => b.updatedAtUtc.compareTo(a.updatedAtUtc),
-      );
+      parsed.sort((a, b) => b.updatedAtUtc.compareTo(a.updatedAtUtc));
       return parsed;
     } catch (_) {
       return const <CachedGymLocation>[];
@@ -158,6 +156,49 @@ class GymLocationCacheService {
     await _saveLocationsSnapshot(limited);
     if (syncRemote) {
       await _syncRemoteLocations(changedForRemote);
+    }
+  }
+
+  /// Academias que qualquer usuário já encontrou perto de [center], vindas do
+  /// backend (lista compartilhada). `null` sem backend configurado ou se a
+  /// consulta falhar; lista vazia quando ninguém mapeou a área ainda.
+  Future<List<CachedGymLocation>?> loadSharedNearby({
+    required LatLng center,
+    required double radiusKm,
+  }) async {
+    final baseUri = _backendBaseUri;
+    if (baseUri == null) {
+      return null;
+    }
+    try {
+      final uri = _buildRemoteUri(baseUri, <String>[
+        'v1',
+        'gyms',
+        'nearby',
+      ]).replace(
+        queryParameters: <String, String>{
+          'lat': center.latitude.toStringAsFixed(5),
+          'lng': center.longitude.toStringAsFixed(5),
+          'radiusKm': radiusKm.toStringAsFixed(1),
+        },
+      );
+      final response = await _httpClient
+          .get(uri, headers: _remoteHeaders())
+          .timeout(_requestTimeout);
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        return null;
+      }
+      final decoded = jsonDecode(response.body);
+      final rawLocations = decoded is Map ? decoded['locations'] : null;
+      if (rawLocations is! List) {
+        return null;
+      }
+      return <CachedGymLocation>[
+        for (final raw in rawLocations)
+          if (CachedGymLocation.fromJson(raw) case final location?) location,
+      ];
+    } catch (_) {
+      return null;
     }
   }
 
@@ -265,10 +306,9 @@ class GymLocationCacheService {
             headers: _remoteHeaders(contentTypeJson: true),
             body: jsonEncode(<String, dynamic>{
               'userId': userId,
-              'locations':
-                  locations
-                      .map((location) => location.toJson())
-                      .toList(growable: false),
+              'locations': locations
+                  .map((location) => location.toJson())
+                  .toList(growable: false),
             }),
           )
           .timeout(_requestTimeout);
@@ -285,18 +325,18 @@ class GymLocationCacheService {
     if (fromStorage.isNotEmpty) {
       return fromStorage;
     }
-    final fromEnv = const String.fromEnvironment(
-      'PLAN_USER_ID',
-      defaultValue: 'local-device-user',
-    ).trim();
+    final fromEnv =
+        const String.fromEnvironment(
+          'PLAN_USER_ID',
+          defaultValue: 'local-device-user',
+        ).trim();
     return fromEnv.isEmpty ? 'local-device-user' : fromEnv;
   }
 
   Uri _buildRemoteUri(Uri baseUri, List<String> pathSegments) {
-    final baseSegments =
-        baseUri.pathSegments
-            .where((segment) => segment.trim().isNotEmpty)
-            .toList(growable: false);
+    final baseSegments = baseUri.pathSegments
+        .where((segment) => segment.trim().isNotEmpty)
+        .toList(growable: false);
     return baseUri.replace(
       pathSegments: <String>[...baseSegments, ...pathSegments],
       queryParameters: null,

@@ -99,6 +99,9 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   // não sumirem quando uma nova busca chega.
   static const double _mapPoiRetentionRadiusMeters = 40000;
   static const int _maxRetainedMapPois = 400;
+  // Com pelo menos isto de academias na lista compartilhada, a área já está
+  // mapeada e o Overpass público não é consultado.
+  static const int _minSharedGymsToSkipOverpass = 5;
   static const double _mapBrowseAnchorUpdateMinDistanceMeters = 220;
   static const Duration _mapPoiReloadDebounceDelay = Duration(
     milliseconds: 450,

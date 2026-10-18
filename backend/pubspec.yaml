@@ -10,3 +10,5 @@ dependencies:
   postgres: ^2.6.4
   googleapis: ^13.2.0
   googleapis_auth: ^2.0.0
+dev_dependencies:
+  test: ^1.33.0

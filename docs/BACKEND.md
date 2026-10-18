@@ -43,6 +43,8 @@ The repository includes a reference backend in `backend/server.dart` with:
 - `GET /v1/subscriptions/:userId` to read active subscription
 - `POST /v1/subscriptions/downgrade` to switch back to free
 - `GET /v1/metrics` for production operational metrics (admin token)
+- `GET /v1/gyms/nearby?lat=&lng=&radiusKm=` shared gym list: gyms any user already found near a point (one per OSM id, nearest first, no login; `radiusKm` 0.5–50, default 25; `limit` up to 500). The app asks this first and only queries Overpass when fewer than 5 gyms come back
+- `POST /v1/gyms/locations/upsert` / `GET /v1/gyms/locations/:userId` gyms found by a user (feed the shared list)
 
 ### Run backend locally
 

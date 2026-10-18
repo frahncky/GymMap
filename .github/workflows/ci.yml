@@ -41,7 +41,7 @@ jobs:
         run: flutter test
 
   backend:
-    name: Backend — análise
+    name: Backend — análise e testes
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -59,3 +59,6 @@ jobs:
       # Falha em erros; os avisos antigos do servidor ainda não foram tratados.
       - name: Análise estática
         run: dart analyze --no-fatal-warnings
+
+      - name: Testes
+        run: dart test

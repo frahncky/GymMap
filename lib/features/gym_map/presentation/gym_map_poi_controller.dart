@@ -102,6 +102,41 @@ class GymMapPoiController {
     return nearby.take(limit).toList(growable: false);
   }
 
+  /// Academias perto de [center] na lista compartilhada do backend (o que
+  /// qualquer usuário já encontrou). Guarda no cache local sem reenviar ao
+  /// servidor. `null` sem backend ou se a consulta falhar.
+  Future<List<MapGymPoi>?> fetchSharedPoisAround({
+    required LatLng center,
+    required List<Gym> knownGyms,
+    double radiusKm = 25,
+    double knownGymExclusionMeters = 120,
+  }) async {
+    final cacheService = await _ensureCacheService();
+    final locations = await cacheService.loadSharedNearby(
+      center: center,
+      radiusKm: radiusKm,
+    );
+    if (locations == null) {
+      return null;
+    }
+    if (locations.isNotEmpty) {
+      await cacheService.mergeAndSave(locations, syncRemote: false);
+    }
+    return List<MapGymPoi>.unmodifiable(<MapGymPoi>[
+      for (final location in locations)
+        if (!GymMapLogic.isNearAnyKnownGym(
+          point: location.position,
+          gyms: knownGyms,
+          maxMeters: knownGymExclusionMeters,
+        ))
+          MapGymPoi(
+            id: location.id,
+            position: location.position,
+            name: location.name,
+          ),
+    ]);
+  }
+
   /// Academias perto de [center]: tenta o Overpass e, se ele falhar ou
   /// estiver sobrecarregado (o servidor público vive no limite), usa a busca
   /// do Nominatim como alternativa. `null` só quando as duas falham.
