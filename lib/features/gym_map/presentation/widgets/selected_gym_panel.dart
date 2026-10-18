@@ -185,15 +185,17 @@ class SelectedGymPanel extends StatelessWidget {
                         const SizedBox(height: 6),
                       ] else
                         const SizedBox(height: 4),
-                      Text(
-                        gym.address == kMapGymAddress
-                            ? _t.gymFoundOnMap
-                            : gym.address,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: GymMapColors.panelSubtitle,
+                      // Só endereço de verdade; academias do mapa sem
+                      // endereço não mostram linha nenhuma.
+                      if (gym.address != kMapGymAddress &&
+                          gym.address.trim().isNotEmpty)
+                        Text(
+                          gym.address,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: GymMapColors.panelSubtitle,
+                          ),
                         ),
-                      ),
                       if (distanceFromUserLabel != null) ...[
                         const SizedBox(height: 3),
                         Row(

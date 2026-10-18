@@ -314,7 +314,6 @@
   "pushChannelDescription": "Alerts about quiet gyms near you.",
   "pushLowCrowdTitle": "Quiet gym near you",
   "pushLowCrowdBody": "{gym} at {percent}% now, {distance} from you.",
-  "gymFoundOnMap": "Gym found on the map",
   "controlsPlaces": "Choose map places",
   "placesTitle": "Places on the map",
   "placesSubtitle": "Check what you want to see. Gyms are always shown.",

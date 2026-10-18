@@ -1982,12 +1982,6 @@ abstract class AppLocalizations {
   /// **'{gym} com {percent}% agora, a {distance} de você.'**
   String pushLowCrowdBody(String gym, String percent, String distance);
 
-  /// No description provided for @gymFoundOnMap.
-  ///
-  /// In pt, this message translates to:
-  /// **'Academia encontrada no mapa'**
-  String get gymFoundOnMap;
-
   /// No description provided for @controlsPlaces.
   ///
   /// In pt, this message translates to:

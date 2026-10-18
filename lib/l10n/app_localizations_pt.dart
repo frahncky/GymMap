@@ -1136,9 +1136,6 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get gymFoundOnMap => 'Academia encontrada no mapa';
-
-  @override
   String get controlsPlaces => 'Escolher locais do mapa';
 
   @override
