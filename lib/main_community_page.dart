@@ -941,7 +941,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     final rankLabel =
         userRank > 0
             ? '#$userRank'
-            : (_isLoadingLeaderboard ? '...' : 'Sem ranking');
+            : (_isLoadingLeaderboard ? '...' : _t.communityNoRanking);
     return DecoratedBox(
       decoration: BoxDecoration(gradient: _buildPlanSurfaceGradient(context)),
       child: SafeArea(
@@ -1140,14 +1140,20 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
                                     color: primary,
                                   ),
                                   const SizedBox(width: 6),
-                                  Text(
-                                    _t.communityYourPoints('$_communityPoints'),
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w900,
-                                      color: Colors.black87,
+                                  Expanded(
+                                    child: Text(
+                                      _t.communityYourPoints(
+                                        '$_communityPoints',
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        color: Colors.black87,
+                                      ),
                                     ),
                                   ),
-                                  const Spacer(),
+                                  const SizedBox(width: 8),
                                   Text(
                                     _t.communityPointsPerValidation,
                                     style: TextStyle(
