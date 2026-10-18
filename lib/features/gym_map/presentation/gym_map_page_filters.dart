@@ -580,8 +580,10 @@ extension _GymMapPageFilters on _GymMapPageState {
         !_isGymOpenNow(gym)) {
       return false;
     }
+    // Sem lotação conhecida, a academia não entra em "Lotação baixa".
+    final occupancy = snapshot.occupancyPercent;
     if (_activeQuickFilters.contains(MapQuickFilter.lowCrowd) &&
-        snapshot.occupancyPercent > 45) {
+        (occupancy == null || occupancy > 45)) {
       return false;
     }
     if (_activeQuickFilters.contains(MapQuickFilter.withClasses) &&

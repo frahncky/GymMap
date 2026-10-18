@@ -2371,6 +2371,30 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Não deu para trocar agora. Tente de novo mais tarde.'**
   String get rewardsFailed;
+
+  /// No description provided for @markerNoOccupancy.
+  ///
+  /// In pt, this message translates to:
+  /// **'sem informação de lotação'**
+  String get markerNoOccupancy;
+
+  /// No description provided for @panelNoDataBadge.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem dados'**
+  String get panelNoDataBadge;
+
+  /// No description provided for @panelNoOccupancyNotice.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ainda não há relatos suficientes. Envie o seu: com 3 relatos, a lotação aparece para todos.'**
+  String get panelNoOccupancyNotice;
+
+  /// No description provided for @panelInsightsNeedReports.
+  ///
+  /// In pt, this message translates to:
+  /// **'O histórico, o pico e as previsões aparecem quando esta academia tiver relatos suficientes.'**
+  String get panelInsightsNeedReports;
 }
 
 class _AppLocalizationsDelegate

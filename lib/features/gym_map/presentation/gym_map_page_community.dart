@@ -96,7 +96,8 @@ extension _GymMapPageCommunity on _GymMapPageState {
           final snapshot = _crowdService.snapshotFor(selectedGym);
           if (mounted) {
             _setStateIfMapVisible(() {
-              _reportPercent = snapshot.occupancyPercent.toDouble();
+              _reportPercent =
+                  (snapshot.occupancyPercent ?? report).toDouble();
               _communityPoints += 5;
             });
           }
@@ -164,7 +165,7 @@ extension _GymMapPageCommunity on _GymMapPageState {
       final snapshot = _crowdService.snapshotFor(selectedGym);
       if (mounted) {
         _setStateIfMapVisible(() {
-          _reportPercent = snapshot.occupancyPercent.toDouble();
+          _reportPercent = (snapshot.occupancyPercent ?? report).toDouble();
           _communityPoints += 5;
         });
       }

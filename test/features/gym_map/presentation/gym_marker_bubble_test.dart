@@ -5,7 +5,7 @@ import 'package:gymmap/features/gym_map/presentation/widgets/gym_marker_bubble.d
 
 Future<void> _pumpBubble(
   WidgetTester tester, {
-  required int percent,
+  required int? percent,
   required bool isOpenNow,
 }) {
   return tester.pumpWidget(
@@ -53,6 +53,16 @@ void main() {
         expect(find.byType(ColorFiltered), findsNothing);
       });
     }
+
+    testWidgets('open without reports is the brand pin without a badge', (
+      tester,
+    ) async {
+      await _pumpBubble(tester, percent: null, isOpenNow: true);
+
+      expect(_pinAsset(tester), 'assets/brand/pin.png');
+      expect(find.byType(ColorFiltered), findsNothing);
+      expect(find.textContaining('%'), findsNothing);
+    });
 
     testWidgets('closed is the gray brand pin without a badge', (tester) async {
       await _pumpBubble(tester, percent: 95, isOpenNow: false);

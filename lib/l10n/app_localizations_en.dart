@@ -1348,4 +1348,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get rewardsFailed => 'Couldn\'t redeem right now. Try again later.';
+
+  @override
+  String get markerNoOccupancy => 'no occupancy information';
+
+  @override
+  String get panelNoDataBadge => 'No data';
+
+  @override
+  String get panelNoOccupancyNotice =>
+      'Not enough reports yet. Send yours: with 3 reports, occupancy shows for everyone.';
+
+  @override
+  String get panelInsightsNeedReports =>
+      'History, peak and forecasts show once this gym has enough reports.';
 }

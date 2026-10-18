@@ -826,5 +826,9 @@
     }
   },
   "rewardsHigherPlan": "Seu plano já inclui tudo do Essencial.",
-  "rewardsFailed": "Não deu para trocar agora. Tente de novo mais tarde."
+  "rewardsFailed": "Não deu para trocar agora. Tente de novo mais tarde.",
+  "markerNoOccupancy": "sem informação de lotação",
+  "panelNoDataBadge": "Sem dados",
+  "panelNoOccupancyNotice": "Ainda não há relatos suficientes. Envie o seu: com 3 relatos, a lotação aparece para todos.",
+  "panelInsightsNeedReports": "O histórico, o pico e as previsões aparecem quando esta academia tiver relatos suficientes."
 }

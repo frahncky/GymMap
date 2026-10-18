@@ -8,86 +8,119 @@ Gym _gymFixture({
   required String name,
   required double lat,
   required double lon,
-  int baseOccupancyPercent = 45,
 }) {
   return Gym(
     id: id,
     name: name,
     address: 'Endereco $name',
     position: LatLng(lat, lon),
-    capacity: 120,
-    baseOccupancyPercent: baseOccupancyPercent,
     amenities: const <String>['Musculacao'],
   );
 }
 
+CrowdReport _report(Gym gym, int percent, DateTime at, {required String by}) =>
+    CrowdReport(
+      gymId: gym.id,
+      occupancyPercent: percent,
+      createdAt: at,
+      reporterId: by,
+    );
+
 void main() {
-  group('CollaborativeCrowdService insights', () {
-    final service = CollaborativeCrowdService.withSeedData();
-    final gyms = <Gym>[
-      _gymFixture(
-        id: 'gym_a',
-        name: 'Gym A',
-        lat: -23.5605,
-        lon: -46.6558,
-        baseOccupancyPercent: 52,
-      ),
-      _gymFixture(
-        id: 'gym_b',
-        name: 'Gym B',
-        lat: -23.5612,
-        lon: -46.6564,
-        baseOccupancyPercent: 38,
-      ),
-      _gymFixture(
-        id: 'gym_c',
-        name: 'Gym C',
-        lat: -23.5621,
-        lon: -46.6572,
-        baseOccupancyPercent: 61,
-      ),
-    ];
-    final selectedGym = gyms.first;
+  final gymA = _gymFixture(
+    id: 'gym_a',
+    name: 'Gym A',
+    lat: -23.56,
+    lon: -46.65,
+  );
+  final gymB = _gymFixture(
+    id: 'gym_b',
+    name: 'Gym B',
+    lat: -23.57,
+    lon: -46.66,
+  );
+  final gymC = _gymFixture(
+    id: 'gym_c',
+    name: 'Gym C',
+    lat: -23.58,
+    lon: -46.67,
+  );
+  final gyms = <Gym>[gymA, gymB, gymC];
 
-    test('history24hFor returns 24 points with valid percentages', () {
-      final history = service.history24hFor(selectedGym);
+  group('CollaborativeCrowdService without reports invents nothing', () {
+    final service = CollaborativeCrowdService();
 
-      expect(history.length, 24);
-      for (final point in history) {
-        expect(point.occupancyPercent, inInclusiveRange(0, 100));
-      }
+    test('occupancy is unknown', () {
+      expect(service.snapshotFor(gymA).occupancyPercent, isNull);
     });
 
-    test('peakWindowForToday returns valid hour and percentage', () {
-      final peak = service.peakWindowForToday(selectedGym);
-
-      expect(peak.hour, inInclusiveRange(0, 23));
-      expect(peak.occupancyPercent, inInclusiveRange(0, 100));
-    });
-
-    test('compareGymsByOccupancy returns rows for all gyms', () {
-      final rows = service.compareGymsByOccupancy(gyms, selectedGym);
-
-      expect(rows.length, gyms.length);
-      expect(rows.any((row) => row.gymName == selectedGym.name), isTrue);
-    });
-
-    test('forecastNextHoursFor returns monotonic time points', () {
-      final forecast = service.forecastNextHoursFor(selectedGym, hours: 6);
-
-      expect(forecast.length, 6);
-      for (var i = 1; i < forecast.length; i++) {
-        expect(forecast[i].time.isAfter(forecast[i - 1].time), isTrue);
-      }
-    });
-
-    test('personalizedAlertsFor returns at least one alert', () {
-      final alerts = service.personalizedAlertsFor(
-        selectedGym: selectedGym,
-        gyms: gyms,
+    test('history, peak, forecast, comparison and alerts are empty', () {
+      expect(service.history24hFor(gymA), isEmpty);
+      expect(service.peakWindowForToday(gymA), isNull);
+      expect(service.forecastNextHoursFor(gymA, hours: 6), isEmpty);
+      expect(service.compareGymsByOccupancy(gyms, gymA), isEmpty);
+      expect(
+        service.personalizedAlertsFor(selectedGym: gymA, gyms: gyms),
+        isEmpty,
       );
+    });
+  });
 
-      expect(alerts, isNotEmpty);
+  group('CollaborativeCrowdService insights come from real reports', () {
+    // 10h de hoje como referência, com relatos das últimas semanas.
+    final now = DateTime(2026, 10, 19, 10, 30);
+    final service = CollaborativeCrowdService();
+    service.mergeReports(<CrowdReport>[
+      // Últimas 24h: duas horas com relatos.
+      _report(gymA, 40, DateTime(2026, 10, 19, 8, 10), by: 'u1'),
+      _report(gymA, 60, DateTime(2026, 10, 19, 8, 40), by: 'u2'),
+      _report(gymA, 70, DateTime(2026, 10, 18, 19, 5), by: 'u3'),
+      // Padrão das semanas anteriores: 18h cheio, 12h vazio, 7h só um relato.
+      _report(gymA, 90, DateTime(2026, 10, 12, 18, 0), by: 'u1'),
+      _report(gymA, 80, DateTime(2026, 10, 5, 18, 0), by: 'u2'),
+      _report(gymA, 20, DateTime(2026, 10, 12, 12, 0), by: 'u3'),
+      _report(gymA, 30, DateTime(2026, 10, 5, 12, 0), by: 'u4'),
+      _report(gymA, 99, DateTime(2026, 10, 12, 7, 0), by: 'u5'),
+      // Fora da janela de 4 semanas: não conta.
+      _report(gymA, 5, DateTime(2026, 8, 1, 13, 0), by: 'u6'),
+      _report(gymA, 5, DateTime(2026, 8, 2, 13, 0), by: 'u7'),
+    ]);
+
+    test('history averages each hour of the last 24h that had reports', () {
+      final history = service.history24hFor(gymA, now: now);
+
+      expect(history.map((p) => p.time.hour), [19, 8]);
+      expect(history.map((p) => p.occupancyPercent), [70, 50]);
+    });
+
+    test('peak is the busiest hour with at least 2 reports', () {
+      final peak = service.peakWindowForToday(gymA, now: now);
+
+      expect(peak, isNotNull);
+      expect(peak!.hour, 18);
+      expect(peak.occupancyPercent, 85);
+    });
+
+    test('forecast only includes hours with a pattern', () {
+      final forecast = service.forecastNextHoursFor(gymA, hours: 9, now: now);
+
+      expect(forecast.map((p) => p.time.hour), [12, 18]);
+      expect(forecast.map((p) => p.occupancyPercent), [25, 85]);
+    });
+
+    test('comparison skips gyms without known occupancy', () {
+      final withConsensus = CollaborativeCrowdService();
+      final recent = DateTime.now();
+      withConsensus.mergeReports(<CrowdReport>[
+        for (final (gym, base) in <(Gym, int)>[(gymA, 60), (gymB, 30)])
+          for (var i = 0; i < 3; i++)
+            _report(gym, base + i, recent, by: '${gym.id}-$i'),
+      ]);
+
+      final rows = withConsensus.compareGymsByOccupancy(gyms, gymA);
+
+      expect(rows.map((r) => r.gymName), ['Gym B', 'Gym A']);
+      expect(rows.first.deltaFromSelected, -30);
     });
   });
 
@@ -148,23 +181,19 @@ void main() {
       name: 'Gym Consensus',
       lat: -23.5635,
       lon: -46.6588,
-      baseOccupancyPercent: 45,
     );
 
-    test('single opinion does not change snapshot occupancy', () {
+    test('single opinion keeps occupancy unknown', () {
       final service = CollaborativeCrowdService();
-      final before = service.snapshotFor(gym);
 
       final submit = service.submitReport(
         gym: gym,
         reporterId: 'u1',
         occupancyPercent: 82,
       );
-      final after = service.snapshotFor(gym);
 
       expect(submit.accepted, isTrue);
-      expect(after.occupancyPercent, before.occupancyPercent);
-      expect(after.occupancyPercent, gym.baseOccupancyPercent);
+      expect(service.snapshotFor(gym).occupancyPercent, isNull);
     });
 
     test('two distinct reporters are still not enough', () {
@@ -172,70 +201,54 @@ void main() {
 
       service.submitReport(gym: gym, reporterId: 'u1', occupancyPercent: 80);
       service.submitReport(gym: gym, reporterId: 'u2', occupancyPercent: 84);
-      final snapshot = service.snapshotFor(gym);
 
-      expect(snapshot.occupancyPercent, gym.baseOccupancyPercent);
+      expect(service.snapshotFor(gym).occupancyPercent, isNull);
     });
 
-    test('three distinct reporters can change snapshot occupancy', () {
+    test('three distinct reporters set the occupancy', () {
       final service = CollaborativeCrowdService();
 
       service.submitReport(gym: gym, reporterId: 'u1', occupancyPercent: 80);
       service.submitReport(gym: gym, reporterId: 'u2', occupancyPercent: 84);
       service.submitReport(gym: gym, reporterId: 'u3', occupancyPercent: 88);
-      final snapshot = service.snapshotFor(gym);
 
-      expect(snapshot.occupancyPercent, isNot(gym.baseOccupancyPercent));
-      expect(snapshot.occupancyPercent, greaterThan(gym.baseOccupancyPercent));
+      expect(
+        service.snapshotFor(gym).occupancyPercent,
+        inInclusiveRange(80, 88),
+      );
     });
 
     test('tolerance reduces the impact of an outlier vote', () {
       final now = DateTime.now();
       final reports = <CrowdReport>[
-        CrowdReport(
-          gymId: gym.id,
-          occupancyPercent: 50,
-          createdAt: now,
-          reporterId: 'u1',
-        ),
-        CrowdReport(
-          gymId: gym.id,
-          occupancyPercent: 52,
-          createdAt: now,
-          reporterId: 'u2',
-        ),
-        CrowdReport(
-          gymId: gym.id,
-          occupancyPercent: 95,
-          createdAt: now,
-          reporterId: 'u3',
-        ),
+        _report(gym, 50, now, by: 'u1'),
+        _report(gym, 52, now, by: 'u2'),
+        _report(gym, 95, now, by: 'u3'),
       ];
 
-      final strictTolerance = CollaborativeCrowdService(voteTolerancePercent: 10);
+      final strictTolerance = CollaborativeCrowdService(
+        voteTolerancePercent: 10,
+      );
       final wideTolerance = CollaborativeCrowdService(voteTolerancePercent: 40);
       strictTolerance.mergeReports(reports);
       wideTolerance.mergeReports(reports);
 
-      final strictSnapshot = strictTolerance.snapshotFor(gym);
-      final wideSnapshot = wideTolerance.snapshotFor(gym);
+      final strict = strictTolerance.snapshotFor(gym).occupancyPercent!;
+      final wide = wideTolerance.snapshotFor(gym).occupancyPercent!;
 
-      expect(strictSnapshot.occupancyPercent, lessThan(wideSnapshot.occupancyPercent));
-      expect(strictSnapshot.occupancyPercent, inInclusiveRange(45, 60));
-      expect(wideSnapshot.occupancyPercent, inInclusiveRange(60, 95));
+      expect(strict, lessThan(wide));
+      expect(strict, inInclusiveRange(45, 60));
+      expect(wide, inInclusiveRange(60, 95));
     });
 
     test('multiple reports from same user do not satisfy consensus', () {
-      final service = CollaborativeCrowdService(
-        cooldownWindow: Duration.zero,
-      );
+      final service = CollaborativeCrowdService(cooldownWindow: Duration.zero);
 
       service.submitReport(gym: gym, reporterId: 'u1', occupancyPercent: 78);
       service.submitReport(gym: gym, reporterId: 'u1', occupancyPercent: 82);
       service.submitReport(gym: gym, reporterId: 'u1', occupancyPercent: 86);
-      final snapshot = service.snapshotFor(gym);
 
-      expect(snapshot.occupancyPercent, gym.baseOccupancyPercent);
+      expect(service.snapshotFor(gym).occupancyPercent, isNull);
     });
   });
 }

@@ -73,8 +73,9 @@ extension _GymMapPageInteractions on _GymMapPageState {
       _isPanelDragging = false;
       _panelFlex = _GymMapPageState._panelMinFlex;
       _panelDragOffset = 0;
+      // Sem lotação conhecida, o controle de relato começa no meio.
       _reportPercent =
-          _crowdService.snapshotFor(gym).occupancyPercent.toDouble();
+          (_crowdService.snapshotFor(gym).occupancyPercent ?? 50).toDouble();
     });
 
     if (moveMap) {
@@ -145,16 +146,11 @@ extension _GymMapPageInteractions on _GymMapPageState {
 
   Gym _gymFromPoi(MapGymPoi poi) {
     return _generatedGymsByPoiId.putIfAbsent(poi.id, () {
-      final seed = poi.id.codeUnits.fold<int>(0, (sum, code) => sum + code);
-      final base = (35 + (seed % 35)).clamp(12, 88).toInt();
-      final capacity = 70 + (seed % 140);
       return Gym(
         id: poi.id,
         name: poi.name,
         address: kMapGymAddress,
         position: poi.position,
-        capacity: capacity,
-        baseOccupancyPercent: base,
         amenities: const [
           kAmenityWeights,
           kAmenityCardio,
@@ -174,8 +170,9 @@ extension _GymMapPageInteractions on _GymMapPageState {
       if (gymId.isEmpty || !seenGymIds.add(gymId)) {
         return;
       }
-      final snapshot = _crowdService.snapshotFor(gym);
-      if (snapshot.occupancyPercent > 35 || !_isGymOpenNow(gym)) {
+      // Só academias com lotação baixa confirmada por relatos.
+      final occupancy = _crowdService.snapshotFor(gym).occupancyPercent;
+      if (occupancy == null || occupancy > 35 || !_isGymOpenNow(gym)) {
         return;
       }
       final distanceSquared = _distanceSquaredMeters(userPoint, gym.position);
@@ -206,14 +203,17 @@ extension _GymMapPageInteractions on _GymMapPageState {
     if (candidate == null) {
       return;
     }
-    final snapshot = _crowdService.snapshotFor(candidate);
+    final occupancy = _crowdService.snapshotFor(candidate).occupancyPercent;
+    if (occupancy == null) {
+      return;
+    }
     final distanceMeters = math.sqrt(
       _distanceSquaredMeters(userPoint, candidate.position),
     );
     await _contextualPushService.maybeNotifyLowCrowdNearby(
       gymId: candidate.id,
       gymName: candidate.name,
-      occupancyPercent: snapshot.occupancyPercent,
+      occupancyPercent: occupancy,
       distanceMeters: distanceMeters,
     );
   }

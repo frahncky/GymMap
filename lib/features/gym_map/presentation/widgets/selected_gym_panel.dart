@@ -77,8 +77,18 @@ class SelectedGymPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
-    final showOccupancy = isOpenNow;
-    final targetOccupancy = snapshot.occupancyPercent.clamp(0, 100).toDouble();
+    // Aberta e com lotação conhecida mostra o número; aberta sem relatos
+    // suficientes mostra "sem dados"; o relato vale sempre que está aberta.
+    final occupancy = snapshot.occupancyPercent;
+    final showOccupancy = isOpenNow && occupancy != null;
+    final canReport = isOpenNow;
+    final targetOccupancy = (occupancy ?? 0).clamp(0, 100).toDouble();
+    final hasAnyInsights =
+        hasHistoryInsights || hasProInsights || hasEliteInsights;
+    final showHistory = hasHistoryInsights && historySampled.length >= 2;
+    final showPro = hasProInsights && peakWindow != null;
+    final showElite =
+        hasEliteInsights && (forecast.isNotEmpty || alerts.isNotEmpty);
     final shownAmenities =
         amenities ??
         <GymAmenity>[
@@ -384,7 +394,7 @@ class SelectedGymPanel extends StatelessWidget {
                       ),
                     ),
                     child: Text(
-                      _t.gymClosed,
+                      isOpenNow ? _t.panelNoDataBadge : _t.gymClosed,
                       style: TextStyle(
                         color: GymMapColors.textSecondary,
                         fontWeight: FontWeight.w800,
@@ -450,7 +460,7 @@ class SelectedGymPanel extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  _t.panelClosedNotice,
+                  isOpenNow ? _t.panelNoOccupancyNotice : _t.panelClosedNotice,
                   style: TextStyle(
                     color: GymMapColors.textSecondary,
                     fontWeight: FontWeight.w700,
@@ -484,24 +494,37 @@ class SelectedGymPanel extends StatelessWidget {
                 label: Text(_t.panelViewRoute),
               ),
             ),
-            if (showOccupancy &&
-                hasHistoryInsights &&
-                historySampled.isNotEmpty) ...[
+            if (isOpenNow && showHistory) ...[
               const SizedBox(height: 12),
               _HistoryInsightsCard(sampled: historySampled),
             ],
-            if (showOccupancy && hasProInsights && peakWindow != null) ...[
+            if (isOpenNow && showPro) ...[
               const SizedBox(height: 12),
               _ProInsightsCard(peakWindow: peakWindow!, comparison: comparison),
             ],
-            if (showOccupancy && hasEliteInsights) ...[
+            if (isOpenNow && showElite) ...[
               const SizedBox(height: 12),
               _EliteInsightsCard(forecast: forecast, alerts: alerts),
+            ],
+            // Plano pago sem relatos suficientes: diz isso em vez de inventar.
+            if (isOpenNow &&
+                hasAnyInsights &&
+                !showHistory &&
+                !showPro &&
+                !showElite) ...[
+              const SizedBox(height: 12),
+              Text(
+                _t.panelInsightsNeedReports,
+                style: const TextStyle(
+                  color: GymMapColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
             const SizedBox(height: 10),
             const Divider(height: 1),
             const SizedBox(height: 10),
-            if (showOccupancy)
+            if (canReport)
               Text(
                 _t.panelUpdateOccupancy,
                 style: TextStyle(
@@ -509,7 +532,7 @@ class SelectedGymPanel extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-            if (showOccupancy)
+            if (canReport)
               Row(
                 children: [
                   Expanded(
@@ -543,7 +566,7 @@ class SelectedGymPanel extends StatelessWidget {
                   ),
                 ],
               ),
-            if (showOccupancy)
+            if (canReport)
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -564,7 +587,7 @@ class SelectedGymPanel extends StatelessWidget {
                   ),
                 ),
               ),
-            if (!showOccupancy)
+            if (!canReport)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(

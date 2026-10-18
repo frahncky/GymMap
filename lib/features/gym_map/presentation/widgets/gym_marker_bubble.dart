@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/l10n/l10n.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../gym_map_colors.dart';
 import '../gym_map_helpers.dart';
 
@@ -45,7 +46,10 @@ class GymMarkerBubble extends StatefulWidget {
   });
 
   final String label;
-  final int percent;
+
+  /// Lotação pelos relatos, ou `null` sem informação (pino da marca, sem
+  /// selo).
+  final int? percent;
   final bool isOpenNow;
   final bool isFavorite;
   final bool selected;
@@ -61,7 +65,7 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
     with SingleTickerProviderStateMixin {
   late final AnimationController _pulseController;
 
-  bool get _isLowCrowd => widget.isOpenNow && widget.percent <= 35;
+  bool get _isLowCrowd => widget.isOpenNow && (widget.percent ?? 100) <= 35;
   bool get _shouldPulse =>
       widget.enablePulse &&
       widget.revealDetails &&
@@ -109,16 +113,21 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
 
   @override
   Widget build(BuildContext context) {
+    final percent = widget.percent;
     final color =
-        widget.isOpenNow
-            ? occupancyColor(widget.percent)
-            : GymMapColors.textSecondary;
+        !widget.isOpenNow
+            ? GymMapColors.textSecondary
+            : percent == null
+            ? AppBrand.tealDeep
+            : occupancyColor(percent);
     const markerInfoOffsetY = 18.0;
     final showLowCrowdTag = widget.revealDetails && _isLowCrowd;
     final occupancySemantics =
-        widget.isOpenNow
-            ? _t.markerOccupancySemantics('${widget.percent}')
-            : _t.markerClosedNow;
+        !widget.isOpenNow
+            ? _t.markerClosedNow
+            : percent == null
+            ? _t.markerNoOccupancy
+            : _t.markerOccupancySemantics('$percent');
 
     return Semantics(
       button: true,
@@ -146,7 +155,7 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
             mainAxisSize: MainAxisSize.min,
             children: [
               // Fechada não tem selo: o próprio pino fica cinza e apagado.
-              if (widget.isOpenNow) ...[
+              if (widget.isOpenNow && percent != null) ...[
                 Transform.translate(
                   offset: const Offset(0, markerInfoOffsetY),
                   child: AnimatedOpacity(
@@ -189,7 +198,7 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  '${widget.percent}%',
+                                  '$percent%',
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w900,
@@ -331,15 +340,17 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(8),
                         child:
-                            widget.isOpenNow
-                                ? _pinImage(_pinAssetForPercent(widget.percent))
-                                : Opacity(
+                            !widget.isOpenNow
+                                ? Opacity(
                                   opacity: 0.6,
                                   child: ColorFiltered(
                                     colorFilter: _grayscale,
                                     child: _pinImage('assets/brand/pin.png'),
                                   ),
-                                ),
+                                )
+                                : percent == null
+                                ? _pinImage('assets/brand/pin.png')
+                                : _pinImage(_pinAssetForPercent(percent)),
                       ),
                     ),
                   ],

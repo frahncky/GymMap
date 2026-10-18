@@ -49,6 +49,11 @@ class CollaborativeCrowdService {
   final int _minDistinctReportersForSnapshot;
   final int _voteTolerancePercent;
 
+  // Padrão por hora do dia (pico e previsão): relatos das últimas 4
+  // semanas, com pelo menos 2 relatos naquele horário.
+  static const Duration _patternWindow = Duration(days: 28);
+  static const int _minReportsPerPatternHour = 2;
+
   /// Registra um relato com anti-spam e peso por confiabilidade do usuário.
   ReportSubmissionResult submitReport({
     required Gym gym,
@@ -116,8 +121,8 @@ class CollaborativeCrowdService {
   /// Calcula o snapshot da academia usando dados colaborativos:
   /// 1) Prioriza relatos das últimas 2 horas.
   /// 2) Se não houver relatos recentes, usa até 4 relatos mais novos.
-  /// 3) Sem consenso minimo de relatores distintos, usa o valor base.
-  /// 4) Com consenso, aplica tolerancia para reduzir impacto de outliers.
+  /// 3) Sem consenso mínimo de relatores distintos, fica sem informação.
+  /// 4) Com consenso, aplica tolerância para reduzir impacto de outliers.
   GymCrowdSnapshot snapshotFor(Gym gym) {
     final now = DateTime.now();
     final gymReports =
@@ -132,131 +137,120 @@ class CollaborativeCrowdService {
     final basis =
         recentReports.isEmpty ? gymReports.take(4).toList() : recentReports;
 
-    final occupancy = _calculateAverageOccupancy(
-      basis,
-      gym.baseOccupancyPercent,
-      minDistinctReporters: _minDistinctReportersForSnapshot,
-      voteTolerancePercent: _voteTolerancePercent,
-    );
-
     return GymCrowdSnapshot(
-      occupancyPercent: occupancy,
+      occupancyPercent: _calculateAverageOccupancy(
+        basis,
+        minDistinctReporters: _minDistinctReportersForSnapshot,
+        voteTolerancePercent: _voteTolerancePercent,
+      ),
       reportsCount: gymReports.length,
       recentReportsCount: recentReports.length,
       lastReportAt: gymReports.isEmpty ? null : gymReports.first.createdAt,
     );
   }
 
-  /// Serie horaria das últimas 24h para habilitar o plano Essencial+.
+  /// Últimas 24h: média dos relatos de cada hora, só nas horas que tiveram
+  /// relato (Essencial+).
   List<HourlyOccupancyPoint> history24hFor(Gym gym, {DateTime? now}) {
     final refNow = now ?? DateTime.now();
-    final currentHour = DateTime(
+    final start = DateTime(
       refNow.year,
       refNow.month,
       refNow.day,
       refNow.hour,
-    );
-
-    return List.generate(24, (index) {
-      final time = currentHour.subtract(Duration(hours: 23 - index));
-      final hoursFromNow = refNow.difference(time).inHours;
-      return HourlyOccupancyPoint(
-        time: time,
-        occupancyPercent: _estimateOccupancyAt(
-          gym,
-          time,
-          hoursFromNow: hoursFromNow,
-        ),
-      );
-    });
-  }
-
-  /// Detecta o pico do dia atual para habilitar o plano Pro+.
-  PeakWindowInsight peakWindowForToday(Gym gym, {DateTime? now}) {
-    final refNow = now ?? DateTime.now();
-    PeakWindowInsight peak = const PeakWindowInsight(
-      hour: 0,
-      occupancyPercent: 0,
-    );
-
-    for (var hour = 0; hour < 24; hour++) {
-      final time = DateTime(refNow.year, refNow.month, refNow.day, hour);
-      final estimated = _estimateOccupancyAt(
-        gym,
-        time,
-        hoursFromNow: refNow.difference(time).inHours,
-      );
-      if (estimated > peak.occupancyPercent) {
-        peak = PeakWindowInsight(hour: hour, occupancyPercent: estimated);
+    ).subtract(const Duration(hours: 23));
+    final byHour = <DateTime, List<int>>{};
+    for (final report in _reports) {
+      if (report.gymId != gym.id) {
+        continue;
       }
+      final local = report.createdAt.toLocal();
+      if (local.isBefore(start) || local.isAfter(refNow)) {
+        continue;
+      }
+      final slot = DateTime(local.year, local.month, local.day, local.hour);
+      byHour.putIfAbsent(slot, () => <int>[]).add(report.occupancyPercent);
     }
-
-    return peak;
+    final slots = byHour.keys.toList()..sort();
+    return <HourlyOccupancyPoint>[
+      for (final slot in slots)
+        HourlyOccupancyPoint(
+          time: slot,
+          occupancyPercent: _mean(byHour[slot]!),
+        ),
+    ];
   }
 
-  /// Compara lotação atual estimada entre academias para habilitar Pro+.
+  /// Horário mais cheio pelos relatos das últimas semanas (Pro+), ou `null`
+  /// sem relatos suficientes.
+  PeakWindowInsight? peakWindowForToday(Gym gym, {DateTime? now}) {
+    final pattern = _hourlyPattern(gym, now ?? DateTime.now());
+    if (pattern.isEmpty) {
+      return null;
+    }
+    final peak = pattern.entries.reduce(
+      (best, entry) => entry.value > best.value ? entry : best,
+    );
+    return PeakWindowInsight(hour: peak.key, occupancyPercent: peak.value);
+  }
+
+  /// Compara a lotação atual entre academias que têm relatos (Pro+). Sem
+  /// lotação conhecida na academia escolhida, não há comparação.
   List<GymComparisonInsight> compareGymsByOccupancy(
     List<Gym> gyms,
     Gym selectedGym, {
     DateTime? now,
   }) {
-    final refNow = now ?? DateTime.now();
-    final selectedOccupancy = _estimateOccupancyAt(
-      selectedGym,
-      refNow,
-      hoursFromNow: 0,
-    );
-
-    final rows =
-        gyms.map((gym) {
-            final occupancy = _estimateOccupancyAt(
-              gym,
-              refNow,
-              hoursFromNow: 0,
-            );
-            return GymComparisonInsight(
-              gymName: gym.name,
-              occupancyPercent: occupancy,
-              deltaFromSelected: occupancy - selectedOccupancy,
-            );
-          }).toList()
-          ..sort((a, b) => a.occupancyPercent.compareTo(b.occupancyPercent));
-
+    final selectedOccupancy = snapshotFor(selectedGym).occupancyPercent;
+    if (selectedOccupancy == null) {
+      return const <GymComparisonInsight>[];
+    }
+    final rows = <GymComparisonInsight>[
+      for (final gym in gyms)
+        if (snapshotFor(gym).occupancyPercent case final occupancy?)
+          GymComparisonInsight(
+            gymName: gym.name,
+            occupancyPercent: occupancy,
+            deltaFromSelected: occupancy - selectedOccupancy,
+          ),
+    ]..sort((a, b) => a.occupancyPercent.compareTo(b.occupancyPercent));
     return rows;
   }
 
-  /// Previsão das próximas horas para habilitar Elite.
+  /// Próximas horas pela média dos relatos daquele horário nas últimas
+  /// semanas (Elite); horas sem relatos suficientes ficam de fora.
   List<ForecastInsightPoint> forecastNextHoursFor(
     Gym gym, {
     int hours = 6,
     DateTime? now,
   }) {
     final refNow = now ?? DateTime.now();
+    final pattern = _hourlyPattern(gym, refNow);
     final currentHour = DateTime(
       refNow.year,
       refNow.month,
       refNow.day,
       refNow.hour,
     );
-
-    return List.generate(hours, (index) {
-      final ahead = index + 1;
-      final time = currentHour.add(Duration(hours: ahead));
-      return ForecastInsightPoint(
-        time: time,
-        occupancyPercent: _estimateOccupancyAt(gym, time, hoursFromNow: -ahead),
-      );
-    });
+    return <ForecastInsightPoint>[
+      for (var ahead = 1; ahead <= hours; ahead++)
+        if (pattern[currentHour.add(Duration(hours: ahead)).hour]
+            case final occupancy?)
+          ForecastInsightPoint(
+            time: currentHour.add(Duration(hours: ahead)),
+            occupancyPercent: occupancy,
+          ),
+    ];
   }
 
-  /// Alertas personalizados para Elite usando previsão + comparativo.
+  /// Alertas para o Elite, só a partir de dados reais. Sem dados, nenhum.
   List<String> personalizedAlertsFor({
     required Gym selectedGym,
     required List<Gym> gyms,
     DateTime? now,
   }) {
     final refNow = now ?? DateTime.now();
-    final current = _estimateOccupancyAt(selectedGym, refNow, hoursFromNow: 0);
+    final current = snapshotFor(selectedGym).occupancyPercent;
     final forecast = forecastNextHoursFor(selectedGym, now: refNow, hours: 6);
     final comparison =
         compareGymsByOccupancy(
@@ -266,6 +260,9 @@ class CollaborativeCrowdService {
         ).where((item) => item.gymName != selectedGym.name).toList();
 
     final alerts = <String>[];
+    if (current == null) {
+      return alerts;
+    }
 
     if (current >= 85) {
       alerts.add(AppL10n.current.alertVeryHighNow);
@@ -304,15 +301,41 @@ class CollaborativeCrowdService {
     return alerts;
   }
 
-  /// Calcula a media dos relatos e usa fallback sem consenso minimo.
-  int _calculateAverageOccupancy(
-    List<CrowdReport> basis,
-    int fallback, {
+  /// Média por hora do dia dos relatos das últimas 4 semanas; só horas com
+  /// pelo menos [_minReportsPerPatternHour] relatos.
+  Map<int, int> _hourlyPattern(Gym gym, DateTime refNow) {
+    final since = refNow.subtract(_patternWindow);
+    final byHour = <int, List<int>>{};
+    for (final report in _reports) {
+      if (report.gymId != gym.id) {
+        continue;
+      }
+      final local = report.createdAt.toLocal();
+      if (local.isBefore(since) || local.isAfter(refNow)) {
+        continue;
+      }
+      byHour
+          .putIfAbsent(local.hour, () => <int>[])
+          .add(report.occupancyPercent);
+    }
+    return <int, int>{
+      for (final entry in byHour.entries)
+        if (entry.value.length >= _minReportsPerPatternHour)
+          entry.key: _mean(entry.value),
+    };
+  }
+
+  static int _mean(List<int> values) =>
+      (values.reduce((a, b) => a + b) / values.length).round().clamp(0, 100);
+
+  /// Média ponderada dos relatos, ou `null` sem consenso mínimo.
+  int? _calculateAverageOccupancy(
+    List<CrowdReport> basis, {
     required int minDistinctReporters,
     required int voteTolerancePercent,
   }) {
     if (basis.isEmpty) {
-      return fallback;
+      return null;
     }
     final uniqueReports = <CrowdReport>[];
     final reporterIds = <String>{};
@@ -323,7 +346,7 @@ class CollaborativeCrowdService {
       }
     }
     if (reporterIds.length < minDistinctReporters) {
-      return fallback;
+      return null;
     }
     final sortedVotes =
         uniqueReports
@@ -340,7 +363,7 @@ class CollaborativeCrowdService {
           sum + report.reliabilityWeight.clamp(0.2, 1.6).toDouble(),
     );
     if (totalWeight <= 0) {
-      return fallback;
+      return null;
     }
 
     final weightedTotal = uniqueReports.fold<double>(0, (sum, report) {
@@ -382,8 +405,12 @@ class CollaborativeCrowdService {
     required int occupancyPercent,
   }) {
     final baseline = snapshotFor(gym).occupancyPercent;
-    final delta = (occupancyPercent - baseline).abs();
     final previousTrust = _reporterTrust[reporterId] ?? 0.8;
+    // Sem consenso ainda, não há com o que comparar o relato.
+    if (baseline == null) {
+      return previousTrust;
+    }
+    final delta = (occupancyPercent - baseline).abs();
 
     double adjustment;
     if (delta <= 12) {
@@ -397,73 +424,6 @@ class CollaborativeCrowdService {
     }
 
     return (previousTrust + adjustment).clamp(0.35, 1.25).toDouble();
-  }
-
-  /// Estima lotação para um horário combinando:
-  /// - valor base da academia;
-  /// - perfil de horário/dia;
-  /// - ruido deterministico por academia;
-  /// - sinal recente dos relatos colaborativos.
-  int _estimateOccupancyAt(
-    Gym gym,
-    DateTime timestamp, {
-    required int hoursFromNow,
-  }) {
-    final recentSignal =
-        snapshotFor(gym).occupancyPercent - gym.baseOccupancyPercent;
-    final attenuation = (12 - hoursFromNow.abs()).clamp(0, 12);
-    final blendedSignal = ((recentSignal * attenuation) / 12).round();
-
-    final raw =
-        gym.baseOccupancyPercent +
-        _hourProfile(timestamp.hour) +
-        _dayProfile(timestamp.weekday, timestamp.hour) +
-        _noiseForHour(gym, timestamp) +
-        blendedSignal;
-
-    return raw.clamp(5, 98);
-  }
-
-  int _hourProfile(int hour) {
-    if (hour >= 5 && hour <= 7) {
-      return 8;
-    }
-    if (hour >= 8 && hour <= 10) {
-      return 14;
-    }
-    if (hour >= 11 && hour <= 13) {
-      return 6;
-    }
-    if (hour >= 17 && hour <= 21) {
-      return 20;
-    }
-    if (hour >= 22 || hour <= 4) {
-      return -18;
-    }
-    return -4;
-  }
-
-  int _dayProfile(int weekday, int hour) {
-    final isWeekend =
-        weekday == DateTime.saturday || weekday == DateTime.sunday;
-    if (!isWeekend) {
-      return 0;
-    }
-    if (hour >= 9 && hour <= 13) {
-      return 10;
-    }
-    if (hour >= 18 && hour <= 21) {
-      return -6;
-    }
-    return 2;
-  }
-
-  int _noiseForHour(Gym gym, DateTime timestamp) {
-    final seed =
-        gym.id.codeUnits.fold<int>(0, (sum, code) => sum + code) +
-        timestamp.day * 17 +
-        timestamp.hour * 31;
-    return (seed % 11) - 5;
   }
 
   String _reportKey({

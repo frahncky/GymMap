@@ -450,5 +450,9 @@
     }
   },
   "rewardsHigherPlan": "Your plan already includes everything in Essential.",
-  "rewardsFailed": "Couldn't redeem right now. Try again later."
+  "rewardsFailed": "Couldn't redeem right now. Try again later.",
+  "markerNoOccupancy": "no occupancy information",
+  "panelNoDataBadge": "No data",
+  "panelNoOccupancyNotice": "Not enough reports yet. Send yours: with 3 reports, occupancy shows for everyone.",
+  "panelInsightsNeedReports": "History, peak and forecasts show once this gym has enough reports."
 }

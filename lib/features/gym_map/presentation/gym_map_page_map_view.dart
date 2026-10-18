@@ -40,9 +40,7 @@ extension _GymMapPageMapView on _GymMapPageState {
                 alignment: Alignment.bottomCenter,
                 child: GymMarkerBubble(
                   label: displayGymName(gym.name),
-                  percent:
-                      snapshotsByGymId[gym.id]?.occupancyPercent ??
-                      gym.baseOccupancyPercent,
+                  percent: snapshotsByGymId[gym.id]?.occupancyPercent,
                   isOpenNow: _isGymOpenNow(gym),
                   isFavorite: _isFavoriteGymId(gym.id),
                   selected: gym.id == _selectedGym?.id,

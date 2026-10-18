@@ -86,8 +86,6 @@ class Gym {
     required this.name,
     required this.address,
     required this.position,
-    required this.capacity,
-    required this.baseOccupancyPercent,
     required this.amenities,
   });
 
@@ -102,12 +100,6 @@ class Gym {
 
   /// Coordenada geografica da academia.
   final LatLng position;
-
-  /// Capacidade total estimada da unidade.
-  final int capacity;
-
-  /// Valor de fallback quando ainda não há relatos.
-  final int baseOccupancyPercent;
 
   /// Comodidades disponiveis na academia.
   final List<String> amenities;
@@ -139,7 +131,9 @@ class GymCrowdSnapshot {
     required this.lastReportAt,
   });
 
-  final int occupancyPercent;
+  /// Lotação pelo consenso dos relatos, ou `null` (sem informação) quando
+  /// ainda não há relatos suficientes. O app não inventa um número.
+  final int? occupancyPercent;
   final int reportsCount;
   final int recentReportsCount;
   final DateTime? lastReportAt;

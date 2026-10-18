@@ -1360,4 +1360,18 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get rewardsFailed =>
       'Não deu para trocar agora. Tente de novo mais tarde.';
+
+  @override
+  String get markerNoOccupancy => 'sem informação de lotação';
+
+  @override
+  String get panelNoDataBadge => 'Sem dados';
+
+  @override
+  String get panelNoOccupancyNotice =>
+      'Ainda não há relatos suficientes. Envie o seu: com 3 relatos, a lotação aparece para todos.';
+
+  @override
+  String get panelInsightsNeedReports =>
+      'O histórico, o pico e as previsões aparecem quando esta academia tiver relatos suficientes.';
 }

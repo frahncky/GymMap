@@ -28,8 +28,6 @@ void main() {
       name: kUnnamedGymName,
       address: kMapGymAddress,
       position: const LatLng(-2.53, -44.28),
-      capacity: 120,
-      baseOccupancyPercent: 40,
       amenities: const [kAmenityWeights, kAmenityCardio, kAmenityGroupClasses],
     );
 
