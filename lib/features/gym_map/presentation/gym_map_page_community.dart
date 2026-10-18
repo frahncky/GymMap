@@ -96,8 +96,7 @@ extension _GymMapPageCommunity on _GymMapPageState {
           final snapshot = _crowdService.snapshotFor(selectedGym);
           if (mounted) {
             _setStateIfMapVisible(() {
-              _reportPercent =
-                  (snapshot.occupancyPercent ?? report).toDouble();
+              _reportPercent = (snapshot.occupancyPercent ?? report).toDouble();
               _communityPoints += 5;
             });
           }

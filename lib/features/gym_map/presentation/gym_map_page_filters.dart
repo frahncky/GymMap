@@ -577,7 +577,7 @@ extension _GymMapPageFilters on _GymMapPageState {
     required GymCrowdSnapshot snapshot,
   }) {
     if (_activeQuickFilters.contains(MapQuickFilter.openNow) &&
-        !_isGymOpenNow(gym)) {
+        _isGymOpenNow(gym) != true) {
       return false;
     }
     // Sem lotação conhecida, a academia não entra em "Lotação baixa".
@@ -764,42 +764,78 @@ extension _GymMapPageFilters on _GymMapPageState {
     ];
   }
 
-  (int openHour, int closeHour) _heuristicOpenWindowForWeekday(int weekday) {
-    // Janela local heurística enquanto não existe cadastro oficial de horários.
-    return switch (weekday) {
-      DateTime.saturday => (8, 20),
-      DateTime.sunday => (8, 14),
-      _ => (6, 23),
+  /// Horário lido da etiqueta do OpenStreetMap, ou `null` sem horário
+  /// cadastrado (ou num formato que o app não entende).
+  OpeningHours? _openingHoursFor(Gym gym) {
+    final raw = gym.openingHours;
+    if (raw == null) {
+      return null;
+    }
+    return _parsedOpeningHours.putIfAbsent(
+      raw,
+      () => OpeningHours.tryParse(raw),
+    );
+  }
+
+  /// `true` aberta, `false` fechada, `null` sem horário conhecido.
+  bool? _isGymOpenNow(Gym gym) =>
+      _openingHoursFor(gym)?.isOpenAt(DateTime.now());
+
+  String _gymOpenStatusLabel(Gym gym) {
+    final hours = _openingHoursFor(gym);
+    if (hours == null) {
+      return _t.hoursUnknown;
+    }
+    if (hours.alwaysOpen) {
+      return _t.hoursOpen24h;
+    }
+    final now = DateTime.now();
+    final closing = hours.closingMinuteAt(now);
+    if (closing != null) {
+      return _t.hoursOpenUntil(_minuteTag(closing));
+    }
+    final next = hours.nextOpeningAfter(now);
+    if (next == null) {
+      return _t.gymClosed;
+    }
+    final (daysAhead, minute) = next;
+    return switch (daysAhead) {
+      0 => _t.hoursOpensAt(_minuteTag(minute)),
+      1 => _t.hoursOpensTomorrow(_minuteTag(minute)),
+      _ => _t.hoursOpensOn(
+        DateFormat.EEEE(
+          _t.localeName,
+        ).format(now.add(Duration(days: daysAhead))),
+        _minuteTag(minute),
+      ),
     };
   }
 
-  String _hourTag24(int hour) => '${hour.toString().padLeft(2, '0')}h';
-
-  bool _isGymOpenNow(Gym gym) {
-    final now = DateTime.now();
-    final (openHour, closeHour) = _heuristicOpenWindowForWeekday(now.weekday);
-    return now.hour >= openHour && now.hour < closeHour;
+  /// "Hoje: 06h - 22h"; `null` sem horário (ou aberta 24h, que o status já
+  /// diz).
+  String? _gymOpenHoursLabel(Gym gym) {
+    final hours = _openingHoursFor(gym);
+    if (hours == null || hours.alwaysOpen) {
+      return null;
+    }
+    final ranges = hours.rangesOn(DateTime.now().weekday);
+    if (ranges.isEmpty) {
+      return _t.hoursTodayClosed;
+    }
+    return _t.hoursTodayList(
+      ranges
+          .map((range) => '${_minuteTag(range.$1)} - ${_minuteTag(range.$2)}')
+          .join(', '),
+    );
   }
 
-  String _gymOpenStatusLabel(Gym gym) {
-    final now = DateTime.now();
-    final (openHour, closeHour) = _heuristicOpenWindowForWeekday(now.weekday);
-    final isOpen = _isGymOpenNow(gym);
-    if (isOpen) {
-      return _t.hoursOpenUntil(_hourTag24(closeHour));
-    }
-    if (now.hour < openHour) {
-      return _t.hoursOpensAt(_hourTag24(openHour));
-    }
-    final nextWeekday =
-        now.weekday == DateTime.sunday ? DateTime.monday : now.weekday + 1;
-    final (nextOpenHour, _) = _heuristicOpenWindowForWeekday(nextWeekday);
-    return _t.hoursOpensTomorrow(_hourTag24(nextOpenHour));
-  }
-
-  String _gymOpenHoursLabel(Gym gym) {
-    final now = DateTime.now();
-    final (openHour, closeHour) = _heuristicOpenWindowForWeekday(now.weekday);
-    return _t.hoursToday(_hourTag24(openHour), _hourTag24(closeHour));
+  /// 360 → "06h", 390 → "06h30" (passando da meia-noite volta a contar).
+  String _minuteTag(int minute) {
+    final normalized = minute % 1440;
+    final hour = (normalized ~/ 60).toString().padLeft(2, '0');
+    final rest = normalized % 60;
+    return rest == 0
+        ? '${hour}h'
+        : '${hour}h${rest.toString().padLeft(2, '0')}';
   }
 }

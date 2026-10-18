@@ -87,6 +87,7 @@ class Gym {
     required this.address,
     required this.position,
     required this.amenities,
+    this.openingHours,
   });
 
   /// Identificador unico usado para relacionar relatos colaborativos.
@@ -103,6 +104,10 @@ class Gym {
 
   /// Comodidades disponiveis na academia.
   final List<String> amenities;
+
+  /// Etiqueta `opening_hours` do OpenStreetMap, como veio; `null` sem
+  /// horário cadastrado (leia com OpeningHours.tryParse).
+  final String? openingHours;
 }
 
 /// Relato colaborativo de lotação enviado por usuário.

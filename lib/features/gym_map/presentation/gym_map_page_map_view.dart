@@ -41,7 +41,8 @@ extension _GymMapPageMapView on _GymMapPageState {
                 child: GymMarkerBubble(
                   label: displayGymName(gym.name),
                   percent: snapshotsByGymId[gym.id]?.occupancyPercent,
-                  isOpenNow: _isGymOpenNow(gym),
+                  // Sem horário conhecido, o pino não fica como fechado.
+                  isOpenNow: _isGymOpenNow(gym) != false,
                   isFavorite: _isFavoriteGymId(gym.id),
                   selected: gym.id == _selectedGym?.id,
                   revealDetails: _showMarkerDetails,
@@ -527,7 +528,7 @@ extension _GymMapPageMapView on _GymMapPageState {
           child: GymMarkerBubble(
             label: displayGymName(poi.name),
             percent: poiPercent,
-            isOpenNow: _isGymOpenNow(poiGym),
+            isOpenNow: _isGymOpenNow(poiGym) != false,
             isFavorite: _isFavoriteGymId(poiGym.id),
             selected: poiGym.id == _selectedGym?.id,
             revealDetails: _showMarkerDetails,

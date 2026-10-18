@@ -1022,11 +1022,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String hoursToday(String open, String close) {
-    return 'Today: $open - $close';
-  }
-
-  @override
   String get mapDisabledInTest => 'Map disabled in test mode';
 
   @override
@@ -1362,4 +1357,23 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get panelInsightsNeedReports =>
       'History, peak and forecasts show once this gym has enough reports.';
+
+  @override
+  String get hoursUnknown => 'Hours not listed';
+
+  @override
+  String get hoursOpen24h => 'Open 24h';
+
+  @override
+  String hoursOpensOn(String day, String time) {
+    return 'Opens $day at $time';
+  }
+
+  @override
+  String get hoursTodayClosed => 'Today: closed';
+
+  @override
+  String hoursTodayList(String ranges) {
+    return 'Today: $ranges';
+  }
 }

@@ -145,12 +145,18 @@ extension _GymMapPageInteractions on _GymMapPageState {
   }
 
   Gym _gymFromPoi(MapGymPoi poi) {
+    // O horário pode chegar depois (o Overpass responde após o cache).
+    final cached = _generatedGymsByPoiId[poi.id];
+    if (cached != null && cached.openingHours != poi.openingHours) {
+      _generatedGymsByPoiId.remove(poi.id);
+    }
     return _generatedGymsByPoiId.putIfAbsent(poi.id, () {
       return Gym(
         id: poi.id,
         name: poi.name,
         address: kMapGymAddress,
         position: poi.position,
+        openingHours: poi.openingHours,
         amenities: const [
           kAmenityWeights,
           kAmenityCardio,
@@ -172,7 +178,7 @@ extension _GymMapPageInteractions on _GymMapPageState {
       }
       // Só academias com lotação baixa confirmada por relatos.
       final occupancy = _crowdService.snapshotFor(gym).occupancyPercent;
-      if (occupancy == null || occupancy > 35 || !_isGymOpenNow(gym)) {
+      if (occupancy == null || occupancy > 35 || _isGymOpenNow(gym) == false) {
         return;
       }
       final distanceSquared = _distanceSquaredMeters(userPoint, gym.position);

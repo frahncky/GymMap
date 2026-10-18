@@ -1814,12 +1814,6 @@ abstract class AppLocalizations {
   /// **'Abre amanhã às {time}'**
   String hoursOpensTomorrow(String time);
 
-  /// No description provided for @hoursToday.
-  ///
-  /// In pt, this message translates to:
-  /// **'Hoje: {open} - {close}'**
-  String hoursToday(String open, String close);
-
   /// No description provided for @mapDisabledInTest.
   ///
   /// In pt, this message translates to:
@@ -2395,6 +2389,36 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'O histórico, o pico e as previsões aparecem quando esta academia tiver relatos suficientes.'**
   String get panelInsightsNeedReports;
+
+  /// No description provided for @hoursUnknown.
+  ///
+  /// In pt, this message translates to:
+  /// **'Horário não informado'**
+  String get hoursUnknown;
+
+  /// No description provided for @hoursOpen24h.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aberta 24h'**
+  String get hoursOpen24h;
+
+  /// No description provided for @hoursOpensOn.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abre {day} às {time}'**
+  String hoursOpensOn(String day, String time);
+
+  /// No description provided for @hoursTodayClosed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Hoje: fechada'**
+  String get hoursTodayClosed;
+
+  /// No description provided for @hoursTodayList.
+  ///
+  /// In pt, this message translates to:
+  /// **'Hoje: {ranges}'**
+  String hoursTodayList(String ranges);
 }
 
 class _AppLocalizationsDelegate

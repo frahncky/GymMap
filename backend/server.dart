@@ -916,6 +916,10 @@ class _PixBillingBackend {
             'lat': lat,
             'lng': lng,
             'updatedAtUtc': '${raw['updatedAtUtc'] ?? nowIso}'.trim(),
+            // Horário do OpenStreetMap (etiqueta opening_hours), se houver.
+            if ('${raw['openingHours'] ?? ''}'.trim() case final hours
+                when hours.isNotEmpty && hours.length <= 255)
+              'openingHours': hours,
           };
           gymLocations[_gymLocationCompositeKey(userId, gymId)] = location;
           upserted++;
@@ -4293,6 +4297,8 @@ List<Map<String, dynamic>> nearbyGymLocations(
       'lat': gymLat,
       'lng': gymLng,
       'updatedAtUtc': updatedAt,
+      if (raw['openingHours'] case final String hours when hours.isNotEmpty)
+        'openingHours': hours,
     };
     distanceById[id] = distance;
   }

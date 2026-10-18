@@ -13,6 +13,7 @@ class CachedGymLocation {
     required this.position,
     required this.address,
     required this.updatedAtUtc,
+    this.openingHours,
   });
 
   final String id;
@@ -20,6 +21,9 @@ class CachedGymLocation {
   final LatLng position;
   final String address;
   final DateTime updatedAtUtc;
+
+  /// Etiqueta `opening_hours` do OpenStreetMap, quando cadastrada.
+  final String? openingHours;
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
@@ -29,6 +33,7 @@ class CachedGymLocation {
       'lat': position.latitude,
       'lng': position.longitude,
       'updatedAtUtc': updatedAtUtc.toIso8601String(),
+      if (openingHours != null) 'openingHours': openingHours,
     };
   }
 
@@ -59,8 +64,14 @@ class CachedGymLocation {
       position: LatLng(lat, lng),
       address: address.isEmpty ? kMapGymAddress : address,
       updatedAtUtc: updatedAt,
+      openingHours: _openingHoursFrom(raw['openingHours']),
     );
   }
+}
+
+String? _openingHoursFrom(Object? raw) {
+  final value = '${raw ?? ''}'.trim();
+  return value.isEmpty ? null : value;
 }
 
 class GymLocationCacheService {
@@ -379,6 +390,7 @@ class GymLocationCacheService {
       address: address.isEmpty ? kMapGymAddress : address,
       position: source.position,
       updatedAtUtc: updatedAtUtc,
+      openingHours: source.openingHours,
     );
   }
 

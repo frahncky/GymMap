@@ -571,17 +571,6 @@
       }
     }
   },
-  "hoursToday": "Hoje: {open} - {close}",
-  "@hoursToday": {
-    "placeholders": {
-      "open": {
-        "type": "String"
-      },
-      "close": {
-        "type": "String"
-      }
-    }
-  },
   "mapDisabledInTest": "Mapa desativado no modo de teste",
   "mapLocatingYou": "Localizando você…",
   "mapUnavailableRetry": "Mapa indisponível. Toque para tentar de novo",
@@ -830,5 +819,27 @@
   "markerNoOccupancy": "sem informação de lotação",
   "panelNoDataBadge": "Sem dados",
   "panelNoOccupancyNotice": "Ainda não há relatos suficientes. Envie o seu: com 3 relatos, a lotação aparece para todos.",
-  "panelInsightsNeedReports": "O histórico, o pico e as previsões aparecem quando esta academia tiver relatos suficientes."
+  "panelInsightsNeedReports": "O histórico, o pico e as previsões aparecem quando esta academia tiver relatos suficientes.",
+  "hoursUnknown": "Horário não informado",
+  "hoursOpen24h": "Aberta 24h",
+  "hoursOpensOn": "Abre {day} às {time}",
+  "hoursTodayClosed": "Hoje: fechada",
+  "hoursTodayList": "Hoje: {ranges}",
+  "@hoursOpensOn": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@hoursTodayList": {
+    "placeholders": {
+      "ranges": {
+        "type": "String"
+      }
+    }
+  }
 }

@@ -28,6 +28,7 @@ import '../data/gym_route_service.dart';
 import '../data/map_services_config.dart';
 import '../data/plan_subscription_service.dart';
 import '../domain/gym_models.dart';
+import '../domain/opening_hours.dart';
 import '../domain/plan_insight_models.dart';
 import 'gym_map_colors.dart';
 import 'gym_map_helpers.dart';
@@ -255,6 +256,10 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   int _mapPoiLoadingRequests = 0;
   bool _hasTriggeredInitialMapBootstrap = false;
   final Map<String, Gym> _generatedGymsByPoiId = <String, Gym>{};
+
+  // Horários já lidos, pela etiqueta opening_hours (null = não entendido).
+  final Map<String, OpeningHours?> _parsedOpeningHours =
+      <String, OpeningHours?>{};
   bool _isResolvingSearchLocation = false;
   bool _hasLoadedMapTutorialState = false;
   bool _hasSeenMapTutorial = false;

@@ -286,7 +286,6 @@
   "hoursOpenUntil": "Open until {time}",
   "hoursOpensAt": "Opens at {time}",
   "hoursOpensTomorrow": "Opens tomorrow at {time}",
-  "hoursToday": "Today: {open} - {close}",
   "mapDisabledInTest": "Map disabled in test mode",
   "mapLocatingYou": "Locating you…",
   "mapUnavailableRetry": "Map unavailable. Tap to try again",
@@ -454,5 +453,27 @@
   "markerNoOccupancy": "no occupancy information",
   "panelNoDataBadge": "No data",
   "panelNoOccupancyNotice": "Not enough reports yet. Send yours: with 3 reports, occupancy shows for everyone.",
-  "panelInsightsNeedReports": "History, peak and forecasts show once this gym has enough reports."
+  "panelInsightsNeedReports": "History, peak and forecasts show once this gym has enough reports.",
+  "hoursUnknown": "Hours not listed",
+  "hoursOpen24h": "Open 24h",
+  "hoursOpensOn": "Opens {day} at {time}",
+  "hoursTodayClosed": "Today: closed",
+  "hoursTodayList": "Today: {ranges}",
+  "@hoursOpensOn": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@hoursTodayList": {
+    "placeholders": {
+      "ranges": {
+        "type": "String"
+      }
+    }
+  }
 }

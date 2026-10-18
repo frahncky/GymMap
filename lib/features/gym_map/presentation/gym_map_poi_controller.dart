@@ -43,6 +43,7 @@ class GymMapPoiController {
             id: location.id,
             position: location.position,
             name: location.name,
+            openingHours: location.openingHours,
           ),
         )
         .toList(growable: false);
@@ -67,6 +68,7 @@ class GymMapPoiController {
             address: kMapGymAddress,
             position: poi.position,
             updatedAtUtc: now,
+            openingHours: poi.openingHours,
           ),
         )
         .toList(growable: false);
@@ -133,6 +135,7 @@ class GymMapPoiController {
             id: location.id,
             position: location.position,
             name: location.name,
+            openingHours: location.openingHours,
           ),
     ]);
   }
@@ -269,7 +272,15 @@ class GymMapPoiController {
         }
       }
 
-      poiList.add(MapGymPoi(id: key, position: position, name: name));
+      final openingHours = '${tags['opening_hours'] ?? ''}'.trim();
+      poiList.add(
+        MapGymPoi(
+          id: key,
+          position: position,
+          name: name,
+          openingHours: openingHours.isEmpty ? null : openingHours,
+        ),
+      );
     }
 
     return List<MapGymPoi>.unmodifiable(poiList);
@@ -301,6 +312,7 @@ class GymMapPoiController {
       final uri = MapServicesConfig.nominatimSearchUri({
         'q': term,
         'format': 'jsonv2',
+        'extratags': '1',
         'limit': '50',
         'bounded': '1',
         'viewbox': viewbox,
@@ -365,7 +377,19 @@ class GymMapPoiController {
         if (name.isEmpty) {
           name = kUnnamedGymName;
         }
-        poiList.add(MapGymPoi(id: key, position: position, name: name));
+        final extratags = item['extratags'];
+        final openingHours =
+            extratags is Map
+                ? '${extratags['opening_hours'] ?? ''}'.trim()
+                : '';
+        poiList.add(
+          MapGymPoi(
+            id: key,
+            position: position,
+            name: name,
+            openingHours: openingHours.isEmpty ? null : openingHours,
+          ),
+        );
       }
     }
     if (!anySucceeded) {

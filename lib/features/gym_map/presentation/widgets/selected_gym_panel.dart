@@ -51,9 +51,13 @@ class SelectedGymPanel extends StatelessWidget {
   final VoidCallback? onEditAmenities;
   final GymCrowdSnapshot snapshot;
   final String? distanceFromUserLabel;
-  final bool isOpenNow;
+
+  /// `true` aberta, `false` fechada, `null` sem horário conhecido.
+  final bool? isOpenNow;
   final String openStatusLabel;
-  final String openHoursLabel;
+
+  /// "Hoje: 06h - 22h"; sem valor, a etiqueta não aparece.
+  final String? openHoursLabel;
   final bool isFavorite;
   final VoidCallback onToggleFavorite;
   final double reportPercent;
@@ -80,8 +84,14 @@ class SelectedGymPanel extends StatelessWidget {
     // Aberta e com lotação conhecida mostra o número; aberta sem relatos
     // suficientes mostra "sem dados"; o relato vale sempre que está aberta.
     final occupancy = snapshot.occupancyPercent;
-    final showOccupancy = isOpenNow && occupancy != null;
-    final canReport = isOpenNow;
+    final isClosed = isOpenNow == false;
+    final showOccupancy = !isClosed && occupancy != null;
+    final canReport = !isClosed;
+    final statusColor = switch (isOpenNow) {
+      true => GymMapColors.occupancyLow,
+      false => GymMapColors.occupancyCritical,
+      null => GymMapColors.textSecondary,
+    };
     final targetOccupancy = (occupancy ?? 0).clamp(0, 100).toDouble();
     final hasAnyInsights =
         hasHistoryInsights || hasProInsights || hasEliteInsights;
@@ -216,34 +226,21 @@ class SelectedGymPanel extends StatelessWidget {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: withUiOpacity(
-                                isOpenNow
-                                    ? GymMapColors.occupancyLow
-                                    : GymMapColors.occupancyCritical,
-                                0.10,
-                              ),
+                              color: withUiOpacity(statusColor, 0.10),
                               borderRadius: BorderRadius.circular(999),
                               border: Border.all(
-                                color: withUiOpacity(
-                                  isOpenNow
-                                      ? GymMapColors.occupancyLow
-                                      : GymMapColors.occupancyCritical,
-                                  0.24,
-                                ),
+                                color: withUiOpacity(statusColor, 0.24),
                               ),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                  isOpenNow
+                                  isOpenNow == true
                                       ? Icons.check_circle_outline_rounded
                                       : Icons.schedule_rounded,
                                   size: 13,
-                                  color:
-                                      isOpenNow
-                                          ? GymMapColors.occupancyLow
-                                          : GymMapColors.occupancyCritical,
+                                  color: statusColor,
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
@@ -251,42 +248,40 @@ class SelectedGymPanel extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
-                                    color:
-                                        isOpenNow
-                                            ? GymMapColors.occupancyLow
-                                            : GymMapColors.occupancyCritical,
+                                    color: statusColor,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: withUiOpacity(
-                                GymMapColors.textSecondary,
-                                0.08,
+                          if (openHoursLabel case final hoursLabel?)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
                               ),
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(
+                              decoration: BoxDecoration(
                                 color: withUiOpacity(
                                   GymMapColors.textSecondary,
-                                  0.18,
+                                  0.08,
+                                ),
+                                borderRadius: BorderRadius.circular(999),
+                                border: Border.all(
+                                  color: withUiOpacity(
+                                    GymMapColors.textSecondary,
+                                    0.18,
+                                  ),
+                                ),
+                              ),
+                              child: Text(
+                                hoursLabel,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: GymMapColors.textSecondary,
                                 ),
                               ),
                             ),
-                            child: Text(
-                              openHoursLabel,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: GymMapColors.textSecondary,
-                              ),
-                            ),
-                          ),
                         ],
                       ),
                     ],
@@ -394,7 +389,7 @@ class SelectedGymPanel extends StatelessWidget {
                       ),
                     ),
                     child: Text(
-                      isOpenNow ? _t.panelNoDataBadge : _t.gymClosed,
+                      isClosed ? _t.gymClosed : _t.panelNoDataBadge,
                       style: TextStyle(
                         color: GymMapColors.textSecondary,
                         fontWeight: FontWeight.w800,
@@ -460,7 +455,7 @@ class SelectedGymPanel extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  isOpenNow ? _t.panelNoOccupancyNotice : _t.panelClosedNotice,
+                  isClosed ? _t.panelClosedNotice : _t.panelNoOccupancyNotice,
                   style: TextStyle(
                     color: GymMapColors.textSecondary,
                     fontWeight: FontWeight.w700,
@@ -494,20 +489,20 @@ class SelectedGymPanel extends StatelessWidget {
                 label: Text(_t.panelViewRoute),
               ),
             ),
-            if (isOpenNow && showHistory) ...[
+            if (!isClosed && showHistory) ...[
               const SizedBox(height: 12),
               _HistoryInsightsCard(sampled: historySampled),
             ],
-            if (isOpenNow && showPro) ...[
+            if (!isClosed && showPro) ...[
               const SizedBox(height: 12),
               _ProInsightsCard(peakWindow: peakWindow!, comparison: comparison),
             ],
-            if (isOpenNow && showElite) ...[
+            if (!isClosed && showElite) ...[
               const SizedBox(height: 12),
               _EliteInsightsCard(forecast: forecast, alerts: alerts),
             ],
             // Plano pago sem relatos suficientes: diz isso em vez de inventar.
-            if (isOpenNow &&
+            if (!isClosed &&
                 hasAnyInsights &&
                 !showHistory &&
                 !showPro &&

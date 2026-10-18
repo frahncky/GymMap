@@ -9,11 +9,15 @@ class MapGymPoi {
     required this.id,
     required this.position,
     required this.name,
+    this.openingHours,
   });
 
   final String id;
   final LatLng position;
   final String name;
+
+  /// Etiqueta `opening_hours` do OpenStreetMap, quando cadastrada.
+  final String? openingHours;
 }
 
 class GymMapLogic {
