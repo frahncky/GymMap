@@ -4,6 +4,21 @@ import '../../../../core/l10n/l10n.dart';
 import '../gym_map_colors.dart';
 import '../gym_map_helpers.dart';
 
+const Widget _pinImage = Image(
+  image: AssetImage('assets/brand/pin.png'),
+  width: 32,
+  height: 32,
+  fit: BoxFit.contain,
+);
+
+/// Tons de cinza (luminância), para o pino de academia fechada.
+const ColorFilter _grayscale = ColorFilter.matrix(<double>[
+  0.2126, 0.7152, 0.0722, 0, 0, //
+  0.2126, 0.7152, 0.0722, 0, 0, //
+  0.2126, 0.7152, 0.0722, 0, 0, //
+  0, 0, 0, 1, 0, //
+]);
+
 /// Marcador de academia exibindo lotação e estado de seleção.
 class GymMarkerBubble extends StatefulWidget {
   const GymMarkerBubble({
@@ -119,76 +134,67 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Transform.translate(
-                offset: const Offset(0, markerInfoOffsetY),
-                child: AnimatedOpacity(
-                  opacity: widget.revealDetails ? 1 : 0,
-                  duration: const Duration(milliseconds: 320),
-                  curve: Curves.easeOutCubic,
-                  child: AnimatedScale(
-                    scale: widget.revealDetails ? 1 : 0.84,
+              // Fechada não tem selo: o próprio pino fica cinza e apagado.
+              if (widget.isOpenNow) ...[
+                Transform.translate(
+                  offset: const Offset(0, markerInfoOffsetY),
+                  child: AnimatedOpacity(
+                    opacity: widget.revealDetails ? 1 : 0,
                     duration: const Duration(milliseconds: 320),
                     curve: Curves.easeOutCubic,
-                    child: TweenAnimationBuilder<Color?>(
-                      tween: ColorTween(end: color),
-                      duration: const Duration(milliseconds: 260),
+                    child: AnimatedScale(
+                      scale: widget.revealDetails ? 1 : 0.84,
+                      duration: const Duration(milliseconds: 320),
                       curve: Curves.easeOutCubic,
-                      builder: (context, animatedColor, _) {
-                        final badgeColor = animatedColor ?? color;
-                        // Fechada: só o relógio (o leitor de tela ainda diz
-                        // "fechada agora"); aberta: lotação.
-                        return Container(
-                          padding:
-                              widget.isOpenNow
-                                  ? const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 3,
-                                  )
-                                  : const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: badgeColor,
-                            borderRadius: BorderRadius.circular(999),
-                            boxShadow: [
-                              BoxShadow(
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                                color: withUiOpacity(badgeColor, 0.32),
-                              ),
-                            ],
-                          ),
-                          child:
-                              widget.isOpenNow
-                                  ? Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(
-                                        Icons.groups_rounded,
-                                        size: 11,
-                                        color: Colors.white,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        '${widget.percent}%',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                  : const Icon(
-                                    Icons.schedule_rounded,
-                                    size: 14,
+                      child: TweenAnimationBuilder<Color?>(
+                        tween: ColorTween(end: color),
+                        duration: const Duration(milliseconds: 260),
+                        curve: Curves.easeOutCubic,
+                        builder: (context, animatedColor, _) {
+                          final badgeColor = animatedColor ?? color;
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: badgeColor,
+                              borderRadius: BorderRadius.circular(999),
+                              boxShadow: [
+                                BoxShadow(
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                  color: withUiOpacity(badgeColor, 0.32),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.groups_rounded,
+                                  size: 11,
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${widget.percent}%',
+                                  style: const TextStyle(
                                     color: Colors.white,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 12,
                                   ),
-                        );
-                      },
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 2),
+                const SizedBox(height: 2),
+              ],
               Transform.translate(
                 offset: const Offset(0, markerInfoOffsetY),
                 child: AnimatedOpacity(
@@ -218,8 +224,11 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
                               textAlign: TextAlign.center,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: GymMapColors.mapLabel,
+                              style: TextStyle(
+                                color:
+                                    widget.isOpenNow
+                                        ? GymMapColors.mapLabel
+                                        : GymMapColors.textSecondary,
                                 fontWeight: FontWeight.w900,
                                 fontSize: 13,
                                 height: 1.04,
@@ -310,12 +319,16 @@ class _GymMarkerBubbleState extends State<GymMarkerBubble>
                       },
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: Image.asset(
-                          'assets/brand/pin.png',
-                          width: 32,
-                          height: 32,
-                          fit: BoxFit.contain,
-                        ),
+                        child:
+                            widget.isOpenNow
+                                ? _pinImage
+                                : const Opacity(
+                                  opacity: 0.6,
+                                  child: ColorFiltered(
+                                    colorFilter: _grayscale,
+                                    child: _pinImage,
+                                  ),
+                                ),
                       ),
                     ),
                   ],
