@@ -530,7 +530,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get communityPointsPerValidation => '+2 per report of yours confirmed';
+  String get communityPointsPerValidation => '+5 per report of yours confirmed';
 
   @override
   String get communityContributeOnMap => 'Contribute on the map';
@@ -884,11 +884,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get communityRankingRealInfo =>
-      'Points from the last 7 days. Each valid report is worth +5 points.';
+      'Points from the last 7 days: +1 per report, +5 if the community confirms it, -2 if it denies it.';
 
   @override
   String get communityRankingInfo =>
-      'Each valid report is worth +5 points. Keep contributing to climb the ranking.';
+      'Each report is worth +1, plus +5 if the community confirms it (and -2 if it denies it). Keep contributing to climb the ranking.';
 
   @override
   String get communityRankingEmpty =>
@@ -1089,7 +1089,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportThanks(String gym, String percent, String trust) {
-    return 'Thanks for the report! +5 points\n$gym is now at $percent% ($trust% confidence).';
+    return 'Thanks for the report! +1 point now and +5 if the community confirms it.\n$gym is now at $percent% ($trust% confidence).';
   }
 
   @override
@@ -1306,7 +1306,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get rewardsHowToEarn =>
-      '+5 per report or suggested gym that gets confirmed; +2 when the community agrees with you.';
+      '+1 per report and +5 if confirmed (-2 if denied); +5 per suggested gym that gets confirmed; +2 when the community agrees with you.';
 
   @override
   String rewardsRedeem(String days) {
@@ -1360,7 +1360,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get communityThanksVote =>
-      'Thanks! Your vote helps tell whether the report is right.';
+      'Thanks! Your vote helps confirm or deny the report.';
 
   @override
   String get communityVoteFailed =>

@@ -304,14 +304,23 @@ class _PixBillingBackend {
   final math.Random _secureRandom = math.Random.secure();
   static const Duration _crowdReportCooldownWindow = Duration(minutes: 10);
 
-  // Pontos: +5 por relato aceito, +2 por comodidade marcada ou desmarcada
-  // quando a comunidade concordar (até 20 por dia), 100 pontos = 7 dias do
-  // plano Essencial.
-  static const int _pointsPerCrowdReport = 5;
+  // Pontos: relato vale +1 ao enviar, +5 se a comunidade confirmar e -2 se
+  // negar; +2 por comodidade marcada ou desmarcada quando a comunidade
+  // concordar (até 20 por dia); 100 pontos = 7 dias do plano Essencial.
+  static const int _pointsPerReportParticipation = 1;
+  static const int _pointsPerConfirmedReport = 5;
+  static const int _pointsPenaltyDeniedReport = 2;
   static const int _pointsPerAmenityVote = 2;
-  // Quem enviou o relato ganha 2 pontos a cada confirmação, até 3 por relato.
-  static const int _pointsPerReportConfirmation = 2;
-  static const int _maxRewardedConfirmationsPerReport = 3;
+
+  // Relato confirmado: alguém toca "Confirmo", ou 2 relatos de outras pessoas
+  // na mesma academia, até 1 h antes ou depois, ficam a até 15 pontos dele.
+  // Negado: 2 "Discordo" (mais que confirmações), ou ele fica a mais de 25
+  // pontos da mediana desses relatos.
+  static const Duration _reportConsensusWindow = Duration(hours: 1);
+  static const int _minOtherReportsForConsensus = 2;
+  static const int _reportAgreementTolerance = 15;
+  static const int _reportDisagreementThreshold = 25;
+  static const int _disagreesToDenyReport = 2;
   static const int _maxAmenityPointsPerDay = 20;
   static const int _rewardCostPoints = 100;
   static const int _rewardPlanDays = 7;
@@ -1016,8 +1025,10 @@ class _PixBillingBackend {
           if (reportUserId.isEmpty) {
             continue;
           }
-          pointsByUser[reportUserId] = (pointsByUser[reportUserId] ?? 0) + 5;
+          pointsByUser[reportUserId] =
+              (pointsByUser[reportUserId] ?? 0) + _reportPoints(report);
         }
+        pointsByUser.updateAll((_, points) => math.max(0, points));
 
         final ranking = pointsByUser.entries.toList(growable: false)
           ..sort((left, right) {
@@ -1185,24 +1196,13 @@ class _PixBillingBackend {
           votes[userId] = vote;
         }
         report['votes'] = votes;
-        // Cada pessoa rende pontos ao autor uma vez só, mesmo que retire e
-        // confirme de novo.
-        final rewardedBy = <String>[
-          if (report['rewardedConfirmations'] is List)
-            for (final id in report['rewardedConfirmations'] as List) '$id',
-        ];
-        final reporterId = '${report['userId'] ?? ''}'.trim();
-        if (vote == 'confirm' &&
-            previous != 'confirm' &&
-            reporterId.isNotEmpty &&
-            !rewardedBy.contains(userId) &&
-            rewardedBy.length < _maxRewardedConfirmationsPerReport) {
-          report['rewardedConfirmations'] = <String>[...rewardedBy, userId];
-          _awardPoints(
-            reporterId,
-            _pointsPerReportConfirmation,
-            DateTime.now().toUtc(),
-          );
+        final confirms = votes.values.where((v) => v == 'confirm').length;
+        final disagrees = votes.values.where((v) => v == 'disagree').length;
+        if (confirms >= 1 && previous != 'confirm' && vote == 'confirm') {
+          _decideCrowdReport(report, confirmed: true, now: DateTime.now());
+        } else if (disagrees >= _disagreesToDenyReport &&
+            disagrees > confirms) {
+          _decideCrowdReport(report, confirmed: false, now: DateTime.now());
         }
         await _persist();
         return _json(
@@ -1291,12 +1291,13 @@ class _PixBillingBackend {
           'regionLabel': regionLabel,
         };
         crowdReports[reportId] = report;
-        final ledger = _awardPoints(userId, _pointsPerCrowdReport, now);
+        final ledger = _awardPoints(userId, _pointsPerReportParticipation, now);
+        _evaluateReportsByConsensus(gymId, now);
         await _persist();
         return _json(req, HttpStatus.created, <String, dynamic>{
           'accepted': true,
           'report': report,
-          'pointsAwarded': _pointsPerCrowdReport,
+          'pointsAwarded': _pointsPerReportParticipation,
           'pointsBalance': _pointsBalance(ledger),
         });
       }
@@ -3331,8 +3332,91 @@ class _PixBillingBackend {
     return value is num ? value.toInt() : int.tryParse('$value') ?? 0;
   }
 
-  int _pointsBalance(Map<String, dynamic>? ledger) =>
-      math.max(0, _ledgerInt(ledger, 'earned') - _ledgerInt(ledger, 'spent'));
+  int _pointsBalance(Map<String, dynamic>? ledger) => math.max(
+    0,
+    _ledgerInt(ledger, 'earned') -
+        _ledgerInt(ledger, 'spent') -
+        _ledgerInt(ledger, 'penalties'),
+  );
+
+  /// Pontos que um relato rendeu: +1, +5 se confirmado, -2 se negado.
+  static int _reportPoints(Map<String, dynamic> report) =>
+      _pointsPerReportParticipation +
+      switch (report['decision']) {
+        'confirmed' => _pointsPerConfirmedReport,
+        'denied' => -_pointsPenaltyDeniedReport,
+        _ => 0,
+      };
+
+  /// Decide um relato (uma vez só) e dá ou tira os pontos de quem enviou.
+  void _decideCrowdReport(
+    Map<String, dynamic> report, {
+    required bool confirmed,
+    required DateTime now,
+  }) {
+    if (report['decision'] != null) {
+      return;
+    }
+    report['decision'] = confirmed ? 'confirmed' : 'denied';
+    report['decidedAt'] = now.toUtc().toIso8601String();
+    final reporterId = '${report['userId'] ?? ''}'.trim();
+    if (reporterId.isEmpty) {
+      return;
+    }
+    final ledger = _ledgerFor(reporterId, now.toUtc());
+    if (confirmed) {
+      ledger['earned'] =
+          _ledgerInt(ledger, 'earned') + _pointsPerConfirmedReport;
+    } else {
+      ledger['penalties'] =
+          _ledgerInt(ledger, 'penalties') + _pointsPenaltyDeniedReport;
+    }
+  }
+
+  /// Confirma ou nega os relatos de [gymId] ainda sem decisão comparando com
+  /// os de outras pessoas na mesma janela de 1 h.
+  void _evaluateReportsByConsensus(String gymId, DateTime now) {
+    final reports = <Map<String, dynamic>>[
+      for (final report in crowdReports.values)
+        if (report['gymId'] == gymId) report,
+    ];
+    for (final report in reports) {
+      if (report['decision'] != null) {
+        continue;
+      }
+      final at = DateTime.tryParse('${report['createdAt'] ?? ''}');
+      final percent = int.tryParse('${report['occupancyPercent'] ?? ''}');
+      if (at == null || percent == null) {
+        continue;
+      }
+      final byOthers = <String, int>{};
+      for (final other in reports) {
+        if (identical(other, report) || other['userId'] == report['userId']) {
+          continue;
+        }
+        final otherAt = DateTime.tryParse('${other['createdAt'] ?? ''}');
+        final otherPercent = int.tryParse('${other['occupancyPercent'] ?? ''}');
+        if (otherAt == null ||
+            otherPercent == null ||
+            otherAt.difference(at).abs() > _reportConsensusWindow) {
+          continue;
+        }
+        // Um relato por pessoa (o mais recente lido).
+        byOthers['${other['userId']}'] = otherPercent;
+      }
+      if (byOthers.length < _minOtherReportsForConsensus) {
+        continue;
+      }
+      final sorted = byOthers.values.toList()..sort();
+      final median = sorted[sorted.length ~/ 2];
+      final diff = (percent - median).abs();
+      if (diff <= _reportAgreementTolerance) {
+        _decideCrowdReport(report, confirmed: true, now: now);
+      } else if (diff > _reportDisagreementThreshold) {
+        _decideCrowdReport(report, confirmed: false, now: now);
+      }
+    }
+  }
 
   Map<String, dynamic> _ledgerFor(String userId, DateTime now) {
     final ledger = pointLedgers.putIfAbsent(

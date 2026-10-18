@@ -533,7 +533,7 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get communityPointsPerValidation => '+2 por relato seu confirmado';
+  String get communityPointsPerValidation => '+5 por relato seu confirmado';
 
   @override
   String get communityContributeOnMap => 'Contribuir no mapa';
@@ -892,11 +892,11 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get communityRankingRealInfo =>
-      'Pontos dos últimos 7 dias. Cada relato válido vale +5 pontos.';
+      'Pontos dos últimos 7 dias: +1 por relato, +5 se a comunidade confirmar, -2 se negar.';
 
   @override
   String get communityRankingInfo =>
-      'Cada relato válido vale +5 pontos. Continue contribuindo para subir no ranking.';
+      'Cada relato vale +1, mais +5 se a comunidade confirmar (e -2 se negar). Continue contribuindo para subir no ranking.';
 
   @override
   String get communityRankingEmpty =>
@@ -1100,7 +1100,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String reportThanks(String gym, String percent, String trust) {
-    return 'Obrigado pelo relato! +5 pontos\n$gym agora em $percent% (confiança de $trust%).';
+    return 'Obrigado pelo relato! +1 ponto agora e +5 se a comunidade confirmar.\n$gym agora em $percent% (confiança de $trust%).';
   }
 
   @override
@@ -1318,7 +1318,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get rewardsHowToEarn =>
-      '+5 por relato ou academia sugerida e confirmada; +2 quando a comunidade concordar com você.';
+      '+1 por relato e +5 se confirmado (-2 se negado); +5 por academia sugerida e confirmada; +2 quando a comunidade concordar com você.';
 
   @override
   String rewardsRedeem(String days) {
@@ -1372,7 +1372,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get communityThanksVote =>
-      'Obrigado! Seu voto ajuda a saber se o relato está certo.';
+      'Obrigado! Seu voto ajuda a confirmar ou negar o relato.';
 
   @override
   String get communityVoteFailed =>

@@ -97,7 +97,7 @@ extension _GymMapPageCommunity on _GymMapPageState {
           if (mounted) {
             _setStateIfMapVisible(() {
               _reportPercent = (snapshot.occupancyPercent ?? report).toDouble();
-              _communityPoints += 5;
+              _communityPoints += 1;
             });
           }
           unawaited(_persistCommunityPoints());
@@ -165,7 +165,7 @@ extension _GymMapPageCommunity on _GymMapPageState {
       if (mounted) {
         _setStateIfMapVisible(() {
           _reportPercent = (snapshot.occupancyPercent ?? report).toDouble();
-          _communityPoints += 5;
+          _communityPoints += 1;
         });
       }
       unawaited(_persistCommunityPoints());

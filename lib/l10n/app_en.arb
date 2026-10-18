@@ -142,7 +142,7 @@
   "communityRealDataWeek": "Real data from the last 7 days",
   "communityPointsShort": "{points} points",
   "communityYourPoints": "Your points: {points}",
-  "communityPointsPerValidation": "+2 per report of yours confirmed",
+  "communityPointsPerValidation": "+5 per report of yours confirmed",
   "communityContributeOnMap": "Contribute on the map",
   "communityRecentRegionTitle": "Recent reports in your region",
   "communityRecentTitle": "Recent reports",
@@ -247,8 +247,8 @@
   "communityTop10": "This week's top 10 contributors",
   "communityCurrentPosition": "Your position: {rank} · {points} points",
   "communityRankingUpdating": "Updating ranking…",
-  "communityRankingRealInfo": "Points from the last 7 days. Each valid report is worth +5 points.",
-  "communityRankingInfo": "Each valid report is worth +5 points. Keep contributing to climb the ranking.",
+  "communityRankingRealInfo": "Points from the last 7 days: +1 per report, +5 if the community confirms it, -2 if it denies it.",
+  "communityRankingInfo": "Each report is worth +1, plus +5 if the community confirms it (and -2 if it denies it). Keep contributing to climb the ranking.",
   "communityRankingEmpty": "There aren't enough points in this region yet.",
   "locationNotificationTitle": "GymMap is using your location",
   "locationNotificationText": "To let you know about quiet gyms near you.",
@@ -305,7 +305,7 @@
   "markerFavoriteSuffix": ", favorite",
   "markerTapHint": "Tap to open the gym details",
   "markerGoodMoment": "Good time",
-  "reportThanks": "Thanks for the report! +5 points\n{gym} is now at {percent}% ({trust}% confidence).",
+  "reportThanks": "Thanks for the report! +1 point now and +5 if the community confirms it.\n{gym} is now at {percent}% ({trust}% confidence).",
   "alertVeryHighNow": "Very high occupancy right now. Consider training at another time.",
   "alertBestWindow": "Best expected time: around {hour}h ({percent}%).",
   "alertLessCrowded": "{gym} is less busy right now ({delta} points lower).",
@@ -426,7 +426,7 @@
       }
     }
   },
-  "rewardsHowToEarn": "+5 per report or suggested gym that gets confirmed; +2 when the community agrees with you.",
+  "rewardsHowToEarn": "+1 per report and +5 if confirmed (-2 if denied); +5 per suggested gym that gets confirmed; +2 when the community agrees with you.",
   "rewardsRedeem": "Get {days} days",
   "@rewardsRedeem": {
     "placeholders": {
@@ -471,7 +471,7 @@
       }
     }
   },
-  "communityThanksVote": "Thanks! Your vote helps tell whether the report is right.",
+  "communityThanksVote": "Thanks! Your vote helps confirm or deny the report.",
   "communityVoteFailed": "Couldn't save your vote right now. Try again later.",
   "amenityStatusRemovalPending": "{count} of {needed} say it doesn't have this",
   "@amenityStatusRemovalPending": {

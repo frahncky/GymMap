@@ -953,7 +953,7 @@ abstract class AppLocalizations {
   /// No description provided for @communityPointsPerValidation.
   ///
   /// In pt, this message translates to:
-  /// **'+2 por relato seu confirmado'**
+  /// **'+5 por relato seu confirmado'**
   String get communityPointsPerValidation;
 
   /// No description provided for @communityContributeOnMap.
@@ -1583,13 +1583,13 @@ abstract class AppLocalizations {
   /// No description provided for @communityRankingRealInfo.
   ///
   /// In pt, this message translates to:
-  /// **'Pontos dos últimos 7 dias. Cada relato válido vale +5 pontos.'**
+  /// **'Pontos dos últimos 7 dias: +1 por relato, +5 se a comunidade confirmar, -2 se negar.'**
   String get communityRankingRealInfo;
 
   /// No description provided for @communityRankingInfo.
   ///
   /// In pt, this message translates to:
-  /// **'Cada relato válido vale +5 pontos. Continue contribuindo para subir no ranking.'**
+  /// **'Cada relato vale +1, mais +5 se a comunidade confirmar (e -2 se negar). Continue contribuindo para subir no ranking.'**
   String get communityRankingInfo;
 
   /// No description provided for @communityRankingEmpty.
@@ -1931,7 +1931,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportThanks.
   ///
   /// In pt, this message translates to:
-  /// **'Obrigado pelo relato! +5 pontos\n{gym} agora em {percent}% (confiança de {trust}%).'**
+  /// **'Obrigado pelo relato! +1 ponto agora e +5 se a comunidade confirmar.\n{gym} agora em {percent}% (confiança de {trust}%).'**
   String reportThanks(String gym, String percent, String trust);
 
   /// No description provided for @alertVeryHighNow.
@@ -2309,7 +2309,7 @@ abstract class AppLocalizations {
   /// No description provided for @rewardsHowToEarn.
   ///
   /// In pt, this message translates to:
-  /// **'+5 por relato ou academia sugerida e confirmada; +2 quando a comunidade concordar com você.'**
+  /// **'+1 por relato e +5 se confirmado (-2 se negado); +5 por academia sugerida e confirmada; +2 quando a comunidade concordar com você.'**
   String get rewardsHowToEarn;
 
   /// No description provided for @rewardsRedeem.
@@ -2393,7 +2393,7 @@ abstract class AppLocalizations {
   /// No description provided for @communityThanksVote.
   ///
   /// In pt, this message translates to:
-  /// **'Obrigado! Seu voto ajuda a saber se o relato está certo.'**
+  /// **'Obrigado! Seu voto ajuda a confirmar ou negar o relato.'**
   String get communityThanksVote;
 
   /// No description provided for @communityVoteFailed.

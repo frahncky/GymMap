@@ -309,7 +309,7 @@
       }
     }
   },
-  "communityPointsPerValidation": "+2 por relato seu confirmado",
+  "communityPointsPerValidation": "+5 por relato seu confirmado",
   "communityContributeOnMap": "Contribuir no mapa",
   "communityRecentRegionTitle": "Relatos recentes da sua região",
   "communityRecentTitle": "Relatos recentes",
@@ -504,8 +504,8 @@
     }
   },
   "communityRankingUpdating": "Atualizando ranking…",
-  "communityRankingRealInfo": "Pontos dos últimos 7 dias. Cada relato válido vale +5 pontos.",
-  "communityRankingInfo": "Cada relato válido vale +5 pontos. Continue contribuindo para subir no ranking.",
+  "communityRankingRealInfo": "Pontos dos últimos 7 dias: +1 por relato, +5 se a comunidade confirmar, -2 se negar.",
+  "communityRankingInfo": "Cada relato vale +1, mais +5 se a comunidade confirmar (e -2 se negar). Continue contribuindo para subir no ranking.",
   "communityRankingEmpty": "Ainda não há pontos suficientes nesta região.",
   "locationNotificationTitle": "GymMap está usando sua localização",
   "locationNotificationText": "Para avisar sobre academias tranquilas perto de você.",
@@ -618,7 +618,7 @@
   "markerFavoriteSuffix": ", favorita",
   "markerTapHint": "Toque para abrir os detalhes da academia",
   "markerGoodMoment": "Bom momento",
-  "reportThanks": "Obrigado pelo relato! +5 pontos\n{gym} agora em {percent}% (confiança de {trust}%).",
+  "reportThanks": "Obrigado pelo relato! +1 ponto agora e +5 se a comunidade confirmar.\n{gym} agora em {percent}% (confiança de {trust}%).",
   "@reportThanks": {
     "placeholders": {
       "gym": {
@@ -785,7 +785,7 @@
       }
     }
   },
-  "rewardsHowToEarn": "+5 por relato ou academia sugerida e confirmada; +2 quando a comunidade concordar com você.",
+  "rewardsHowToEarn": "+1 por relato e +5 se confirmado (-2 se negado); +5 por academia sugerida e confirmada; +2 quando a comunidade concordar com você.",
   "rewardsRedeem": "Trocar por {days} dias",
   "@rewardsRedeem": {
     "placeholders": {
@@ -830,7 +830,7 @@
       }
     }
   },
-  "communityThanksVote": "Obrigado! Seu voto ajuda a saber se o relato está certo.",
+  "communityThanksVote": "Obrigado! Seu voto ajuda a confirmar ou negar o relato.",
   "communityVoteFailed": "Não deu para registrar seu voto agora. Tente de novo mais tarde.",
   "amenityStatusRemovalPending": "{count} de {needed} dizem que não tem",
   "@amenityStatusRemovalPending": {
