@@ -254,6 +254,32 @@ extension _GymMapPageFilters on _GymMapPageState {
     await _syncCrowdReportsForGyms(_crowdSyncGymIds());
   }
 
+  /// Chamado pelo timer: só com o mapa na tela e o app aberto. Mesmo sem
+  /// relato novo, o card é redesenhado para que relatos com mais de 2 horas
+  /// deixem de contar.
+  Future<void> _refreshCrowdPeriodically() async {
+    if (!widget.showMap ||
+        !widget.isActive ||
+        _appLifecycleState != AppLifecycleState.resumed) {
+      return;
+    }
+    if (_isDataSaverEnabled) {
+      final lastSync = _lastDataSaverCrowdSyncAt;
+      if (lastSync != null &&
+          DateTime.now().difference(lastSync) <
+              _GymMapPageState._dataSaverCrowdSyncCooldown) {
+        return;
+      }
+      _lastDataSaverCrowdSyncAt = DateTime.now();
+    }
+    await _syncCrowdReportsForGyms(_crowdSyncGymIds());
+    if (!mounted) {
+      return;
+    }
+    _markCrowdDataChanged();
+    _queueUiRefreshIfMapVisible();
+  }
+
   Future<void> _syncCrowdReportsForGyms(Iterable<String> gymIds) async {
     final remoteService = _crowdReportRemoteService;
     if (remoteService == null || !remoteService.hasRemoteBackend) {

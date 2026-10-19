@@ -119,10 +119,10 @@ class CollaborativeCrowdService {
   }
 
   /// Calcula o snapshot da academia usando dados colaborativos:
-  /// 1) Prioriza relatos das últimas 2 horas.
-  /// 2) Se não houver relatos recentes, usa até 4 relatos mais novos.
-  /// 3) Sem consenso mínimo de relatores distintos, fica sem informação.
-  /// 4) Com consenso, aplica tolerância para reduzir impacto de outliers.
+  /// 1) Só valem relatos das últimas 2 horas: relato antigo não diz como a
+  ///    academia está agora (ele continua no pico e na previsão por hora).
+  /// 2) Sem consenso mínimo de relatores distintos, fica sem informação.
+  /// 3) Com consenso, aplica tolerância para reduzir impacto de outliers.
   GymCrowdSnapshot snapshotFor(Gym gym) {
     final now = DateTime.now();
     final gymReports =
@@ -134,12 +134,9 @@ class CollaborativeCrowdService {
             .where((report) => now.difference(report.createdAt).inHours < 2)
             .toList();
 
-    final basis =
-        recentReports.isEmpty ? gymReports.take(4).toList() : recentReports;
-
     return GymCrowdSnapshot(
       occupancyPercent: _calculateAverageOccupancy(
-        basis,
+        recentReports,
         minDistinctReporters: _minDistinctReportersForSnapshot,
         voteTolerancePercent: _voteTolerancePercent,
       ),

@@ -127,6 +127,10 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   );
   static const Duration _dataSaverPoiReloadCooldown = Duration(seconds: 16);
   static const Duration _dataSaverCrowdSyncCooldown = Duration(minutes: 3);
+
+  /// Com o mapa aberto, a lotação das academias visíveis é buscada de novo
+  /// neste intervalo (no economizador de dados vale o intervalo acima).
+  static const Duration _crowdRefreshInterval = Duration(minutes: 2);
   static const Duration _backgroundLocationInterval = Duration(seconds: 25);
   static const Duration _coverageLockSnackCooldown = Duration(seconds: 8);
   static const double _backgroundLocationDistanceFilterMeters = 35;
@@ -287,6 +291,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   Timer? _mapBrowseCenterUiDebounce;
   Timer? _contributionCelebrationTimer;
   Timer? _planSyncTimer;
+  Timer? _crowdRefreshTimer;
   DateTime? _lastCoverageLockSnackAt;
   bool _isUiRefreshQueued = false;
   StreamSubscription<List<PurchaseDetails>>? _purchaseStreamSubscription;
@@ -333,6 +338,10 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _crowdRefreshTimer = Timer.periodic(
+      _crowdRefreshInterval,
+      (_) => unawaited(_refreshCrowdPeriodically()),
+    );
     unawaited(_initializeVectorMap());
     unawaited(_loadBasemapPoiPreference());
     unawaited(_loadMapTutorialState());
@@ -483,6 +492,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     _mapBrowseCenterUiDebounce?.cancel();
     _contributionCelebrationTimer?.cancel();
     _planSyncTimer?.cancel();
+    _crowdRefreshTimer?.cancel();
     _purchaseStreamSubscription?.cancel();
     _positionStreamSubscription?.cancel();
     _mapPoiReloadController.dispose();

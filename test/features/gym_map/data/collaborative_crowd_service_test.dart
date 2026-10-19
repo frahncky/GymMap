@@ -241,6 +241,21 @@ void main() {
       expect(wide, inInclusiveRange(60, 95));
     });
 
+    test('reports older than 2 hours do not set the current occupancy', () {
+      final old = DateTime.now().subtract(const Duration(hours: 3));
+      final service =
+          CollaborativeCrowdService()..mergeReports(<CrowdReport>[
+            _report(gym, 90, old, by: 'u1'),
+            _report(gym, 92, old, by: 'u2'),
+            _report(gym, 94, old, by: 'u3'),
+          ]);
+
+      final snapshot = service.snapshotFor(gym);
+      expect(snapshot.occupancyPercent, isNull);
+      expect(snapshot.reportsCount, 3);
+      expect(snapshot.recentReportsCount, 0);
+    });
+
     test('multiple reports from same user do not satisfy consensus', () {
       final service = CollaborativeCrowdService(cooldownWindow: Duration.zero);
 
