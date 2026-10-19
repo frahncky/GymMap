@@ -29,6 +29,7 @@ import '../data/map_services_config.dart';
 import '../data/plan_subscription_service.dart';
 import '../domain/gym_models.dart';
 import '../domain/opening_hours.dart';
+import '../domain/place_search.dart';
 import '../domain/plan_insight_models.dart';
 import 'gym_map_colors.dart';
 import 'gym_map_helpers.dart';
@@ -132,6 +133,9 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   /// Com o mapa aberto, a lotação das academias visíveis é buscada de novo
   /// neste intervalo.
   static const Duration _crowdRefreshInterval = Duration(minutes: 5);
+
+  /// Largura máxima do card da academia em telas largas (tablet).
+  static const double _selectedPanelMaxWidth = 640;
   static const Duration _backgroundLocationInterval = Duration(seconds: 25);
   static const Duration _coverageLockSnackCooldown = Duration(seconds: 8);
   static const double _backgroundLocationDistanceFilterMeters = 35;
@@ -707,22 +711,36 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                                   left: 14,
                                   right: 14,
                                   bottom: 10,
-                                  child: AnimatedContainer(
-                                    height: panelHeight,
-                                    duration:
-                                        _isPanelDragging
-                                            ? Duration.zero
-                                            : const Duration(milliseconds: 220),
-                                    curve: Curves.easeOutCubic,
-                                    transform: Matrix4.translationValues(
-                                      0,
-                                      _panelDragOffset,
-                                      0,
-                                    ),
-                                    transformAlignment: Alignment.topCenter,
-                                    child: _buildSelectedGymPanel(
-                                      selectedGym,
-                                      snapshot!,
+                                  // Em tela larga (tablet) o card não se
+                                  // estica: fica centralizado.
+                                  child: Align(
+                                    alignment: Alignment.bottomCenter,
+                                    child: ConstrainedBox(
+                                      constraints: const BoxConstraints(
+                                        maxWidth:
+                                            _GymMapPageState
+                                                ._selectedPanelMaxWidth,
+                                      ),
+                                      child: AnimatedContainer(
+                                        height: panelHeight,
+                                        duration:
+                                            _isPanelDragging
+                                                ? Duration.zero
+                                                : const Duration(
+                                                  milliseconds: 220,
+                                                ),
+                                        curve: Curves.easeOutCubic,
+                                        transform: Matrix4.translationValues(
+                                          0,
+                                          _panelDragOffset,
+                                          0,
+                                        ),
+                                        transformAlignment: Alignment.topCenter,
+                                        child: _buildSelectedGymPanel(
+                                          selectedGym,
+                                          snapshot!,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),

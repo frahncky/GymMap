@@ -161,24 +161,31 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     await _loadLocalizedCommunityReports(forceLeaderboardRefresh: force);
   }
 
+  /// [findNearbyGyms]: também procura academias perto (OpenStreetMap, pode
+  /// levar vários segundos). Essa busca corre em segundo plano: os relatos
+  /// já conhecidos aparecem antes e a lista é refeita quando ela termina.
   Future<void> _loadLocalizedCommunityReports({
     required bool forceLeaderboardRefresh,
+    bool findNearbyGyms = true,
   }) async {
     final loadStartedAt = DateTime.now();
+    var nearbyGymsFound = Future<bool>.value(false);
     try {
+      final remoteService = await CrowdReportRemoteService.create();
+      _remoteService = remoteService;
+      unawaited(_loadServerPoints(remoteService));
       final userPoint = await _resolveCommunityUserLocation();
       _userPoint = userPoint ?? _userPoint;
       final hasLocationContext = userPoint != null;
       final cacheService = await GymLocationCacheService.create();
-      await _hydrateCommunityLocationsNearUser(
-        userPoint: userPoint,
-        cacheService: cacheService,
-      );
+      if (findNearbyGyms) {
+        nearbyGymsFound = _hydrateCommunityLocationsNearUser(
+          userPoint: userPoint,
+          cacheService: cacheService,
+        );
+      }
       await cacheService.pullRemoteToLocal();
       final cachedLocations = await cacheService.loadLocations();
-      final remoteService = await CrowdReportRemoteService.create();
-      _remoteService = remoteService;
-      unawaited(_loadServerPoints(remoteService));
       unawaited(
         _refreshRegionalLeaderboard(
           remoteService: remoteService,
@@ -199,6 +206,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
           _hasLocationContext = hasLocationContext;
           _lastLocalizedReportsLoadAt = loadStartedAt;
         });
+        await _reloadIfNearbyGymsFound(nearbyGymsFound);
         return;
       }
 
@@ -236,6 +244,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
         _hasLocationContext = hasLocationContext;
         _lastLocalizedReportsLoadAt = loadStartedAt;
       });
+      await _reloadIfNearbyGymsFound(nearbyGymsFound);
     } catch (_) {
       if (!mounted) {
         return;
@@ -249,12 +258,25 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     }
   }
 
-  Future<void> _hydrateCommunityLocationsNearUser({
+  /// Refaz a lista (sem nova busca no OpenStreetMap) quando a busca de
+  /// academias próximas trouxe alguma.
+  Future<void> _reloadIfNearbyGymsFound(Future<bool> nearbyGymsFound) async {
+    if (!await nearbyGymsFound || !mounted) {
+      return;
+    }
+    await _loadLocalizedCommunityReports(
+      forceLeaderboardRefresh: false,
+      findNearbyGyms: false,
+    );
+  }
+
+  /// Guarda as academias perto de [userPoint]; true se achou alguma.
+  Future<bool> _hydrateCommunityLocationsNearUser({
     required LatLng? userPoint,
     required GymLocationCacheService cacheService,
   }) async {
     if (userPoint == null) {
-      return;
+      return false;
     }
     final poiController = GymMapPoiController();
     try {
@@ -263,7 +285,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
         knownGyms: const <Gym>[],
       );
       if (nearbyPois == null || nearbyPois.isEmpty) {
-        return;
+        return false;
       }
       final now = DateTime.now().toUtc();
       final nearbyLocations = nearbyPois
@@ -286,8 +308,10 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
           })
           .toList(growable: false);
       await cacheService.mergeAndSave(nearbyLocations, syncRemote: false);
+      return true;
     } catch (_) {
       // Falha de rede nao bloqueia o carregamento local da comunidade.
+      return false;
     } finally {
       poiController.dispose();
     }

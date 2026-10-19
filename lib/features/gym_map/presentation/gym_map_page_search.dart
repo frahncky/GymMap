@@ -70,13 +70,25 @@ extension _GymMapPageSearch on _GymMapPageState {
       _isResolvingSearchLocation = true;
     });
 
+    // Referência para preferir o lugar mais próximo: onde a pessoa está ou,
+    // sem localização, o centro do mapa.
+    LatLng? near = _userLocation;
+    if (near == null) {
+      try {
+        near = _mapController.camera.center;
+      } catch (_) {
+        // Mapa ainda sem câmera: busca sem preferência de região.
+      }
+    }
+
     try {
-      final uri = MapServicesConfig.nominatimSearchUri({
-        'q': query,
-        'format': 'jsonv2',
-        'limit': '1',
-        'accept-language': _t.localeName == 'en' ? 'en' : 'pt-BR',
-      });
+      final uri = MapServicesConfig.nominatimSearchUri(
+        PlaceSearch.queryParameters(
+          query,
+          near: near,
+          language: _t.localeName == 'en' ? 'en' : 'pt-BR',
+        ),
+      );
       final response = await http
           .get(
             uri,
@@ -92,15 +104,13 @@ extension _GymMapPageSearch on _GymMapPageState {
       }
 
       final decoded = jsonDecode(response.body);
-      if (decoded is! List || decoded.isEmpty || decoded.first is! Map) {
+      if (decoded is! List || decoded.isEmpty) {
         _showMapSnack(_t.searchNotFound);
         return;
       }
 
-      final firstResult = decoded.first as Map;
-      final latitude = double.tryParse('${firstResult['lat'] ?? ''}');
-      final longitude = double.tryParse('${firstResult['lon'] ?? ''}');
-      if (latitude == null || longitude == null) {
+      final center = PlaceSearch.pickPosition(decoded, near: near);
+      if (center == null) {
         _showMapSnack(_t.searchParseFailed);
         return;
       }
@@ -109,7 +119,6 @@ extension _GymMapPageSearch on _GymMapPageState {
         return;
       }
 
-      final center = LatLng(latitude, longitude);
       final allowWithoutUserLocation =
           !_hasNationwideCoverage && _userLocation == null;
       if (!_ensurePlanCoverageForCenter(
