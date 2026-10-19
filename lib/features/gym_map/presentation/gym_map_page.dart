@@ -129,8 +129,8 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   static const Duration _dataSaverCrowdSyncCooldown = Duration(minutes: 3);
 
   /// Com o mapa aberto, a lotação das academias visíveis é buscada de novo
-  /// neste intervalo (no economizador de dados vale o intervalo acima).
-  static const Duration _crowdRefreshInterval = Duration(minutes: 2);
+  /// neste intervalo.
+  static const Duration _crowdRefreshInterval = Duration(minutes: 5);
   static const Duration _backgroundLocationInterval = Duration(seconds: 25);
   static const Duration _coverageLockSnackCooldown = Duration(seconds: 8);
   static const double _backgroundLocationDistanceFilterMeters = 35;
