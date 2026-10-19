@@ -704,56 +704,6 @@ class _ProfilePageState extends State<_ProfilePage> {
                                             horizontal: 8,
                                           ),
                                       title: Text(
-                                        _t.profilePushTitle,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w800,
-                                        ),
-                                      ),
-                                      subtitle: Text(_t.profilePushSubtitle),
-                                      value: _preferences.pushNotifications,
-                                      onChanged: (value) {
-                                        _updatePreference(
-                                          value: value,
-                                          prefKey: _pushNotificationsPrefKey,
-                                          reducer:
-                                              (current) => current.copyWith(
-                                                pushNotifications: value,
-                                              ),
-                                        );
-                                      },
-                                    ),
-                                    SwitchListTile.adaptive(
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                          ),
-                                      title: Text(
-                                        _t.profileLocationAlertsTitle,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w800,
-                                        ),
-                                      ),
-                                      subtitle: Text(
-                                        _t.profileLocationAlertsSubtitle,
-                                      ),
-                                      value: _preferences.locationAlerts,
-                                      onChanged: (value) {
-                                        _updatePreference(
-                                          value: value,
-                                          prefKey: _locationAlertsPrefKey,
-                                          reducer:
-                                              (current) => current.copyWith(
-                                                locationAlerts: value,
-                                              ),
-                                        );
-                                      },
-                                    ),
-                                    SwitchListTile.adaptive(
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                          ),
-                                      title: Text(
                                         _t.profileHapticsTitle,
                                         style: TextStyle(
                                           fontWeight: FontWeight.w800,

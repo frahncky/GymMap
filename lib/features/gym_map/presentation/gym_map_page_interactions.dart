@@ -166,64 +166,6 @@ extension _GymMapPageInteractions on _GymMapPageState {
     });
   }
 
-  Gym? _nearestLowCrowdCandidate(LatLng userPoint) {
-    Gym? bestGym;
-    double? bestDistanceSquared;
-    final seenGymIds = <String>{};
-
-    void consider(Gym gym) {
-      final gymId = gym.id.trim();
-      if (gymId.isEmpty || !seenGymIds.add(gymId)) {
-        return;
-      }
-      // Só academias com lotação baixa confirmada por relatos.
-      final occupancy = _crowdService.snapshotFor(gym).occupancyPercent;
-      if (occupancy == null || occupancy > 35 || _isGymOpenNow(gym) == false) {
-        return;
-      }
-      final distanceSquared = _distanceSquaredMeters(userPoint, gym.position);
-      const maxDistanceMeters = 1800.0;
-      if (distanceSquared > (maxDistanceMeters * maxDistanceMeters)) {
-        return;
-      }
-      if (bestGym == null || distanceSquared < bestDistanceSquared!) {
-        bestGym = gym;
-        bestDistanceSquared = distanceSquared;
-      }
-    }
-
-    for (final gym in _gyms) {
-      consider(gym);
-    }
-    for (final poi in _mapPois) {
-      consider(_gymFromPoi(poi));
-    }
-    return bestGym;
-  }
-
-  Future<void> _maybeNotifyNearbyLowCrowd(LatLng userPoint) async {
-    if (_appLifecycleState == AppLifecycleState.resumed) {
-      return;
-    }
-    final candidate = _nearestLowCrowdCandidate(userPoint);
-    if (candidate == null) {
-      return;
-    }
-    final occupancy = _crowdService.snapshotFor(candidate).occupancyPercent;
-    if (occupancy == null) {
-      return;
-    }
-    final distanceMeters = math.sqrt(
-      _distanceSquaredMeters(userPoint, candidate.position),
-    );
-    await _contextualPushService.maybeNotifyLowCrowdNearby(
-      gymId: candidate.id,
-      gymName: candidate.name,
-      occupancyPercent: occupancy,
-      distanceMeters: distanceMeters,
-    );
-  }
-
   List<Gym> _comparisonGymsFor(Gym selectedGym) {
     final byId = <String, Gym>{
       for (final gym in _gyms) gym.id: gym,

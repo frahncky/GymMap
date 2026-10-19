@@ -118,10 +118,6 @@ extension _GymMapPageStateCache on _GymMapPageState {
     if (hasHydratedFavoriteNames) {
       unawaited(_persistFavoriteGymIds());
     }
-    final userPoint = _userLocation;
-    if (userPoint != null) {
-      unawaited(_maybeNotifyNearbyLowCrowd(userPoint));
-    }
   }
 
   bool _hydrateFavoriteGymNamesFromGyms(Iterable<Gym> gyms) {

@@ -19,7 +19,6 @@ import 'package:vector_map_tiles/vector_map_tiles.dart' as vmt;
 import '../../../core/analytics/app_metrics_service.dart';
 import '../../../core/l10n/l10n.dart';
 import '../data/collaborative_crowd_service.dart';
-import '../data/contextual_push_notification_service.dart';
 import '../data/crowd_report_remote_service.dart';
 import '../data/map/basemap_style_filter.dart';
 import '../data/map/map_vector_style_service.dart';
@@ -304,8 +303,6 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   StreamSubscription<Position>? _positionStreamSubscription;
   bool _isStartingBackgroundLocationStream = false;
   AppLifecycleState _appLifecycleState = AppLifecycleState.resumed;
-  final ContextualPushNotificationService _contextualPushService =
-      ContextualPushNotificationService();
 
   // Plano atual do usuário para liberar informações e propaganda.
   AppPlanTier _activePlan = AppPlanTier.free;
@@ -359,7 +356,6 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
     unawaited(_initializeCrowdRemoteService());
     unawaited(_initializePlanSubscription());
     unawaited(_initializePlayStoreBilling());
-    unawaited(_contextualPushService.initialize());
     if ((widget.focusGymId?.trim().isNotEmpty ?? false)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) {
@@ -487,7 +483,10 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
       unawaited(_refreshGymLocationCacheFromRemote());
       unawaited(_syncCrowdReportsForCurrentContext());
       unawaited(_startBackgroundLocationStream());
-    } else if (state == AppLifecycleState.detached) {
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      // Sem serviço em segundo plano: a localização só é acompanhada com o
+      // app na tela.
       unawaited(_stopBackgroundLocationStream());
     }
   }

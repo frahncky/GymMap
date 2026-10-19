@@ -46,11 +46,6 @@ extension _GymMapPageLocation on _GymMapPageState {
             isRouting
                 ? _GymMapPageState._routeTrackingInterval
                 : _GymMapPageState._backgroundLocationInterval,
-        foregroundNotificationConfig: ForegroundNotificationConfig(
-          notificationTitle: _t.locationNotificationTitle,
-          notificationText: _t.locationNotificationText,
-          enableWakeLock: true,
-        ),
       );
     }
 
@@ -60,8 +55,7 @@ extension _GymMapPageLocation on _GymMapPageState {
         accuracy: LocationAccuracy.best,
         distanceFilter: distanceFilter,
         pauseLocationUpdatesAutomatically: false,
-        allowBackgroundLocationUpdates: true,
-        showBackgroundLocationIndicator: true,
+        allowBackgroundLocationUpdates: false,
         activityType: ActivityType.fitness,
       );
     }
@@ -116,7 +110,6 @@ extension _GymMapPageLocation on _GymMapPageState {
 
     unawaited(_restoreCachedMapPoisNear(userPoint));
     _scheduleMapPoiReload(userPoint);
-    unawaited(_maybeNotifyNearbyLowCrowd(userPoint));
   }
 
   Future<void> _startBackgroundLocationStream() async {
