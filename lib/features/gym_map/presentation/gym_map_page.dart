@@ -37,6 +37,7 @@ import 'gym_map_poi_controller.dart';
 import 'gym_map_poi_reload_controller.dart';
 import 'gym_map_search_state_controller.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/dialog_text_controllers.dart';
 import 'widgets/amenity_vote_sheet.dart';
 import 'widgets/gym_marker_bubble.dart';
 import 'widgets/gym_page_sections.dart';

@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'core/analytics/app_metrics_service.dart';
 import 'core/l10n/l10n.dart';
 import 'core/theme/app_theme.dart';
+import 'core/widgets/dialog_text_controllers.dart';
 import 'features/gym_map/data/crowd_report_remote_service.dart';
 import 'features/gym_map/data/gym_location_cache_service.dart';
 import 'features/gym_map/domain/gym_models.dart';

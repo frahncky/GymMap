@@ -245,9 +245,6 @@ class _ProfilePageState extends State<_ProfilePage> {
   }
 
   Future<void> _openEditProfileDialog() async {
-    final nameController = TextEditingController(
-      text: _preferences.displayName,
-    );
     var draftPhotoBase64 = _preferences.photoBase64;
     var profileUpdated = false;
     await showDialog<void>(
@@ -256,220 +253,233 @@ class _ProfilePageState extends State<_ProfilePage> {
         var isSaving = false;
         var isPickingPhoto = false;
         String? errorMessage;
-        return StatefulBuilder(
-          builder: (dialogContext, setDialogState) {
-            final previewBytes =
-                _ProfilePreferences(
-                  displayName: _preferences.displayName,
-                  photoBase64: draftPhotoBase64,
-                  isProfileVisible: _preferences.isProfileVisible,
-                  pushNotifications: _preferences.pushNotifications,
-                  locationAlerts: _preferences.locationAlerts,
-                  hapticFeedback: _preferences.hapticFeedback,
-                  dataSaverMode: _preferences.dataSaverMode,
-                ).photoBytes;
+        return DialogTextControllers(
+          initialTexts: [_preferences.displayName],
+          builder: (context, controllers) {
+            final nameController = controllers.single;
+            return StatefulBuilder(
+              builder: (dialogContext, setDialogState) {
+                final previewBytes =
+                    _ProfilePreferences(
+                      displayName: _preferences.displayName,
+                      photoBase64: draftPhotoBase64,
+                      isProfileVisible: _preferences.isProfileVisible,
+                      pushNotifications: _preferences.pushNotifications,
+                      locationAlerts: _preferences.locationAlerts,
+                      hapticFeedback: _preferences.hapticFeedback,
+                      dataSaverMode: _preferences.dataSaverMode,
+                    ).photoBytes;
 
-            Future<void> pickPhoto() async {
-              if (isSaving || isPickingPhoto) {
-                return;
-              }
-              setDialogState(() {
-                isPickingPhoto = true;
-                errorMessage = null;
-              });
-              try {
-                final picked = await _imagePicker.pickImage(
-                  source: ImageSource.gallery,
-                  maxWidth: 640,
-                  maxHeight: 640,
-                  imageQuality: 80,
-                );
-                if (picked == null) {
-                  return;
-                }
-                final bytes = await picked.readAsBytes();
-                if (bytes.isEmpty) {
+                Future<void> pickPhoto() async {
+                  if (isSaving || isPickingPhoto) {
+                    return;
+                  }
                   setDialogState(() {
-                    errorMessage = _t.profileLoadPhotoFailed;
+                    isPickingPhoto = true;
+                    errorMessage = null;
                   });
-                  return;
+                  try {
+                    final picked = await _imagePicker.pickImage(
+                      source: ImageSource.gallery,
+                      maxWidth: 640,
+                      maxHeight: 640,
+                      imageQuality: 80,
+                    );
+                    if (picked == null) {
+                      return;
+                    }
+                    final bytes = await picked.readAsBytes();
+                    if (bytes.isEmpty) {
+                      setDialogState(() {
+                        errorMessage = _t.profileLoadPhotoFailed;
+                      });
+                      return;
+                    }
+                    setDialogState(() {
+                      draftPhotoBase64 = base64Encode(bytes);
+                    });
+                  } catch (_) {
+                    setDialogState(() {
+                      errorMessage = _t.profilePickPhotoFailed;
+                    });
+                  } finally {
+                    if (dialogContext.mounted) {
+                      setDialogState(() {
+                        isPickingPhoto = false;
+                      });
+                    }
+                  }
                 }
-                setDialogState(() {
-                  draftPhotoBase64 = base64Encode(bytes);
-                });
-              } catch (_) {
-                setDialogState(() {
-                  errorMessage = _t.profilePickPhotoFailed;
-                });
-              } finally {
-                if (dialogContext.mounted) {
+
+                Future<void> submitProfileUpdate() async {
+                  if (isSaving || isPickingPhoto) {
+                    return;
+                  }
+                  final rawName = nameController.text.trim();
+                  if (rawName.isEmpty) {
+                    setDialogState(() {
+                      errorMessage = _t.profileNameRequired;
+                    });
+                    return;
+                  }
                   setDialogState(() {
-                    isPickingPhoto = false;
+                    isSaving = true;
+                    errorMessage = null;
+                  });
+                  final saved = await _saveProfileIdentity(
+                    displayName: rawName,
+                    photoBase64: draftPhotoBase64,
+                  );
+                  if (!dialogContext.mounted) {
+                    return;
+                  }
+                  if (saved) {
+                    profileUpdated = true;
+                    Navigator.of(dialogContext).pop();
+                    return;
+                  }
+                  setDialogState(() {
+                    isSaving = false;
+                    errorMessage = _t.profileSaveFailed;
                   });
                 }
-              }
-            }
 
-            Future<void> submitProfileUpdate() async {
-              if (isSaving || isPickingPhoto) {
-                return;
-              }
-              final rawName = nameController.text.trim();
-              if (rawName.isEmpty) {
-                setDialogState(() {
-                  errorMessage = _t.profileNameRequired;
-                });
-                return;
-              }
-              setDialogState(() {
-                isSaving = true;
-                errorMessage = null;
-              });
-              final saved = await _saveProfileIdentity(
-                displayName: rawName,
-                photoBase64: draftPhotoBase64,
-              );
-              if (!dialogContext.mounted) {
-                return;
-              }
-              if (saved) {
-                profileUpdated = true;
-                Navigator.of(dialogContext).pop();
-                return;
-              }
-              setDialogState(() {
-                isSaving = false;
-                errorMessage = _t.profileSaveFailed;
-              });
-            }
-
-            return AlertDialog(
-              title: Text(_t.profileEdit),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+                return AlertDialog(
+                  title: Text(_t.profileEdit),
+                  content: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        CircleAvatar(
-                          radius: 28,
-                          backgroundColor: Theme.of(
-                            context,
-                          ).colorScheme.primary.withValues(alpha: 0.14),
-                          foregroundImage:
-                              previewBytes == null
-                                  ? null
-                                  : MemoryImage(previewBytes),
-                          child:
-                              previewBytes == null
-                                  ? Icon(
-                                    Icons.person_rounded,
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
-                                    size: 28,
-                                  )
-                                  : null,
+                        Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 28,
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.primary.withValues(alpha: 0.14),
+                              foregroundImage:
+                                  previewBytes == null
+                                      ? null
+                                      : MemoryImage(previewBytes),
+                              child:
+                                  previewBytes == null
+                                      ? Icon(
+                                        Icons.person_rounded,
+                                        color:
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                        size: 28,
+                                      )
+                                      : null,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  OutlinedButton.icon(
+                                    onPressed:
+                                        (isSaving || isPickingPhoto)
+                                            ? null
+                                            : pickPhoto,
+                                    icon:
+                                        isPickingPhoto
+                                            ? const SizedBox(
+                                              width: 16,
+                                              height: 16,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                              ),
+                                            )
+                                            : const Icon(
+                                              Icons.photo_library_outlined,
+                                            ),
+                                    label: Text(_t.profileChangePhoto),
+                                  ),
+                                  OutlinedButton.icon(
+                                    onPressed:
+                                        (isSaving || isPickingPhoto)
+                                            ? null
+                                            : () {
+                                              setDialogState(() {
+                                                draftPhotoBase64 = '';
+                                                errorMessage = null;
+                                              });
+                                            },
+                                    icon: const Icon(
+                                      Icons.delete_outline_rounded,
+                                    ),
+                                    label: Text(_t.profileRemovePhoto),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              OutlinedButton.icon(
-                                onPressed:
-                                    (isSaving || isPickingPhoto)
-                                        ? null
-                                        : pickPhoto,
-                                icon:
-                                    isPickingPhoto
-                                        ? const SizedBox(
-                                          width: 16,
-                                          height: 16,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                          ),
-                                        )
-                                        : const Icon(
-                                          Icons.photo_library_outlined,
-                                        ),
-                                label: Text(_t.profileChangePhoto),
-                              ),
-                              OutlinedButton.icon(
-                                onPressed:
-                                    (isSaving || isPickingPhoto)
-                                        ? null
-                                        : () {
-                                          setDialogState(() {
-                                            draftPhotoBase64 = '';
-                                            errorMessage = null;
-                                          });
-                                        },
-                                icon: const Icon(Icons.delete_outline_rounded),
-                                label: Text(_t.profileRemovePhoto),
-                              ),
-                            ],
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: nameController,
+                          enabled: !isSaving,
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) {
+                            unawaited(submitProfileUpdate());
+                          },
+                          decoration: InputDecoration(
+                            labelText: _t.profileNameLabel,
+                            hintText: _t.profileNameHint,
                           ),
                         ),
+                        if (errorMessage != null) ...[
+                          const SizedBox(height: 10),
+                          Text(
+                            errorMessage!,
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: nameController,
-                      enabled: !isSaving,
-                      textInputAction: TextInputAction.done,
-                      onSubmitted: (_) {
-                        unawaited(submitProfileUpdate());
-                      },
-                      decoration: InputDecoration(
-                        labelText: _t.profileNameLabel,
-                        hintText: _t.profileNameHint,
-                      ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed:
+                          (isSaving || isPickingPhoto)
+                              ? null
+                              : () {
+                                Navigator.of(dialogContext).pop();
+                              },
+                      child: Text(_t.actionCancel),
                     ),
-                    if (errorMessage != null) ...[
-                      const SizedBox(height: 10),
-                      Text(
-                        errorMessage!,
-                        style: const TextStyle(
-                          color: Colors.red,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
+                    FilledButton(
+                      onPressed:
+                          (isSaving || isPickingPhoto)
+                              ? null
+                              : submitProfileUpdate,
+                      child:
+                          isSaving
+                              ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                              : Text(_t.actionSave),
+                    ),
                   ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed:
-                      (isSaving || isPickingPhoto)
-                          ? null
-                          : () {
-                            Navigator.of(dialogContext).pop();
-                          },
-                  child: Text(_t.actionCancel),
-                ),
-                FilledButton(
-                  onPressed:
-                      (isSaving || isPickingPhoto) ? null : submitProfileUpdate,
-                  child:
-                      isSaving
-                          ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                          : Text(_t.actionSave),
-                ),
-              ],
+                );
+              },
             );
           },
         );
       },
     );
-    nameController.dispose();
     if (profileUpdated) {
       _showProfileSnack(_t.profileUpdated);
     }

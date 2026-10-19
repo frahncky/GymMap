@@ -398,189 +398,192 @@ extension _GymMapPagePlan on _GymMapPageState {
       return;
     }
 
-    final userController = TextEditingController(
-      text: register || service.isAnonymousSession ? '' : service.userId,
-    );
-    final passwordController = TextEditingController();
-    try {
-      await showDialog<void>(
-        context: context,
-        builder: (dialogContext) {
-          var isSubmitting = false;
-          var hidePassword = true;
-          String? errorMessage;
-          return StatefulBuilder(
-            builder: (context, setDialogState) {
-              Future<void> submitLogin() async {
-                final userId = userController.text.trim();
-                final password = passwordController.text;
-                if (userId.isEmpty || password.isEmpty) {
-                  setDialogState(() {
-                    errorMessage = _t.authMissingCredentials;
-                  });
-                  return;
-                }
-
-                setDialogState(() {
-                  errorMessage = null;
-                  isSubmitting = true;
-                });
-                if (mounted) {
-                  _setStateIfMapVisible(() {
-                    _isPlanAuthBusy = true;
-                  });
-                }
-                try {
-                  final session =
-                      register
-                          ? await service.register(
-                            username: userId,
-                            password: password,
-                          )
-                          : await service.signIn(
-                            userId: userId,
-                            password: password,
-                          );
-                  await _syncPlanFromStorage(showExpiryNotice: false);
-                  _crowdReportRemoteService?.refreshAuthFromStorage();
-                  unawaited(_syncCrowdReportsForCurrentContext());
-                  if (!mounted) {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        var isSubmitting = false;
+        var hidePassword = true;
+        String? errorMessage;
+        return DialogTextControllers(
+          initialTexts: [
+            register || service.isAnonymousSession ? '' : service.userId,
+            '',
+          ],
+          builder: (context, controllers) {
+            final userController = controllers[0];
+            final passwordController = controllers[1];
+            return StatefulBuilder(
+              builder: (context, setDialogState) {
+                Future<void> submitLogin() async {
+                  final userId = userController.text.trim();
+                  final password = passwordController.text;
+                  if (userId.isEmpty || password.isEmpty) {
+                    setDialogState(() {
+                      errorMessage = _t.authMissingCredentials;
+                    });
                     return;
                   }
-                  if (dialogContext.mounted) {
-                    Navigator.of(dialogContext).pop();
-                  }
-                  if (sheetContext.mounted) {
-                    Navigator.of(sheetContext).pop();
-                  }
-                  _showMapSnack(
-                    register
-                        ? _t.authAccountCreated(
-                          service.username ?? session.userId,
-                        )
-                        : _t.authSignedIn(service.username ?? session.userId),
-                  );
-                } catch (error) {
-                  if (dialogContext.mounted) {
-                    setDialogState(() {
-                      errorMessage = _formatAuthFailure(error);
-                    });
-                  }
-                } finally {
+
+                  setDialogState(() {
+                    errorMessage = null;
+                    isSubmitting = true;
+                  });
                   if (mounted) {
                     _setStateIfMapVisible(() {
-                      _isPlanAuthBusy = false;
+                      _isPlanAuthBusy = true;
                     });
                   }
-                  if (dialogContext.mounted) {
-                    setDialogState(() {
-                      isSubmitting = false;
-                    });
+                  try {
+                    final session =
+                        register
+                            ? await service.register(
+                              username: userId,
+                              password: password,
+                            )
+                            : await service.signIn(
+                              userId: userId,
+                              password: password,
+                            );
+                    await _syncPlanFromStorage(showExpiryNotice: false);
+                    _crowdReportRemoteService?.refreshAuthFromStorage();
+                    unawaited(_syncCrowdReportsForCurrentContext());
+                    if (!mounted) {
+                      return;
+                    }
+                    if (dialogContext.mounted) {
+                      Navigator.of(dialogContext).pop();
+                    }
+                    if (sheetContext.mounted) {
+                      Navigator.of(sheetContext).pop();
+                    }
+                    _showMapSnack(
+                      register
+                          ? _t.authAccountCreated(
+                            service.username ?? session.userId,
+                          )
+                          : _t.authSignedIn(service.username ?? session.userId),
+                    );
+                  } catch (error) {
+                    if (dialogContext.mounted) {
+                      setDialogState(() {
+                        errorMessage = _formatAuthFailure(error);
+                      });
+                    }
+                  } finally {
+                    if (mounted) {
+                      _setStateIfMapVisible(() {
+                        _isPlanAuthBusy = false;
+                      });
+                    }
+                    if (dialogContext.mounted) {
+                      setDialogState(() {
+                        isSubmitting = false;
+                      });
+                    }
                   }
                 }
-              }
 
-              return AlertDialog(
-                title: Text(
-                  register ? _t.authCreateAccount : _t.authSignInMonthly,
-                ),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: userController,
-                      enabled: !isSubmitting,
-                      textInputAction: TextInputAction.next,
-                      decoration: InputDecoration(
-                        labelText: _t.authUsernameLabel,
-                        hintText: 'user-001',
-                        helperText: register ? _t.authUsernameHelper : null,
+                return AlertDialog(
+                  title: Text(
+                    register ? _t.authCreateAccount : _t.authSignInMonthly,
+                  ),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: userController,
+                        enabled: !isSubmitting,
+                        textInputAction: TextInputAction.next,
+                        decoration: InputDecoration(
+                          labelText: _t.authUsernameLabel,
+                          hintText: 'user-001',
+                          helperText: register ? _t.authUsernameHelper : null,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: passwordController,
-                      enabled: !isSubmitting,
-                      obscureText: hidePassword,
-                      onSubmitted: (_) {
-                        unawaited(submitLogin());
-                      },
-                      decoration: InputDecoration(
-                        labelText: _t.authPasswordLabel,
-                        helperText: register ? _t.authPasswordHelper : null,
-                        suffixIcon: IconButton(
-                          onPressed:
-                              isSubmitting
-                                  ? null
-                                  : () {
-                                    setDialogState(() {
-                                      hidePassword = !hidePassword;
-                                    });
-                                  },
-                          icon: Icon(
-                            hidePassword
-                                ? Icons.visibility_off
-                                : Icons.visibility,
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: passwordController,
+                        enabled: !isSubmitting,
+                        obscureText: hidePassword,
+                        onSubmitted: (_) {
+                          unawaited(submitLogin());
+                        },
+                        decoration: InputDecoration(
+                          labelText: _t.authPasswordLabel,
+                          helperText: register ? _t.authPasswordHelper : null,
+                          suffixIcon: IconButton(
+                            onPressed:
+                                isSubmitting
+                                    ? null
+                                    : () {
+                                      setDialogState(() {
+                                        hidePassword = !hidePassword;
+                                      });
+                                    },
+                            icon: Icon(
+                              hidePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    if (errorMessage != null) ...[
-                      const SizedBox(height: 10),
-                      Text(
-                        errorMessage!,
-                        style: const TextStyle(
-                          color: Colors.red,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
+                      if (errorMessage != null) ...[
+                        const SizedBox(height: 10),
+                        Text(
+                          errorMessage!,
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                          ),
                         ),
-                      ),
+                      ],
                     ],
-                  ],
-                ),
-                actions: [
-                  TextButton(
-                    onPressed:
-                        isSubmitting
-                            ? null
-                            : () {
-                              Navigator.of(dialogContext).pop();
-                            },
-                    child: Text(_t.actionCancel),
                   ),
-                  FilledButton.icon(
-                    onPressed:
-                        isSubmitting
-                            ? null
-                            : () {
-                              unawaited(submitLogin());
-                            },
-                    icon:
-                        isSubmitting
-                            ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                            : Icon(register ? Icons.person_add : Icons.login),
-                    label: Text(
-                      register
-                          ? (isSubmitting
-                              ? _t.authCreating
-                              : _t.authCreateAccount)
-                          : (isSubmitting ? _t.authSigningIn : _t.authSignIn),
+                  actions: [
+                    TextButton(
+                      onPressed:
+                          isSubmitting
+                              ? null
+                              : () {
+                                Navigator.of(dialogContext).pop();
+                              },
+                      child: Text(_t.actionCancel),
                     ),
-                  ),
-                ],
-              );
-            },
-          );
-        },
-      );
-    } finally {
-      userController.dispose();
-      passwordController.dispose();
-    }
+                    FilledButton.icon(
+                      onPressed:
+                          isSubmitting
+                              ? null
+                              : () {
+                                unawaited(submitLogin());
+                              },
+                      icon:
+                          isSubmitting
+                              ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                              : Icon(register ? Icons.person_add : Icons.login),
+                      label: Text(
+                        register
+                            ? (isSubmitting
+                                ? _t.authCreating
+                                : _t.authCreateAccount)
+                            : (isSubmitting ? _t.authSigningIn : _t.authSignIn),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        );
+      },
+    );
   }
 
   Future<void> _logoutPlanSession(BuildContext sheetContext) async {
