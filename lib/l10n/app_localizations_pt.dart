@@ -9,6 +9,31 @@ class AppLocalizationsPt extends AppLocalizations {
   AppLocalizationsPt([String locale = 'pt']) : super(locale);
 
   @override
+  String get accountPrivacyTitle => 'Política de privacidade';
+
+  @override
+  String get accountPrivacyOpenFailed =>
+      'Não foi possível abrir a política. Contato: francisco.dsantos.viana@gmail.com';
+
+  @override
+  String get accountDeleteTitle => 'Excluir conta e dados';
+
+  @override
+  String get accountDeleteWarning =>
+      'Esta ação é permanente. Sua conta, relatos, votos, sugestões e pontos serão apagados. Os dados locais da conta neste aparelho também serão removidos. A exclusão não cancela assinaturas do Google Play: gerencie a renovação na loja antes de continuar. Confirme sua senha se você criou uma conta.';
+
+  @override
+  String get accountManageSubscriptions =>
+      'Gerenciar assinaturas no Google Play';
+
+  @override
+  String get accountDeletedMessage =>
+      'Sua conta e os dados associados foram excluídos. Você pode continuar com uma nova conta anônima.';
+
+  @override
+  String get accountContinue => 'Continuar no GymMap';
+
+  @override
   String get settingsLanguageTitle => 'Idioma';
 
   @override
@@ -1511,4 +1536,19 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get suggestionChangeFailed =>
       'Não deu para salvar agora. Tente de novo mais tarde.';
+
+  @override
+  String get presenceReportHint =>
+      'Para informar a lotação, você precisa estar na academia (até 200 m).';
+
+  @override
+  String get presenceVoteHint =>
+      'Para confirmar ou discordar da lotação, você precisa estar na academia (até 200 m).';
+
+  @override
+  String get presenceLocationRequired => 'Ative a localização para participar.';
+
+  @override
+  String get panelNoOccupancyNoticeFar =>
+      'Ainda não há relatos suficientes de lotação nesta academia.';
 }

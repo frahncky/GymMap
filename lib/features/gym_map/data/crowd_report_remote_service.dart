@@ -181,6 +181,8 @@ class CrowdReportRemoteService {
     required String reporterId,
     String? regionKey,
     String? regionLabel,
+    LatLng? userPosition,
+    LatLng? gymPosition,
   }) async {
     if (!hasRemoteBackend) {
       throw StateError('Backend crowd service not configured');
@@ -204,6 +206,7 @@ class CrowdReportRemoteService {
               'regionKey': regionKey!.trim(),
             if ((regionLabel ?? '').trim().isNotEmpty)
               'regionLabel': regionLabel!.trim(),
+            ..._presenceFields(userPosition, gymPosition),
           }),
         )
         .timeout(_requestTimeout);
@@ -244,6 +247,8 @@ class CrowdReportRemoteService {
   Future<CrowdReport> voteOnReport({
     required String reportId,
     required String? vote,
+    LatLng? userPosition,
+    LatLng? gymPosition,
   }) async {
     if (!hasRemoteBackend) {
       throw StateError('Backend crowd service not configured');
@@ -257,6 +262,7 @@ class CrowdReportRemoteService {
             'userId': _userId,
             'reportId': reportId,
             'vote': vote,
+            ..._presenceFields(userPosition, gymPosition),
           }),
         )
         .timeout(_requestTimeout);
@@ -501,6 +507,8 @@ class CrowdReportRemoteService {
   Future<RemoteAmenityVoteResult> submitAmenityVotes({
     required String gymId,
     required Map<GymAmenity, bool?> votes,
+    LatLng? userPosition,
+    LatLng? gymPosition,
   }) async {
     if (!hasRemoteBackend) {
       throw StateError('Backend crowd service not configured');
@@ -516,6 +524,7 @@ class CrowdReportRemoteService {
             'votes': <String, bool?>{
               for (final entry in votes.entries) entry.key.key: entry.value,
             },
+            ..._presenceFields(userPosition, gymPosition),
           }),
         )
         .timeout(_requestTimeout);
@@ -746,6 +755,15 @@ class CrowdReportRemoteService {
       entries: List<RemoteCrowdLeaderboardEntry>.unmodifiable(entries),
     );
   }
+
+  /// Onde a pessoa está e onde fica a academia: o servidor só aceita relato,
+  /// voto em relato e comodidades de quem está na academia (até 300 m).
+  static Map<String, double> _presenceFields(LatLng? user, LatLng? gym) => {
+    if (user != null) 'userLat': user.latitude,
+    if (user != null) 'userLng': user.longitude,
+    if (gym != null) 'gymLat': gym.latitude,
+    if (gym != null) 'gymLng': gym.longitude,
+  };
 
   Uri _buildRemoteUri(List<String> pathSegments) {
     final baseUri = _backendBaseUri;

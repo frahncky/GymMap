@@ -25,7 +25,6 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.devia.gymmap"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
@@ -66,14 +65,8 @@ android {
 
     buildTypes {
         release {
-            // Uses production keystore when android/key.properties exists.
-            // Fallback to debug signing only for local validation.
-            signingConfig =
-                if (keystorePropertiesFile.exists()) {
-                    signingConfigs.getByName("release")
-                } else {
-                    signingConfigs.getByName("debug")
-                }
+            // Release artifacts must never silently use the debug certificate.
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }

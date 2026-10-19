@@ -26,6 +26,14 @@ extension _GymMapPageCommunity on _GymMapPageState {
     if (selectedGym == null) {
       return;
     }
+    if (!_isUserAtGym(selectedGym)) {
+      _showMapSnack(
+        _userLocation == null
+            ? _t.presenceLocationRequired
+            : _t.presenceReportHint,
+      );
+      return;
+    }
 
     if (mounted) {
       _setStateIfMapVisible(() {
@@ -48,6 +56,8 @@ extension _GymMapPageCommunity on _GymMapPageState {
             reporterId: reporterId,
             regionKey: regionKey,
             regionLabel: regionLabel,
+            userPosition: _userLocation,
+            gymPosition: selectedGym.position,
           );
           if (!remoteResult.accepted) {
             final retryAfter =
@@ -130,6 +140,13 @@ extension _GymMapPageCommunity on _GymMapPageState {
             ),
           );
           return;
+        } on StateError catch (error) {
+          // Recusado por distância: não vira relato local.
+          if (error.message == 'too_far' ||
+              error.message == 'location_required') {
+            _showMapSnack(_t.presenceReportHint);
+            return;
+          }
         } catch (_) {
           // Sem rede/backend: segue fluxo local para não perder envio do usuário.
         }

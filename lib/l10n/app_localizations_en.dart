@@ -9,6 +9,31 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get accountPrivacyTitle => 'Privacy policy';
+
+  @override
+  String get accountPrivacyOpenFailed =>
+      'Could not open the policy. Contact: francisco.dsantos.viana@gmail.com';
+
+  @override
+  String get accountDeleteTitle => 'Delete account and data';
+
+  @override
+  String get accountDeleteWarning =>
+      'This action is permanent. Your account, reports, votes, suggestions and points will be deleted. Local account data on this device will also be removed. Deleting your account does not cancel Google Play subscriptions: manage renewal in the store before continuing. Confirm your password if you registered an account.';
+
+  @override
+  String get accountManageSubscriptions =>
+      'Manage subscriptions in Google Play';
+
+  @override
+  String get accountDeletedMessage =>
+      'Your account and associated data have been deleted. You can continue with a new anonymous account.';
+
+  @override
+  String get accountContinue => 'Continue to GymMap';
+
+  @override
   String get settingsLanguageTitle => 'Language';
 
   @override
@@ -1497,4 +1522,19 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get suggestionChangeFailed =>
       'Couldn\'t save right now. Try again later.';
+
+  @override
+  String get presenceReportHint =>
+      'To report occupancy, you need to be at the gym (within 200 m).';
+
+  @override
+  String get presenceVoteHint =>
+      'To confirm or disagree with the occupancy, you need to be at the gym (within 200 m).';
+
+  @override
+  String get presenceLocationRequired => 'Turn on location to take part.';
+
+  @override
+  String get panelNoOccupancyNoticeFar =>
+      'Not enough occupancy reports for this gym yet.';
 }

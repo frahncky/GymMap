@@ -26,7 +26,9 @@ storeFile=C:\\keys\\gymmap-upload.jks
 powershell -ExecutionPolicy Bypass -File scripts/build_app_production.ps1 -Target android-appbundle -DefineFile env/app.production.json
 ```
 
-Note: if `android/key.properties` is missing, release build falls back to debug signing and should not be uploaded to Play Store.
+Release builds require a valid upload key and never fall back to debug signing.
+For the closed-test workflow, public privacy/deletion pages and release checks,
+see [CLOSED_TEST_SETUP.md](CLOSED_TEST_SETUP.md).
 
 ## Billing backend (monthly subscription)
 
@@ -40,6 +42,8 @@ The repository includes a reference backend in `backend/server.dart` with:
 - `POST /v1/auth/anonymous` to create the device's anonymous account (returns JWT + `deviceSecret`; the app calls this automatically on first run)
 - `POST /v1/auth/register` to create an account with `username`/`password` (with an anonymous session's Bearer token, it upgrades that account and keeps its `userId`)
 - `POST /v1/auth/login` to issue JWT access token (username + password, anonymous `userId` + `deviceSecret`, or `AUTH_USERS_JSON` users)
+- `POST /v1/account/delete` to permanently remove the authenticated end-user account and associated active data (`confirm: true`; current password required for registered accounts)
+- `GET /privacy` and `GET /delete-account` for public privacy information and browser-based account deletion
 - `GET /v1/subscriptions/:userId` to read active subscription
 - `POST /v1/subscriptions/downgrade` to switch back to free
 - `GET /v1/metrics` for production operational metrics (admin token)

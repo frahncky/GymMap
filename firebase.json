@@ -1,0 +1,16 @@
+{
+  "firestore": { "rules": "firestore.rules", "indexes": "firestore.indexes.json" },
+  "hosting": {
+    "public": "backend/public",
+    "cleanUrls": true,
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "headers": [{ "source": "**", "headers": [
+      { "key": "Cache-Control", "value": "no-store" },
+      { "key": "X-Content-Type-Options", "value": "nosniff" },
+      { "key": "Referrer-Policy", "value": "no-referrer" }
+    ]}],
+    "rewrites": [{ "source": "/v1/**", "run": {
+      "serviceId": "gymmap-api", "region": "southamerica-east1"
+    }}]
+  }
+}

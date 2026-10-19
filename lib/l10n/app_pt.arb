@@ -1,5 +1,12 @@
 {
   "@@locale": "pt",
+  "accountPrivacyTitle": "Política de privacidade",
+  "accountPrivacyOpenFailed": "Não foi possível abrir a política. Contato: francisco.dsantos.viana@gmail.com",
+  "accountDeleteTitle": "Excluir conta e dados",
+  "accountDeleteWarning": "Esta ação é permanente. Sua conta, relatos, votos, sugestões e pontos serão apagados. Os dados locais da conta neste aparelho também serão removidos. A exclusão não cancela assinaturas do Google Play: gerencie a renovação na loja antes de continuar. Confirme sua senha se você criou uma conta.",
+  "accountManageSubscriptions": "Gerenciar assinaturas no Google Play",
+  "accountDeletedMessage": "Sua conta e os dados associados foram excluídos. Você pode continuar com uma nova conta anônima.",
+  "accountContinue": "Continuar no GymMap",
   "settingsLanguageTitle": "Idioma",
   "settingsLanguageSystem": "Idioma do aparelho",
   "settingsLanguagePortuguese": "Português",
@@ -903,5 +910,9 @@
   "suggestionDeleted": "Sugestão excluída.",
   "suggestionUpdated": "Sugestão atualizada.",
   "suggestionLocked": "Ela já recebeu votos, então não dá mais para editar nem excluir.",
-  "suggestionChangeFailed": "Não deu para salvar agora. Tente de novo mais tarde."
+  "suggestionChangeFailed": "Não deu para salvar agora. Tente de novo mais tarde.",
+  "presenceReportHint": "Para informar a lotação, você precisa estar na academia (até 200 m).",
+  "presenceVoteHint": "Para confirmar ou discordar da lotação, você precisa estar na academia (até 200 m).",
+  "presenceLocationRequired": "Ative a localização para participar.",
+  "panelNoOccupancyNoticeFar": "Ainda não há relatos suficientes de lotação nesta academia."
 }

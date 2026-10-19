@@ -979,6 +979,7 @@ extension _GymMapPageMapView on _GymMapPageState {
       isSubmittingCrowdReport: _isSubmittingCrowdReport,
       onSubmitCrowdReport: _submitCrowdReport,
       amenities: _shownAmenitiesFor(gym),
+      isUserAtGym: _isUserAtGym(gym),
       onEditAmenities: () => _openAmenitySheet(gym),
       onOpenRoute: () {
         unawaited(_showRouteToGym(gym));

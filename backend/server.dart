@@ -9,6 +9,8 @@ import 'package:googleapis/androidpublisher/v3.dart' as androidpublisher;
 import 'package:googleapis_auth/auth_io.dart' as google_auth;
 import 'package:postgres/postgres.dart';
 
+import 'firestore_state_store.dart';
+
 const Map<String, int> _planPricesCents = <String, int>{
   'free': 0,
   'smart': 490,
@@ -27,6 +29,8 @@ Future<void> main() async {
   final corsAllowOrigin =
       (Platform.environment['CORS_ALLOW_ORIGIN'] ?? '*').trim();
   final databaseUrl = Platform.environment['DATABASE_URL'] ?? '';
+  final firestoreProjectId =
+      (Platform.environment['FIRESTORE_PROJECT_ID'] ?? '').trim();
   final webhookToken = Platform.environment['WEBHOOK_TOKEN'] ?? '';
   final webhookSecrets = _normalizeWebhookSecrets(
     currentSecret: Platform.environment['WEBHOOK_SIGNING_SECRET'] ?? '',
@@ -121,7 +125,7 @@ Future<void> main() async {
 
   final startupIssues = _validateProductionConfig(
     productionMode: productionMode,
-    databaseUrl: databaseUrl,
+    databaseUrl: firestoreProjectId.isEmpty ? databaseUrl : 'firestore',
     jwtSecret: jwtSecret,
     webhookToken: webhookToken,
     webhookSecrets: webhookSecrets,
@@ -137,7 +141,12 @@ Future<void> main() async {
     loginAttemptsPerMin: loginAttemptsPerMin,
     billingAttemptsPerMin: billingAttemptsPerMin,
     playPackageName: playPackageName,
-    playServiceAccountJson: playServiceAccountJson,
+    playServiceAccountJson:
+        _parseBoolEnv(
+              Platform.environment['PLAY_USE_APPLICATION_DEFAULT'] ?? '',
+            )
+            ? 'application-default'
+            : playServiceAccountJson,
     playProductIdsByPlan: playProductIdsByPlan,
   );
   if (startupIssues.isNotEmpty) {
@@ -150,6 +159,7 @@ Future<void> main() async {
   }
 
   final backend = await _PixBillingBackend.create(
+    firestoreProjectId: firestoreProjectId,
     storeFile: File(storePath),
     productionMode: productionMode,
     corsAllowOrigin: corsAllowOrigin,
@@ -197,6 +207,7 @@ Future<void> main() async {
 
 class _PixBillingBackend {
   _PixBillingBackend._({
+    this.firestoreStore,
     required this.storageLabel,
     required this.storeFile,
     required this.db,
@@ -246,6 +257,7 @@ class _PixBillingBackend {
   final String storageLabel;
   final File storeFile;
   final PostgreSQLConnection? db;
+  final FirestoreStateStore? firestoreStore;
   final bool productionMode;
   final String corsAllowOrigin;
   final String webhookToken;
@@ -337,6 +349,11 @@ class _PixBillingBackend {
   // antes da decisão ganha 2.
   static const double _maxSuggestDistanceKm = 1.0;
   static const double _maxSuggestionVoteDistanceKm = 0.5;
+
+  // Lotação (relatar e confirmar/discordar de um relato) só vale para quem
+  // está na academia ou bem perto (até 200 m). Comodidades dá para marcar de
+  // qualquer lugar.
+  static const double _maxPresenceDistanceKm = 0.2;
   static const double _duplicateGymDistanceKm = 0.05;
   static const int _maxSuggestionsPerDay = 3;
   static const int _suggestionConfirmThreshold = 3;
@@ -400,6 +417,7 @@ class _PixBillingBackend {
       playBillingClient != null && playPackageName.trim().isNotEmpty;
 
   static Future<_PixBillingBackend> create({
+    String firestoreProjectId = '',
     required File storeFile,
     required bool productionMode,
     required String corsAllowOrigin,
@@ -436,21 +454,45 @@ class _PixBillingBackend {
     required Map<String, String> playProductIdsByPlan,
   }) async {
     PostgreSQLConnection? dbConnection;
+    FirestoreStateStore? firestoreStore;
     _State state;
     var label = storeFile.path;
 
     final normalizedDbUrl = databaseUrl.trim();
-    if (normalizedDbUrl.isNotEmpty) {
+    if (productionMode &&
+        normalizedDbUrl.isEmpty &&
+        firestoreProjectId.isEmpty) {
+      throw StateError('DATABASE_URL is required in production mode');
+    }
+    if (firestoreProjectId.isNotEmpty) {
+      final client = await google_auth.clientViaApplicationDefaultCredentials(
+        scopes: ['https://www.googleapis.com/auth/datastore'],
+      );
+      firestoreStore = FirestoreStateStore(
+        projectId: firestoreProjectId,
+        client: client,
+      );
+      final maps = (await firestoreStore.refresh())!;
+      state = _stateFromMaps(maps);
+      label = 'firestore';
+    } else if (normalizedDbUrl.isNotEmpty) {
       try {
         dbConnection = await _openDb(normalizedDbUrl);
         await _ensureDbSchema(dbConnection);
         state = await _loadFromDb(dbConnection);
-        label = 'postgres:$normalizedDbUrl';
+        label = 'postgres';
       } catch (error) {
+        await dbConnection?.close();
+        if (productionMode) {
+          // Container files are ephemeral: never silently lose production data.
+          stderr.writeln(
+            '[pix-backend] postgres init failed; startup aborted.',
+          );
+          rethrow;
+        }
         stderr.writeln(
           '[pix-backend] postgres init failed: $error. Falling back to file.',
         );
-        await dbConnection?.close();
         dbConnection = null;
         state = await _loadFromFile(storeFile);
       }
@@ -464,6 +506,7 @@ class _PixBillingBackend {
     );
 
     final backend = _PixBillingBackend._(
+      firestoreStore: firestoreStore,
       storageLabel: label,
       storeFile: storeFile,
       db: dbConnection,
@@ -518,6 +561,24 @@ class _PixBillingBackend {
   }
 
   Future<void> handle(HttpRequest req) async {
+    if (firestoreStore != null) {
+      try {
+        await _persistTail;
+        final snapshot = await firestoreStore!.refresh();
+        if (snapshot != null) {
+          for (final kind in _dbKinds) {
+            _sourceForDbKind(kind)
+              ..clear()
+              ..addAll(snapshot[kind] ?? {});
+          }
+          _rebuildUsernameIndex();
+        }
+      } catch (_) {
+        return await _json(req, HttpStatus.serviceUnavailable, {
+          'error': 'persistent_storage_unavailable',
+        });
+      }
+    }
     final startedAt = DateTime.now().toUtc();
     final segments =
         req.uri.pathSegments.where((x) => x.trim().isNotEmpty).toList();
@@ -569,7 +630,7 @@ class _PixBillingBackend {
       _requestInFlight = math.max(0, _requestInFlight - 1);
       _request4xx++;
       _routeErrors[routeKey] = (_routeErrors[routeKey] ?? 0) + 1;
-      return _json(req, HttpStatus.tooManyRequests, <String, dynamic>{
+      return await _json(req, HttpStatus.tooManyRequests, <String, dynamic>{
         'error': 'rate_limited',
         'retryAfterSec': rateLimitRetry.inSeconds.clamp(1, 3600),
         'requestId': requestId,
@@ -579,13 +640,79 @@ class _PixBillingBackend {
     unawaited(_maybeRunRetentionSweep());
 
     try {
+      if (pixProviderMode == 'disabled' &&
+          (req.uri.path.startsWith('/v1/billing/pix/') ||
+              req.uri.path == '/v1/webhooks/pix')) {
+        return await _json(req, HttpStatus.serviceUnavailable, {
+          'error': 'pix_disabled',
+        });
+      }
+      if (req.method == 'GET' &&
+          (req.uri.path == '/privacy' || req.uri.path == '/delete-account')) {
+        final fileName =
+            req.uri.path == '/privacy' ? 'privacy.html' : 'delete-account.html';
+        final page = File('backend/public/$fileName');
+        if (!await page.exists()) {
+          return await _json(
+            req,
+            HttpStatus.serviceUnavailable,
+            <String, dynamic>{'error': 'legal_page_unavailable'},
+          );
+        }
+        req.response.headers.contentType = ContentType.html;
+        req.response.headers.set('Cache-Control', 'no-store');
+        req.response.headers.set('X-Content-Type-Options', 'nosniff');
+        req.response.headers.set('Referrer-Policy', 'no-referrer');
+        req.response.write(await page.readAsString());
+        await req.response.close();
+        return;
+      }
+
+      if (req.method == 'POST' && req.uri.path == '/v1/account/delete') {
+        final userId = _authenticate(req);
+        final account = userId == null ? null : accounts[userId];
+        if (userId == null || account == null) {
+          return await _json(req, HttpStatus.unauthorized, <String, dynamic>{
+            'error': 'unauthorized',
+          });
+        }
+        final payload = await _readJson(req);
+        if (payload['confirm'] != true) {
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
+            'error': 'confirmation_required',
+          });
+        }
+        if (account['kind'] != 'anonymous' &&
+            !await _verifyPassword(account, '${payload['password'] ?? ''}')) {
+          return await _json(req, HttpStatus.unauthorized, <String, dynamic>{
+            'error': 'invalid_credentials',
+          });
+        }
+        // Password verification yields; recheck that the account still exists.
+        if (!identical(accounts[userId], account)) {
+          return await _json(req, HttpStatus.unauthorized, <String, dynamic>{
+            'error': 'unauthorized',
+          });
+        }
+        _deleteAccountData(userId);
+        await _persist();
+        return await _json(req, HttpStatus.ok, <String, dynamic>{
+          'deleted': true,
+        });
+      }
+
       if (req.method == 'GET' &&
           segments.length == 2 &&
           segments[0] == 'v1' &&
           segments[1] == 'health') {
-        return _json(req, HttpStatus.ok, <String, dynamic>{
+        return await _json(req, HttpStatus.ok, <String, dynamic>{
           'status': 'ok',
-          'storage': _dbMode ? 'postgres' : 'file',
+          'storage':
+              firestoreStore != null
+                  ? 'firestore'
+                  : _dbMode
+                  ? 'postgres'
+                  : 'file',
           'productionMode': productionMode,
           'pixProviderMode': pixProviderMode,
           'pixProviderVendor': pixProviderVendor,
@@ -609,13 +736,17 @@ class _PixBillingBackend {
           segments[0] == 'v1' &&
           segments[1] == 'metrics') {
         if (!_adminEnabled) {
-          return _json(req, HttpStatus.serviceUnavailable, <String, dynamic>{
-            'error': 'admin_metrics_disabled',
-            'requestId': requestId,
-          });
+          return await _json(
+            req,
+            HttpStatus.serviceUnavailable,
+            <String, dynamic>{
+              'error': 'admin_metrics_disabled',
+              'requestId': requestId,
+            },
+          );
         }
         if (!_isAdminAuthorized(req)) {
-          return _json(req, HttpStatus.unauthorized, <String, dynamic>{
+          return await _json(req, HttpStatus.unauthorized, <String, dynamic>{
             'error': 'unauthorized_admin',
             'requestId': requestId,
           });
@@ -624,11 +755,16 @@ class _PixBillingBackend {
         final uptimeSec = now.difference(_startedAtUtc).inSeconds;
         final memoryRssMb = (ProcessInfo.currentRss / (1024 * 1024))
             .toStringAsFixed(1);
-        return _json(req, HttpStatus.ok, <String, dynamic>{
+        return await _json(req, HttpStatus.ok, <String, dynamic>{
           'status': 'ok',
           'timestamp': now.toIso8601String(),
           'uptimeSec': uptimeSec,
-          'storage': _dbMode ? 'postgres' : 'file',
+          'storage':
+              firestoreStore != null
+                  ? 'firestore'
+                  : _dbMode
+                  ? 'postgres'
+                  : 'file',
           'productionMode': productionMode,
           'pixProviderMode': pixProviderMode,
           'pixProviderVendor': pixProviderVendor,
@@ -671,26 +807,32 @@ class _PixBillingBackend {
           segments[1] == 'auth' &&
           segments[2] == 'login') {
         if (!_jwtEnabled) {
-          return _json(req, HttpStatus.serviceUnavailable, <String, dynamic>{
-            'error': 'jwt_not_configured',
-          });
+          return await _json(
+            req,
+            HttpStatus.serviceUnavailable,
+            <String, dynamic>{'error': 'jwt_not_configured'},
+          );
         }
         final payload = await _readJson(req);
         final userId =
             '${payload['userId'] ?? payload['username'] ?? ''}'.trim();
         final password = '${payload['password'] ?? ''}';
         if (userId.isEmpty || password.isEmpty) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'missing_credentials',
           });
         }
         final resolvedUserId = await _resolveLogin(userId, password);
         if (resolvedUserId == null) {
-          return _json(req, HttpStatus.unauthorized, <String, dynamic>{
+          return await _json(req, HttpStatus.unauthorized, <String, dynamic>{
             'error': 'invalid_credentials',
           });
         }
-        return _json(req, HttpStatus.ok, _authSessionPayload(resolvedUserId));
+        return await _json(
+          req,
+          HttpStatus.ok,
+          _authSessionPayload(resolvedUserId),
+        );
       }
 
       if (req.method == 'POST' &&
@@ -699,9 +841,11 @@ class _PixBillingBackend {
           segments[1] == 'auth' &&
           segments[2] == 'anonymous') {
         if (!_jwtEnabled) {
-          return _json(req, HttpStatus.serviceUnavailable, <String, dynamic>{
-            'error': 'jwt_not_configured',
-          });
+          return await _json(
+            req,
+            HttpStatus.serviceUnavailable,
+            <String, dynamic>{'error': 'jwt_not_configured'},
+          );
         }
         final userId = _newAccountId('anon');
         final deviceSecret = _base64UrlNoPad(
@@ -716,7 +860,7 @@ class _PixBillingBackend {
           'updatedAt': nowIso,
         };
         await _persist();
-        return _json(req, HttpStatus.created, <String, dynamic>{
+        return await _json(req, HttpStatus.created, <String, dynamic>{
           ..._authSessionPayload(userId),
           'deviceSecret': deviceSecret,
         });
@@ -728,22 +872,24 @@ class _PixBillingBackend {
           segments[1] == 'auth' &&
           segments[2] == 'register') {
         if (!_jwtEnabled) {
-          return _json(req, HttpStatus.serviceUnavailable, <String, dynamic>{
-            'error': 'jwt_not_configured',
-          });
+          return await _json(
+            req,
+            HttpStatus.serviceUnavailable,
+            <String, dynamic>{'error': 'jwt_not_configured'},
+          );
         }
         final payload = await _readJson(req);
         final username = _normalizeUsername('${payload['username'] ?? ''}');
         final password = '${payload['password'] ?? ''}';
         final usernameError = _validateUsername(username);
         if (usernameError != null) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': usernameError,
           });
         }
         if (password.length < _minPasswordLength ||
             password.length > _maxPasswordLength) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'invalid_password_length',
             'minLength': _minPasswordLength,
           });
@@ -754,14 +900,14 @@ class _PixBillingBackend {
         final authUser = _authenticate(req);
         final existing = authUser == null ? null : accounts[authUser];
         if (existing != null && existing['kind'] != 'anonymous') {
-          return _json(req, HttpStatus.conflict, <String, dynamic>{
+          return await _json(req, HttpStatus.conflict, <String, dynamic>{
             'error': 'already_registered',
           });
         }
         final hash = await _hashPassword(password);
         // Revalida após o await: outro cadastro pode ter pego o nome.
         if (_userIdByUsername.containsKey(username)) {
-          return _json(req, HttpStatus.conflict, <String, dynamic>{
+          return await _json(req, HttpStatus.conflict, <String, dynamic>{
             'error': 'username_taken',
           });
         }
@@ -778,7 +924,7 @@ class _PixBillingBackend {
         };
         _userIdByUsername[username] = userId;
         await _persist();
-        return _json(
+        return await _json(
           req,
           existing == null ? HttpStatus.created : HttpStatus.ok,
           _authSessionPayload(userId),
@@ -792,17 +938,17 @@ class _PixBillingBackend {
         final requested = segments[2].trim();
         final authUser = _authenticate(req, expectedUserId: requested);
         if (_jwtEnabled && authUser == null) {
-          return _json(req, HttpStatus.unauthorized, <String, dynamic>{
+          return await _json(req, HttpStatus.unauthorized, <String, dynamic>{
             'error': 'unauthorized',
           });
         }
         final userId = authUser ?? requested;
         if (userId.isEmpty) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'missing_user_id',
           });
         }
-        return _json(req, HttpStatus.ok, <String, dynamic>{
+        return await _json(req, HttpStatus.ok, <String, dynamic>{
           'subscription': _subscriptionFor(userId),
         });
       }
@@ -816,19 +962,19 @@ class _PixBillingBackend {
         final requested = '${payload['userId'] ?? ''}'.trim();
         final authUser = _authenticate(req, expectedUserId: requested);
         if (_jwtEnabled && authUser == null) {
-          return _json(req, HttpStatus.unauthorized, <String, dynamic>{
+          return await _json(req, HttpStatus.unauthorized, <String, dynamic>{
             'error': 'unauthorized',
           });
         }
         final userId = _jwtEnabled ? authUser! : requested;
         if (userId.isEmpty) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'missing_user_id',
           });
         }
         subscriptions.remove(userId);
         await _persist();
-        return _json(req, HttpStatus.ok, <String, dynamic>{
+        return await _json(req, HttpStatus.ok, <String, dynamic>{
           'subscription': _free(userId),
         });
       }
@@ -844,7 +990,7 @@ class _PixBillingBackend {
         final lat = double.tryParse(query['lat'] ?? '');
         final lng = double.tryParse(query['lng'] ?? '');
         if (lat == null || lng == null || lat.abs() > 90 || lng.abs() > 180) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'invalid_coordinates',
           });
         }
@@ -860,7 +1006,7 @@ class _PixBillingBackend {
           radiusKm: radiusKm.toDouble(),
           limit: limit.toInt(),
         );
-        return _json(req, HttpStatus.ok, <String, dynamic>{
+        return await _json(req, HttpStatus.ok, <String, dynamic>{
           'locations': locations,
         });
       }
@@ -873,13 +1019,13 @@ class _PixBillingBackend {
         final requested = segments[3].trim();
         final authUser = _authenticate(req, expectedUserId: requested);
         if (_jwtEnabled && authUser == null) {
-          return _json(req, HttpStatus.unauthorized, <String, dynamic>{
+          return await _json(req, HttpStatus.unauthorized, <String, dynamic>{
             'error': 'unauthorized',
           });
         }
         final userId = authUser ?? requested;
         if (userId.isEmpty) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'missing_user_id',
           });
         }
@@ -892,7 +1038,7 @@ class _PixBillingBackend {
             '${a['updatedAtUtc'] ?? ''}',
           ),
         );
-        return _json(req, HttpStatus.ok, <String, dynamic>{
+        return await _json(req, HttpStatus.ok, <String, dynamic>{
           'userId': userId,
           'locations': locations,
         });
@@ -908,19 +1054,19 @@ class _PixBillingBackend {
         final requested = '${payload['userId'] ?? ''}'.trim();
         final authUser = _authenticate(req, expectedUserId: requested);
         if (_jwtEnabled && authUser == null) {
-          return _json(req, HttpStatus.unauthorized, <String, dynamic>{
+          return await _json(req, HttpStatus.unauthorized, <String, dynamic>{
             'error': 'unauthorized',
           });
         }
         final userId = _jwtEnabled ? authUser! : requested;
         if (userId.isEmpty) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'missing_user_id',
           });
         }
         final rawLocations = payload['locations'];
         if (rawLocations is! List) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'missing_locations',
           });
         }
@@ -962,7 +1108,7 @@ class _PixBillingBackend {
         if (upserted > 0) {
           await _persist();
         }
-        return _json(req, HttpStatus.ok, <String, dynamic>{
+        return await _json(req, HttpStatus.ok, <String, dynamic>{
           'userId': userId,
           'upserted': upserted,
         });
@@ -976,13 +1122,13 @@ class _PixBillingBackend {
         final requested = segments[3].trim();
         final authUser = _authenticate(req, expectedUserId: requested);
         if (_jwtEnabled && authUser == null) {
-          return _json(req, HttpStatus.unauthorized, <String, dynamic>{
+          return await _json(req, HttpStatus.unauthorized, <String, dynamic>{
             'error': 'unauthorized',
           });
         }
         final userId = authUser ?? requested;
         if (userId.isEmpty) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'missing_user_id',
           });
         }
@@ -1069,7 +1215,7 @@ class _PixBillingBackend {
           });
         }
 
-        return _json(req, HttpStatus.ok, <String, dynamic>{
+        return await _json(req, HttpStatus.ok, <String, dynamic>{
           'userId': userId,
           'regionKey': requestedRegionKey,
           'regionLabel': resolvedRegionLabel,
@@ -1088,13 +1234,13 @@ class _PixBillingBackend {
         final requested = segments[3].trim();
         final authUser = _authenticate(req, expectedUserId: requested);
         if (_jwtEnabled && authUser == null) {
-          return _json(req, HttpStatus.unauthorized, <String, dynamic>{
+          return await _json(req, HttpStatus.unauthorized, <String, dynamic>{
             'error': 'unauthorized',
           });
         }
         final userId = authUser ?? requested;
         if (userId.isEmpty) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'missing_user_id',
           });
         }
@@ -1144,7 +1290,7 @@ class _PixBillingBackend {
           }
         }
 
-        return _json(req, HttpStatus.ok, <String, dynamic>{
+        return await _json(req, HttpStatus.ok, <String, dynamic>{
           'userId': userId,
           'reports': <Map<String, dynamic>>[
             for (final report in limitedByGym)
@@ -1165,7 +1311,7 @@ class _PixBillingBackend {
         final requested = '${payload['userId'] ?? ''}'.trim();
         final authUser = _authenticate(req, expectedUserId: requested);
         if (_jwtEnabled && authUser == null) {
-          return _json(req, HttpStatus.unauthorized, <String, dynamic>{
+          return await _json(req, HttpStatus.unauthorized, <String, dynamic>{
             'error': 'unauthorized',
           });
         }
@@ -1176,14 +1322,25 @@ class _PixBillingBackend {
         if (userId.isEmpty ||
             report == null ||
             (vote != null && vote != 'confirm' && vote != 'disagree')) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'invalid_vote',
           });
         }
         if ('${report['userId'] ?? ''}' == userId) {
-          return _json(req, HttpStatus.conflict, <String, dynamic>{
+          return await _json(req, HttpStatus.conflict, <String, dynamic>{
             'error': 'own_report',
           });
+        }
+        if (vote != null) {
+          final presenceError = _presenceError(
+            '${report['gymId'] ?? ''}',
+            payload,
+          );
+          if (presenceError != null) {
+            return await _json(req, HttpStatus.badRequest, <String, dynamic>{
+              'error': presenceError,
+            });
+          }
         }
         final votes = <String, dynamic>{
           if (report['votes'] is Map)
@@ -1205,7 +1362,7 @@ class _PixBillingBackend {
           _decideCrowdReport(report, confirmed: false, now: DateTime.now());
         }
         await _persist();
-        return _json(
+        return await _json(
           req,
           HttpStatus.ok,
           _publicCrowdReport(report, viewerId: userId),
@@ -1221,13 +1378,13 @@ class _PixBillingBackend {
         final requested = '${payload['userId'] ?? ''}'.trim();
         final authUser = _authenticate(req, expectedUserId: requested);
         if (_jwtEnabled && authUser == null) {
-          return _json(req, HttpStatus.unauthorized, <String, dynamic>{
+          return await _json(req, HttpStatus.unauthorized, <String, dynamic>{
             'error': 'unauthorized',
           });
         }
         final userId = _jwtEnabled ? authUser! : requested;
         if (userId.isEmpty) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'missing_user_id',
           });
         }
@@ -1235,8 +1392,14 @@ class _PixBillingBackend {
         final gymId = '${payload['gymId'] ?? ''}'.trim();
         final occupancy = int.tryParse('${payload['occupancyPercent'] ?? ''}');
         if (gymId.isEmpty || occupancy == null) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'missing_required_fields',
+          });
+        }
+        final presenceError = _presenceError(gymId, payload);
+        if (presenceError != null) {
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
+            'error': presenceError,
           });
         }
         final normalizedOccupancy = occupancy.clamp(0, 100);
@@ -1264,7 +1427,7 @@ class _PixBillingBackend {
           now: now,
         );
         if (retryAfter != null) {
-          return _json(req, HttpStatus.tooManyRequests, <String, dynamic>{
+          return await _json(req, HttpStatus.tooManyRequests, <String, dynamic>{
             'accepted': false,
             'retryAfterSec': retryAfter.inSeconds,
           });
@@ -1294,7 +1457,7 @@ class _PixBillingBackend {
         final ledger = _awardPoints(userId, _pointsPerReportParticipation, now);
         _evaluateReportsByConsensus(gymId, now);
         await _persist();
-        return _json(req, HttpStatus.created, <String, dynamic>{
+        return await _json(req, HttpStatus.created, <String, dynamic>{
           'accepted': true,
           'report': report,
           'pointsAwarded': _pointsPerReportParticipation,
@@ -1316,7 +1479,7 @@ class _PixBillingBackend {
             if (raw.trim().isNotEmpty) raw.trim(),
         };
         if (gymIds.isEmpty || gymIds.length > _maxAmenityGymsPerQuery) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'invalid_gym_ids',
             'maxGyms': _maxAmenityGymsPerQuery,
           });
@@ -1326,7 +1489,7 @@ class _PixBillingBackend {
             (_jwtEnabled
                 ? null
                 : (req.uri.queryParameters['userId'] ?? '').trim());
-        return _json(req, HttpStatus.ok, <String, dynamic>{
+        return await _json(req, HttpStatus.ok, <String, dynamic>{
           'confirmThreshold': _amenityConfirmThreshold,
           'gyms': <String, dynamic>{
             for (final gymId in gymIds)
@@ -1345,7 +1508,7 @@ class _PixBillingBackend {
         final requested = '${payload['userId'] ?? ''}'.trim();
         final authUser = _authenticate(req, expectedUserId: requested);
         if (_jwtEnabled && authUser == null) {
-          return _json(req, HttpStatus.unauthorized, <String, dynamic>{
+          return await _json(req, HttpStatus.unauthorized, <String, dynamic>{
             'error': 'unauthorized',
           });
         }
@@ -1353,7 +1516,7 @@ class _PixBillingBackend {
         final gymId = '${payload['gymId'] ?? ''}'.trim();
         final votes = payload['votes'];
         if (userId.isEmpty || gymId.isEmpty || votes is! Map) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'missing_required_fields',
           });
         }
@@ -1420,7 +1583,7 @@ class _PixBillingBackend {
         }
         _maybeAwardClaimedAmenitiesBonus(gymId, now);
         await _persist();
-        return _json(req, HttpStatus.ok, <String, dynamic>{
+        return await _json(req, HttpStatus.ok, <String, dynamic>{
           'gymId': gymId,
           'amenities': _amenitySummary(gymId, viewerId: userId),
           'pointsAwarded': pointsAwarded,
@@ -1439,7 +1602,7 @@ class _PixBillingBackend {
         final requested = '${payload['userId'] ?? ''}'.trim();
         final authUser = _authenticate(req, expectedUserId: requested);
         if (_jwtEnabled && authUser == null) {
-          return _json(req, HttpStatus.unauthorized, <String, dynamic>{
+          return await _json(req, HttpStatus.unauthorized, <String, dynamic>{
             'error': 'unauthorized',
           });
         }
@@ -1456,12 +1619,12 @@ class _PixBillingBackend {
             lng == null ||
             userLat == null ||
             userLng == null) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'invalid_suggestion',
           });
         }
         if (gymDistanceKm(userLat, userLng, lat, lng) > _maxSuggestDistanceKm) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'too_far',
           });
         }
@@ -1475,12 +1638,12 @@ class _PixBillingBackend {
                   createdAt.isAfter(dayAgo);
             }).length;
         if (suggestedToday >= _maxSuggestionsPerDay) {
-          return _json(req, HttpStatus.tooManyRequests, <String, dynamic>{
+          return await _json(req, HttpStatus.tooManyRequests, <String, dynamic>{
             'error': 'daily_limit',
           });
         }
         if (_hasGymNear(lat, lng)) {
-          return _json(req, HttpStatus.conflict, <String, dynamic>{
+          return await _json(req, HttpStatus.conflict, <String, dynamic>{
             'error': 'duplicate_nearby',
           });
         }
@@ -1504,7 +1667,7 @@ class _PixBillingBackend {
         };
         gymSuggestions[id] = suggestion;
         await _persist();
-        return _json(
+        return await _json(
           req,
           HttpStatus.created,
           _publicGymSuggestion(suggestion, viewerId: userId),
@@ -1520,7 +1683,7 @@ class _PixBillingBackend {
         final lat = double.tryParse(query['lat'] ?? '');
         final lng = double.tryParse(query['lng'] ?? '');
         if (lat == null || lng == null) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'missing_coordinates',
           });
         }
@@ -1544,7 +1707,7 @@ class _PixBillingBackend {
                     radiusKm)
               _publicGymSuggestion(item, viewerId: viewer),
         ];
-        return _json(req, HttpStatus.ok, <String, dynamic>{
+        return await _json(req, HttpStatus.ok, <String, dynamic>{
           'confirmThreshold': _suggestionConfirmThreshold,
           'suggestions': nearby.take(200).toList(),
         });
@@ -1560,7 +1723,7 @@ class _PixBillingBackend {
         final requested = '${payload['userId'] ?? ''}'.trim();
         final authUser = _authenticate(req, expectedUserId: requested);
         if (_jwtEnabled && authUser == null) {
-          return _json(req, HttpStatus.unauthorized, <String, dynamic>{
+          return await _json(req, HttpStatus.unauthorized, <String, dynamic>{
             'error': 'unauthorized',
           });
         }
@@ -1575,17 +1738,17 @@ class _PixBillingBackend {
             (vote != null && vote != 'exists' && vote != 'missing') ||
             userLat == null ||
             userLng == null) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'invalid_vote',
           });
         }
         if (suggestion['userId'] == userId) {
-          return _json(req, HttpStatus.conflict, <String, dynamic>{
+          return await _json(req, HttpStatus.conflict, <String, dynamic>{
             'error': 'own_suggestion',
           });
         }
         if (suggestion['status'] != 'pending') {
-          return _json(req, HttpStatus.conflict, <String, dynamic>{
+          return await _json(req, HttpStatus.conflict, <String, dynamic>{
             'error': 'already_decided',
             ..._publicGymSuggestion(suggestion, viewerId: userId),
           });
@@ -1597,7 +1760,7 @@ class _PixBillingBackend {
           (suggestion['lng'] as num).toDouble(),
         );
         if (distanceKm > _maxSuggestionVoteDistanceKm) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'too_far',
           });
         }
@@ -1613,7 +1776,7 @@ class _PixBillingBackend {
         suggestion['votes'] = votes;
         _decideGymSuggestion(suggestion, DateTime.now().toUtc());
         await _persist();
-        return _json(
+        return await _json(
           req,
           HttpStatus.ok,
           _publicGymSuggestion(suggestion, viewerId: userId),
@@ -1633,7 +1796,7 @@ class _PixBillingBackend {
         final requested = '${payload['userId'] ?? ''}'.trim();
         final authUser = _authenticate(req, expectedUserId: requested);
         if (_jwtEnabled && authUser == null) {
-          return _json(req, HttpStatus.unauthorized, <String, dynamic>{
+          return await _json(req, HttpStatus.unauthorized, <String, dynamic>{
             'error': 'unauthorized',
           });
         }
@@ -1641,23 +1804,23 @@ class _PixBillingBackend {
         final suggestion =
             gymSuggestions['${payload['suggestionId'] ?? ''}'.trim()];
         if (userId.isEmpty || suggestion == null) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'invalid_suggestion',
           });
         }
         if (suggestion['userId'] != userId) {
-          return _json(req, HttpStatus.forbidden, <String, dynamic>{
+          return await _json(req, HttpStatus.forbidden, <String, dynamic>{
             'error': 'not_owner',
           });
         }
         if (suggestion['status'] != 'pending') {
-          return _json(req, HttpStatus.conflict, <String, dynamic>{
+          return await _json(req, HttpStatus.conflict, <String, dynamic>{
             'error': 'already_decided',
           });
         }
         if (suggestion['votes'] is Map &&
             (suggestion['votes'] as Map).isNotEmpty) {
-          return _json(req, HttpStatus.conflict, <String, dynamic>{
+          return await _json(req, HttpStatus.conflict, <String, dynamic>{
             'error': 'already_voted',
           });
         }
@@ -1666,11 +1829,13 @@ class _PixBillingBackend {
           suggestion['status'] = 'deleted';
           suggestion['deletedAt'] = now.toIso8601String();
           await _persist();
-          return _json(req, HttpStatus.ok, <String, dynamic>{'deleted': true});
+          return await _json(req, HttpStatus.ok, <String, dynamic>{
+            'deleted': true,
+          });
         }
         final name = '${payload['name'] ?? ''}'.trim();
         if (name.length < 2 || name.length > 80) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'invalid_suggestion',
           });
         }
@@ -1682,7 +1847,7 @@ class _PixBillingBackend {
         ];
         suggestion['updatedAt'] = now.toIso8601String();
         await _persist();
-        return _json(
+        return await _json(
           req,
           HttpStatus.ok,
           _publicGymSuggestion(suggestion, viewerId: userId),
@@ -1697,17 +1862,17 @@ class _PixBillingBackend {
         final requested = segments[2].trim();
         final authUser = _authenticate(req, expectedUserId: requested);
         if (_jwtEnabled && authUser == null) {
-          return _json(req, HttpStatus.unauthorized, <String, dynamic>{
+          return await _json(req, HttpStatus.unauthorized, <String, dynamic>{
             'error': 'unauthorized',
           });
         }
         final userId = authUser ?? requested;
         if (userId.isEmpty) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'missing_user_id',
           });
         }
-        return _json(req, HttpStatus.ok, _rewardsPayload(userId));
+        return await _json(req, HttpStatus.ok, _rewardsPayload(userId));
       }
 
       if (req.method == 'POST' &&
@@ -1719,19 +1884,19 @@ class _PixBillingBackend {
         final requested = '${payload['userId'] ?? ''}'.trim();
         final authUser = _authenticate(req, expectedUserId: requested);
         if (_jwtEnabled && authUser == null) {
-          return _json(req, HttpStatus.unauthorized, <String, dynamic>{
+          return await _json(req, HttpStatus.unauthorized, <String, dynamic>{
             'error': 'unauthorized',
           });
         }
         final userId = _jwtEnabled ? authUser! : requested;
         if (userId.isEmpty) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'missing_user_id',
           });
         }
         final blocked = _rewardBlockedReason(userId);
         if (blocked != null) {
-          return _json(req, HttpStatus.conflict, <String, dynamic>{
+          return await _json(req, HttpStatus.conflict, <String, dynamic>{
             'error': blocked,
             ..._rewardsPayload(userId),
           });
@@ -1770,7 +1935,7 @@ class _PixBillingBackend {
                 ? redemptions.sublist(redemptions.length - 50)
                 : redemptions;
         await _persist();
-        return _json(req, HttpStatus.ok, <String, dynamic>{
+        return await _json(req, HttpStatus.ok, <String, dynamic>{
           'subscription': subscription,
           ..._rewardsPayload(userId),
         });
@@ -1786,7 +1951,7 @@ class _PixBillingBackend {
         final requested = '${payload['userId'] ?? ''}'.trim();
         final authUser = _authenticate(req, expectedUserId: requested);
         if (_jwtEnabled && authUser == null) {
-          return _json(req, HttpStatus.unauthorized, <String, dynamic>{
+          return await _json(req, HttpStatus.unauthorized, <String, dynamic>{
             'error': 'unauthorized',
           });
         }
@@ -1794,12 +1959,12 @@ class _PixBillingBackend {
         final planKey = '${payload['planKey'] ?? ''}'.trim();
         final monthlyPriceInput = '${payload['monthlyPrice'] ?? ''}'.trim();
         if (userId.isEmpty || planKey.isEmpty) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'missing_required_fields',
           });
         }
         if (planKey == 'free') {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'free_plan_does_not_require_payment',
           });
         }
@@ -1809,7 +1974,7 @@ class _PixBillingBackend {
           fallbackMonthlyPrice: monthlyPriceInput,
         );
         if (targetPlanCents <= 0) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'invalid_plan_price',
           });
         }
@@ -1890,7 +2055,7 @@ class _PixBillingBackend {
           } catch (error) {
             providerFailure = '$error';
             if (productionMode) {
-              return _json(req, HttpStatus.badGateway, <String, dynamic>{
+              return await _json(req, HttpStatus.badGateway, <String, dynamic>{
                 'error': 'pix_provider_unavailable',
                 'message': 'Failed to create charge in external PIX provider.',
                 'requestId': requestId,
@@ -1933,14 +2098,14 @@ class _PixBillingBackend {
             expiresAt: currentExpiresAt,
           );
           await _persist();
-          return _json(req, HttpStatus.ok, <String, dynamic>{
+          return await _json(req, HttpStatus.ok, <String, dynamic>{
             'charge': charge,
             'subscription': subscription,
             'autoApplied': true,
           });
         }
         await _persist();
-        return _json(req, HttpStatus.created, <String, dynamic>{
+        return await _json(req, HttpStatus.created, <String, dynamic>{
           'charge': charge,
         });
       }
@@ -1955,7 +2120,7 @@ class _PixBillingBackend {
         final requested = '${payload['userId'] ?? ''}'.trim();
         final authUser = _authenticate(req, expectedUserId: requested);
         if (_jwtEnabled && authUser == null) {
-          return _json(req, HttpStatus.unauthorized, <String, dynamic>{
+          return await _json(req, HttpStatus.unauthorized, <String, dynamic>{
             'error': 'unauthorized',
           });
         }
@@ -1969,7 +2134,7 @@ class _PixBillingBackend {
             planKey.isEmpty ||
             productId.isEmpty ||
             purchaseToken.isEmpty) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'missing_required_fields',
             'message':
                 'userId, planKey, productId and purchaseToken are required.',
@@ -1977,7 +2142,7 @@ class _PixBillingBackend {
           });
         }
         if (planKey == 'free') {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'free_plan_does_not_require_payment',
             'requestId': requestId,
           });
@@ -1985,7 +2150,7 @@ class _PixBillingBackend {
 
         final expectedProductId = (playProductIdsByPlan[planKey] ?? '').trim();
         if (expectedProductId.isNotEmpty && expectedProductId != productId) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'play_product_mismatch',
             'expectedProductId': expectedProductId,
             'requestId': requestId,
@@ -2012,19 +2177,19 @@ class _PixBillingBackend {
               errorCode == 'play_api_unavailable') {
             statusCode = HttpStatus.serviceUnavailable;
           }
-          return _json(req, statusCode, <String, dynamic>{
+          return await _json(req, statusCode, <String, dynamic>{
             'error': errorCode,
             'requestId': requestId,
           });
         } catch (_) {
-          return _json(req, HttpStatus.badGateway, <String, dynamic>{
+          return await _json(req, HttpStatus.badGateway, <String, dynamic>{
             'error': 'play_api_unavailable',
             'requestId': requestId,
           });
         }
 
         if (!validation.isActive) {
-          return _json(req, HttpStatus.conflict, <String, dynamic>{
+          return await _json(req, HttpStatus.conflict, <String, dynamic>{
             'error': 'play_purchase_not_active',
             'subscriptionState': validation.subscriptionState,
             'expiresAt': validation.expiresAt?.toIso8601String(),
@@ -2071,7 +2236,7 @@ class _PixBillingBackend {
           expiresAt: validation.expiresAt,
         );
         await _persist();
-        return _json(req, HttpStatus.ok, <String, dynamic>{
+        return await _json(req, HttpStatus.ok, <String, dynamic>{
           'subscription': subscription,
           'charge': charge,
           'playPurchase': validation.toJson(),
@@ -2086,7 +2251,7 @@ class _PixBillingBackend {
           segments[2] == 'pix' &&
           segments[3] == 'confirm') {
         if (productionMode) {
-          return _json(req, HttpStatus.forbidden, <String, dynamic>{
+          return await _json(req, HttpStatus.forbidden, <String, dynamic>{
             'error': 'manual_confirmation_disabled',
             'message':
                 'Use signed webhook /v1/webhooks/pix to confirm payment in production mode.',
@@ -2096,19 +2261,19 @@ class _PixBillingBackend {
         final chargeId = '${payload['chargeId'] ?? ''}'.trim();
         final requested = '${payload['userId'] ?? ''}'.trim();
         if (chargeId.isEmpty) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'missing_charge_id',
           });
         }
         final charge = charges[chargeId];
         if (charge == null) {
-          return _json(req, HttpStatus.notFound, <String, dynamic>{
+          return await _json(req, HttpStatus.notFound, <String, dynamic>{
             'error': 'charge_not_found',
           });
         }
         final authUser = _authenticate(req, expectedUserId: requested);
         if (_jwtEnabled && authUser == null) {
-          return _json(req, HttpStatus.unauthorized, <String, dynamic>{
+          return await _json(req, HttpStatus.unauthorized, <String, dynamic>{
             'error': 'unauthorized',
           });
         }
@@ -2117,17 +2282,17 @@ class _PixBillingBackend {
         if (effectiveUser != null &&
             effectiveUser.isNotEmpty &&
             '${charge['userId'] ?? ''}'.trim() != effectiveUser) {
-          return _json(req, HttpStatus.forbidden, <String, dynamic>{
+          return await _json(req, HttpStatus.forbidden, <String, dynamic>{
             'error': 'forbidden_charge_owner_mismatch',
           });
         }
         final result = await _confirmPaid(chargeId);
         if (result == null) {
-          return _json(req, HttpStatus.notFound, <String, dynamic>{
+          return await _json(req, HttpStatus.notFound, <String, dynamic>{
             'error': 'charge_not_found',
           });
         }
-        return _json(req, HttpStatus.ok, result);
+        return await _json(req, HttpStatus.ok, result);
       }
 
       if (req.method == 'POST' &&
@@ -2137,39 +2302,43 @@ class _PixBillingBackend {
           segments[2] == 'pix' &&
           segments[3] == 'reconcile') {
         if (!_adminEnabled) {
-          return _json(req, HttpStatus.serviceUnavailable, <String, dynamic>{
-            'error': 'admin_reconcile_disabled',
-            'requestId': requestId,
-          });
+          return await _json(
+            req,
+            HttpStatus.serviceUnavailable,
+            <String, dynamic>{
+              'error': 'admin_reconcile_disabled',
+              'requestId': requestId,
+            },
+          );
         }
         if (!_isAdminAuthorized(req)) {
-          return _json(req, HttpStatus.unauthorized, <String, dynamic>{
+          return await _json(req, HttpStatus.unauthorized, <String, dynamic>{
             'error': 'unauthorized_admin',
             'requestId': requestId,
           });
         }
         final chargeId = segments[4].trim();
         if (chargeId.isEmpty) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'missing_charge_id',
             'requestId': requestId,
           });
         }
         final charge = charges[chargeId];
         if (charge == null) {
-          return _json(req, HttpStatus.notFound, <String, dynamic>{
+          return await _json(req, HttpStatus.notFound, <String, dynamic>{
             'error': 'charge_not_found',
             'requestId': requestId,
           });
         }
         final reconciled = await _reconcileChargeWithProvider(chargeId, charge);
         if (reconciled == null) {
-          return _json(req, HttpStatus.badGateway, <String, dynamic>{
+          return await _json(req, HttpStatus.badGateway, <String, dynamic>{
             'error': 'pix_provider_not_configured',
             'requestId': requestId,
           });
         }
-        return _json(req, HttpStatus.ok, <String, dynamic>{
+        return await _json(req, HttpStatus.ok, <String, dynamic>{
           'charge': charge,
           'reconciled': reconciled,
           'requestId': requestId,
@@ -2185,7 +2354,7 @@ class _PixBillingBackend {
         if (!_isMercadoPagoProvider &&
             webhookToken.isNotEmpty &&
             token != webhookToken) {
-          return _json(req, HttpStatus.unauthorized, <String, dynamic>{
+          return await _json(req, HttpStatus.unauthorized, <String, dynamic>{
             'error': 'invalid_webhook_token',
           });
         }
@@ -2194,17 +2363,21 @@ class _PixBillingBackend {
         if (webhookSecrets.isNotEmpty) {
           if (_isMercadoPagoProvider) {
             if (!_validMercadoPagoWebhookSignature(req)) {
-              return _json(req, HttpStatus.unauthorized, <String, dynamic>{
-                'error': 'invalid_webhook_signature',
-              });
+              return await _json(
+                req,
+                HttpStatus.unauthorized,
+                <String, dynamic>{'error': 'invalid_webhook_signature'},
+              );
             }
           } else {
             final timestamp = req.headers.value('x-webhook-timestamp') ?? '';
             final signature = req.headers.value('x-webhook-signature') ?? '';
             if (!_validWebhookSignature(timestamp, signature, rawBody)) {
-              return _json(req, HttpStatus.unauthorized, <String, dynamic>{
-                'error': 'invalid_webhook_signature',
-              });
+              return await _json(
+                req,
+                HttpStatus.unauthorized,
+                <String, dynamic>{'error': 'invalid_webhook_signature'},
+              );
             }
           }
         }
@@ -2222,13 +2395,13 @@ class _PixBillingBackend {
                 .toLowerCase();
 
         if (incomingChargeId.isEmpty) {
-          return _json(req, HttpStatus.badRequest, <String, dynamic>{
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
             'error': 'missing_webhook_fields',
           });
         }
         final localChargeId = _resolveLocalChargeId(incomingChargeId);
         if (localChargeId == null) {
-          return _json(req, HttpStatus.notFound, <String, dynamic>{
+          return await _json(req, HttpStatus.notFound, <String, dynamic>{
             'error': 'charge_not_found',
             'message':
                 'No local charge matches incoming chargeId/providerChargeId.',
@@ -2268,7 +2441,7 @@ class _PixBillingBackend {
                 : <String, dynamic>{'accepted': true, 'eventId': eventId},
           );
           replay['idempotent'] = true;
-          return _json(req, HttpStatus.ok, replay);
+          return await _json(req, HttpStatus.ok, replay);
         }
 
         late Map<String, dynamic> responseBody;
@@ -2294,7 +2467,7 @@ class _PixBillingBackend {
                   ? Map<String, dynamic>.from(reconciledPaymentResult)
                   : await _confirmPaid(localChargeId);
           if (result == null) {
-            return _json(req, HttpStatus.notFound, <String, dynamic>{
+            return await _json(req, HttpStatus.notFound, <String, dynamic>{
               'error': 'charge_not_found',
             });
           }
@@ -2321,19 +2494,19 @@ class _PixBillingBackend {
           'response': responseBody,
         };
         await _persist();
-        return _json(req, responseCode, responseBody);
+        return await _json(req, responseCode, responseBody);
       }
 
-      return _json(req, HttpStatus.notFound, <String, dynamic>{
+      return await _json(req, HttpStatus.notFound, <String, dynamic>{
         'error': 'route_not_found',
       });
     } on FormatException catch (e) {
-      return _json(req, HttpStatus.badRequest, <String, dynamic>{
+      return await _json(req, HttpStatus.badRequest, <String, dynamic>{
         'error': 'invalid_json',
         'message': e.message,
       });
     } catch (_) {
-      return _json(req, HttpStatus.internalServerError, <String, dynamic>{
+      return await _json(req, HttpStatus.internalServerError, <String, dynamic>{
         'error': 'internal_error',
         'requestId': requestId,
       });
@@ -2376,6 +2549,12 @@ class _PixBillingBackend {
     if (claims == null) return null;
     final subject = '${claims['sub'] ?? ''}'.trim();
     if (subject.isEmpty) return null;
+    // Deleted end-user accounts must not keep using an unexpired JWT.
+    if (!accounts.containsKey(subject) &&
+        !authUsers.containsKey(subject) &&
+        authDefaultPassword.isEmpty) {
+      return null;
+    }
     if (expectedUserId != null &&
         expectedUserId.isNotEmpty &&
         expectedUserId != subject) {
@@ -2403,6 +2582,58 @@ class _PixBillingBackend {
       }
     }
     return false;
+  }
+
+  void _deleteAccountData(String userId) {
+    final ownedChargeIds =
+        charges.entries
+            .where((entry) => entry.value['userId'] == userId)
+            .map((entry) => entry.key)
+            .toSet();
+    webhookEvents.removeWhere(
+      (key, value) => ownedChargeIds.contains(value['chargeId']),
+    );
+    final account = accounts.remove(userId);
+    final username = account?['username'];
+    if (username != null) _userIdByUsername.remove('$username');
+    subscriptions.remove(userId);
+    pointLedgers.remove(userId);
+    for (final source in [
+      charges,
+      webhookEvents,
+      gymLocations,
+      crowdReports,
+      amenityVotes,
+      gymSuggestions,
+    ]) {
+      source.removeWhere(
+        (key, value) =>
+            value['userId'] == userId ||
+            value['reporterId'] == userId ||
+            value['suggesterId'] == userId,
+      );
+      for (final value in source.values) {
+        _removeAccountReferences(value, userId);
+      }
+    }
+  }
+
+  void _removeAccountReferences(Map value, String userId) {
+    value.remove(userId);
+    value.removeWhere((key, child) => child == userId);
+    for (final entry in value.entries.toList()) {
+      final child = entry.value;
+      if (child is Map) {
+        _removeAccountReferences(child, userId);
+      } else if (child is List) {
+        child.removeWhere(
+          (item) => item == userId || (item is Map && item['userId'] == userId),
+        );
+        for (final item in child.whereType<Map>()) {
+          _removeAccountReferences(item, userId);
+        }
+      }
+    }
   }
 
   String _nextRequestId() {
@@ -2552,6 +2783,7 @@ class _PixBillingBackend {
       return globalRetry;
     }
     if (routeKey == 'POST /v1/auth/login' ||
+        routeKey == 'POST /v1/account/delete' ||
         routeKey == 'POST /v1/auth/register' ||
         routeKey == 'POST /v1/auth/anonymous') {
       return _loginRateLimiter.hit(
@@ -3506,6 +3738,50 @@ class _PixBillingBackend {
     };
   }
 
+  /// Posição conhecida da academia: a sugestão confirmada ou a lista
+  /// compartilhada; sem nenhuma das duas, a que o app enviou.
+  ({double lat, double lng})? _gymPositionFor(
+    String gymId,
+    Map<String, dynamic> payload,
+  ) {
+    ({double lat, double lng})? from(Object? lat, Object? lng) {
+      final parsedLat = double.tryParse('${lat ?? ''}');
+      final parsedLng = double.tryParse('${lng ?? ''}');
+      return parsedLat == null || parsedLng == null
+          ? null
+          : (lat: parsedLat, lng: parsedLng);
+    }
+
+    final suggestion = gymSuggestions[gymId];
+    if (suggestion != null) {
+      return from(suggestion['lat'], suggestion['lng']);
+    }
+    for (final gym in gymLocations.values) {
+      if (gym['id'] == gymId) {
+        final known = from(gym['lat'], gym['lng']);
+        if (known != null) {
+          return known;
+        }
+      }
+    }
+    return from(payload['gymLat'], payload['gymLng']);
+  }
+
+  /// `null` se quem envia está na academia (até 300 m); senão o motivo:
+  /// `location_required` (sem posição) ou `too_far`.
+  String? _presenceError(String gymId, Map<String, dynamic> payload) {
+    final userLat = double.tryParse('${payload['userLat'] ?? ''}');
+    final userLng = double.tryParse('${payload['userLng'] ?? ''}');
+    final gym = _gymPositionFor(gymId, payload);
+    if (userLat == null || userLng == null || gym == null) {
+      return 'location_required';
+    }
+    return gymDistanceKm(userLat, userLng, gym.lat, gym.lng) >
+            _maxPresenceDistanceKm
+        ? 'too_far'
+        : null;
+  }
+
   /// Já existe academia (do mapa ou sugerida) a menos de 50 m?
   bool _hasGymNear(double lat, double lng) {
     bool near(Object? rawLat, Object? rawLng) {
@@ -3750,7 +4026,14 @@ class _PixBillingBackend {
   /// estado já confirmado pela gravação anterior.
   Future<void> _persist() {
     final run = _persistTail.then(
-      (_) => _dbMode ? _persistDb() : _persistFile(),
+      (_) =>
+          firestoreStore != null
+              ? firestoreStore!.persist({
+                for (final kind in _dbKinds) kind: _sourceForDbKind(kind),
+              })
+              : _dbMode
+              ? _persistDb()
+              : _persistFile(),
     );
     _persistTail = run.catchError((Object _) {});
     return run;
@@ -4226,6 +4509,18 @@ CREATE TABLE IF NOT EXISTS app_state (
   }
 }
 
+_State _stateFromMaps(StateMaps maps) => _State(
+  maps['subscription'] ?? {},
+  maps['charge'] ?? {},
+  maps['webhook_event'] ?? {},
+  maps['gym_location'] ?? {},
+  maps['crowd_report'] ?? {},
+  maps['account'] ?? {},
+  maps['amenity_vote'] ?? {},
+  maps['point_ledger'] ?? {},
+  maps['gym_suggestion'] ?? {},
+);
+
 class _State {
   const _State(
     this.subscriptions,
@@ -4560,7 +4855,7 @@ class _GooglePlayBillingClient {
   });
 
   final String packageName;
-  final google_auth.ServiceAccountCredentials credentials;
+  final google_auth.ServiceAccountCredentials? credentials;
 
   static _GooglePlayBillingClient? tryCreate({
     required String packageName,
@@ -4568,6 +4863,15 @@ class _GooglePlayBillingClient {
   }) {
     final normalizedPackage = packageName.trim();
     final normalizedJson = serviceAccountJson.trim();
+    if (normalizedPackage.isNotEmpty &&
+        _parseBoolEnv(
+          Platform.environment['PLAY_USE_APPLICATION_DEFAULT'] ?? '',
+        )) {
+      return _GooglePlayBillingClient._(
+        packageName: normalizedPackage,
+        credentials: null,
+      );
+    }
     if (normalizedPackage.isEmpty || normalizedJson.isEmpty) {
       return null;
     }
@@ -4592,12 +4896,13 @@ class _GooglePlayBillingClient {
     required String productId,
     required String purchaseToken,
   }) async {
-    final authClient = await google_auth.clientViaServiceAccount(
-      credentials,
-      const <String>[
-        androidpublisher.AndroidPublisherApi.androidpublisherScope,
-      ],
-    );
+    const scopes = [androidpublisher.AndroidPublisherApi.androidpublisherScope];
+    final authClient =
+        credentials == null
+            ? await google_auth.clientViaApplicationDefaultCredentials(
+              scopes: scopes,
+            )
+            : await google_auth.clientViaServiceAccount(credentials!, scopes);
     try {
       final api = androidpublisher.AndroidPublisherApi(authClient);
       final purchase = await api.purchases.subscriptionsv2.get(
@@ -4810,30 +5115,32 @@ List<String> _validateProductionConfig({
       'ADMIN_API_TOKEN is required in production mode and should be at least 24 chars',
     );
   }
-  if (pixProviderMode.trim().toLowerCase() != 'external') {
-    issues.add(
-      'PIX_PROVIDER_MODE must be external in production mode for commercial billing',
-    );
-  }
-  final providerVendor = pixProviderVendor.trim().toLowerCase();
-  final isMercadoPago =
-      providerVendor == 'mercado_pago' || providerVendor == 'mercadopago';
-  if (!(providerVendor == 'generic' || isMercadoPago)) {
-    issues.add('PIX_PROVIDER_VENDOR must be one of: generic, mercado_pago');
-  }
-  if (!isMercadoPago && webhookToken.trim().isEmpty) {
-    issues.add('WEBHOOK_TOKEN is required in production mode');
-  }
-  if (pixProviderBaseUrl.trim().isEmpty) {
-    issues.add('PIX_PROVIDER_BASE_URL is required in production mode');
-  }
-  if (pixProviderApiKey.trim().isEmpty) {
-    issues.add('PIX_PROVIDER_API_KEY is required in production mode');
-  }
-  if (isMercadoPago && pixMpDefaultPayerEmail.trim().isEmpty) {
-    issues.add(
-      'PIX_MP_DEFAULT_PAYER_EMAIL is required for PIX_PROVIDER_VENDOR=mercado_pago',
-    );
+  if (pixProviderMode.trim().toLowerCase() != 'disabled') {
+    if (pixProviderMode.trim().toLowerCase() != 'external') {
+      issues.add(
+        'PIX_PROVIDER_MODE must be external in production mode for commercial billing',
+      );
+    }
+    final providerVendor = pixProviderVendor.trim().toLowerCase();
+    final isMercadoPago =
+        providerVendor == 'mercado_pago' || providerVendor == 'mercadopago';
+    if (!(providerVendor == 'generic' || isMercadoPago)) {
+      issues.add('PIX_PROVIDER_VENDOR must be one of: generic, mercado_pago');
+    }
+    if (!isMercadoPago && webhookToken.trim().isEmpty) {
+      issues.add('WEBHOOK_TOKEN is required in production mode');
+    }
+    if (pixProviderBaseUrl.trim().isEmpty) {
+      issues.add('PIX_PROVIDER_BASE_URL is required in production mode');
+    }
+    if (pixProviderApiKey.trim().isEmpty) {
+      issues.add('PIX_PROVIDER_API_KEY is required in production mode');
+    }
+    if (isMercadoPago && pixMpDefaultPayerEmail.trim().isEmpty) {
+      issues.add(
+        'PIX_MP_DEFAULT_PAYER_EMAIL is required for PIX_PROVIDER_VENDOR=mercado_pago',
+      );
+    }
   }
   if (globalRequestsPerMin < 30 || globalRequestsPerMin > 6000) {
     issues.add('RATE_LIMIT_REQUESTS_PER_MIN must be between 30 and 6000');

@@ -6,6 +6,7 @@ environment:
   sdk: ^3.7.2
 
 dependencies:
+  http: ^1.2.2
   crypto: ^3.0.6
   postgres: ^2.6.4
   googleapis: ^13.2.0

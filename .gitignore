@@ -57,3 +57,10 @@ app.*.map.json
 
 # Temporary extracted docs
 .tmp_docx/
+
+# Android upload signing material (keep a secure backup outside git).
+/android/key.properties
+/android/key.properties.backup
+/android/keystore/
+*.jks
+*.keystore

@@ -1654,6 +1654,22 @@ extension _GymMapPagePlan on _GymMapPageState {
                     ],
                   ),
                   const SizedBox(height: 12),
+                  TextButton.icon(
+                    onPressed: _openPrivacyPolicy,
+                    icon: const Icon(Icons.privacy_tip_outlined),
+                    label: Text(_t.accountPrivacyTitle),
+                  ),
+                  if (hasAuthSession)
+                    TextButton.icon(
+                      onPressed:
+                          _isPlanAuthBusy
+                              ? null
+                              : () {
+                                unawaited(_deleteAccount(context));
+                              },
+                      icon: const Icon(Icons.delete_forever_outlined),
+                      label: Text(_t.accountDeleteTitle),
+                    ),
                   ...AppPlanTier.values.map((tier) {
                     return _buildPlanOfferCard(
                       sheetContext: context,

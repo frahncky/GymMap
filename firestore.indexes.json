@@ -1,0 +1,6 @@
+{
+  "indexes": [],
+  "fieldOverrides": [
+    { "collectionGroup": "gymmap_state", "fieldPath": "payload", "indexes": [] }
+  ]
+}

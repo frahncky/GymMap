@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GymMap — Excluir conta</title>
+<style>body{font:17px/1.6 system-ui;max-width:680px;margin:40px auto;padding:0 20px;color:#1b222b}label{display:block;margin:16px 0}input{display:block;width:100%;box-sizing:border-box;padding:12px}input[type=checkbox]{display:inline;width:auto}button{padding:12px 20px;background:#a32525;color:white;border:0;border-radius:6px}a{color:#17645c}</style>
+<h1>Excluir conta e dados do GymMap</h1>
+<p>DevIA — <a href="mailto:francisco.dsantos.viana@gmail.com">francisco.dsantos.viana@gmail.com</a></p>
+<p>A exclusão é permanente e remove sua conta, credenciais, relatos, votos, sugestões, pontos e vínculos de assinatura e cobranças no GymMap. Consulte a <a href="/privacy">política de privacidade</a> para detalhes sobre retenção, logs e dados de terceiros.</p>
+<p>Antes de excluir, <a href="https://play.google.com/store/account/subscriptions">cancele a renovação no Google Play</a>, se desejar. Excluir a conta não cancela a cobrança pela loja.</p>
+<form id="deletion">
+<label>Nome de usuário <input name="username" autocomplete="username" required maxlength="64"></label>
+<label>Senha <input name="password" type="password" autocomplete="current-password" required maxlength="256"></label>
+<label><input name="confirm" type="checkbox" required> Entendo que a exclusão é permanente.</label>
+<button>Excluir minha conta e dados</button></form>
+<p id="status" role="status" aria-live="polite"></p>
+<p>Sem acesso à conta ou usando apenas uma conta anônima? Solicite ajuda para excluir seus dados por <a href="mailto:francisco.dsantos.viana@gmail.com?subject=GymMap%20-%20exclus%C3%A3o%20de%20conta">e-mail</a>. Informe seu nome de usuário ou identificador da conta, se disponível. Não envie sua senha. Não é necessário reinstalar o app.</p>
+<script>
+const form=document.querySelector('form'),status=document.querySelector('#status');
+form.addEventListener('submit',async event=>{event.preventDefault();const button=form.querySelector('button');button.disabled=true;status.textContent='Processando…';
+try{const username=form.elements.username.value.trim(),password=form.elements.password.value;
+const login=await fetch('/v1/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:username,password})});
+if(!login.ok)throw new Error('Não foi possível confirmar suas credenciais. Confira usuário e senha ou contate o suporte.');
+const session=await login.json();
+const response=await fetch('/v1/account/delete',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.accessToken},body:JSON.stringify({password,confirm:true})});
+if(!response.ok)throw new Error('Não foi possível excluir a conta. Tente novamente ou contate o suporte.');
+form.reset();form.hidden=true;status.textContent='Sua conta e os dados associados foram excluídos do GymMap.';
+}catch(error){status.textContent=error.message;}finally{form.elements.password.value='';button.disabled=false;}});
+</script></html>

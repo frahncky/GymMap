@@ -39,7 +39,11 @@ class SelectedGymPanel extends StatelessWidget {
     this.alerts = const <String>[],
     this.amenities,
     this.onEditAmenities,
+    this.isUserAtGym = true,
   });
+
+  /// Se a pessoa está na academia; longe, o relato dá lugar a um aviso.
+  final bool isUserAtGym;
 
   final Gym gym;
 
@@ -86,7 +90,7 @@ class SelectedGymPanel extends StatelessWidget {
     final occupancy = snapshot.occupancyPercent;
     final isClosed = isOpenNow == false;
     final showOccupancy = !isClosed && occupancy != null;
-    final canReport = !isClosed;
+    final canReport = !isClosed && isUserAtGym;
     final statusColor = switch (isOpenNow) {
       true => GymMapColors.occupancyLow,
       false => GymMapColors.occupancyCritical,
@@ -457,7 +461,11 @@ class SelectedGymPanel extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  isClosed ? _t.panelClosedNotice : _t.panelNoOccupancyNotice,
+                  isClosed
+                      ? _t.panelClosedNotice
+                      : isUserAtGym
+                      ? _t.panelNoOccupancyNotice
+                      : _t.panelNoOccupancyNoticeFar,
                   style: TextStyle(
                     color: GymMapColors.textSecondary,
                     fontWeight: FontWeight.w700,
@@ -596,7 +604,7 @@ class SelectedGymPanel extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  _t.panelContributeClosed,
+                  isClosed ? _t.panelContributeClosed : _t.presenceReportHint,
                   style: TextStyle(
                     color: GymMapColors.textSecondary,
                     fontWeight: FontWeight.w700,

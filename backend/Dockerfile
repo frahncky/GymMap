@@ -12,6 +12,7 @@ FROM dart:stable
 
 WORKDIR /app
 COPY --from=build /app/gymmap-backend /app/gymmap-backend
+COPY --from=build /app/backend/public /app/backend/public
 
 EXPOSE 8080
 

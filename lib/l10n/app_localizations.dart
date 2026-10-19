@@ -62,8 +62,7 @@ import 'app_localizations_pt.dart';
 /// be consistent with the languages listed in the AppLocalizations.supportedLocales
 /// property.
 abstract class AppLocalizations {
-  AppLocalizations(String locale)
-    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+  AppLocalizations(String locale) : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -71,8 +70,7 @@ abstract class AppLocalizations {
     return Localizations.of<AppLocalizations>(context, AppLocalizations);
   }
 
-  static const LocalizationsDelegate<AppLocalizations> delegate =
-      _AppLocalizationsDelegate();
+  static const LocalizationsDelegate<AppLocalizations> delegate = _AppLocalizationsDelegate();
 
   /// A list of this localizations delegate along with the default localizations
   /// delegates.
@@ -84,19 +82,60 @@ abstract class AppLocalizations {
   /// Additional delegates can be added by appending to this list in
   /// MaterialApp. This list does not have to be used at all if a custom list
   /// of delegates is preferred or required.
-  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
-      <LocalizationsDelegate<dynamic>>[
-        delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-      ];
+  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates = <LocalizationsDelegate<dynamic>>[
+    delegate,
+    GlobalMaterialLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+  ];
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
-    Locale('pt'),
+    Locale('pt')
   ];
+
+  /// No description provided for @accountPrivacyTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Política de privacidade'**
+  String get accountPrivacyTitle;
+
+  /// No description provided for @accountPrivacyOpenFailed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível abrir a política. Contato: francisco.dsantos.viana@gmail.com'**
+  String get accountPrivacyOpenFailed;
+
+  /// No description provided for @accountDeleteTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Excluir conta e dados'**
+  String get accountDeleteTitle;
+
+  /// No description provided for @accountDeleteWarning.
+  ///
+  /// In pt, this message translates to:
+  /// **'Esta ação é permanente. Sua conta, relatos, votos, sugestões e pontos serão apagados. Os dados locais da conta neste aparelho também serão removidos. A exclusão não cancela assinaturas do Google Play: gerencie a renovação na loja antes de continuar. Confirme sua senha se você criou uma conta.'**
+  String get accountDeleteWarning;
+
+  /// No description provided for @accountManageSubscriptions.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gerenciar assinaturas no Google Play'**
+  String get accountManageSubscriptions;
+
+  /// No description provided for @accountDeletedMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sua conta e os dados associados foram excluídos. Você pode continuar com uma nova conta anônima.'**
+  String get accountDeletedMessage;
+
+  /// No description provided for @accountContinue.
+  ///
+  /// In pt, this message translates to:
+  /// **'Continuar no GymMap'**
+  String get accountContinue;
 
   /// No description provided for @settingsLanguageTitle.
   ///
@@ -2629,10 +2668,33 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Não deu para salvar agora. Tente de novo mais tarde.'**
   String get suggestionChangeFailed;
+
+  /// No description provided for @presenceReportHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Para informar a lotação, você precisa estar na academia (até 200 m).'**
+  String get presenceReportHint;
+
+  /// No description provided for @presenceVoteHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Para confirmar ou discordar da lotação, você precisa estar na academia (até 200 m).'**
+  String get presenceVoteHint;
+
+  /// No description provided for @presenceLocationRequired.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ative a localização para participar.'**
+  String get presenceLocationRequired;
+
+  /// No description provided for @panelNoOccupancyNoticeFar.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ainda não há relatos suficientes de lotação nesta academia.'**
+  String get panelNoOccupancyNoticeFar;
 }
 
-class _AppLocalizationsDelegate
-    extends LocalizationsDelegate<AppLocalizations> {
+class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
   const _AppLocalizationsDelegate();
 
   @override
@@ -2641,26 +2703,25 @@ class _AppLocalizationsDelegate
   }
 
   @override
-  bool isSupported(Locale locale) =>
-      <String>['en', 'pt'].contains(locale.languageCode);
+  bool isSupported(Locale locale) => <String>['en', 'pt'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
 }
 
 AppLocalizations lookupAppLocalizations(Locale locale) {
+
+
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
-    case 'en':
-      return AppLocalizationsEn();
-    case 'pt':
-      return AppLocalizationsPt();
+    case 'en': return AppLocalizationsEn();
+    case 'pt': return AppLocalizationsPt();
   }
 
   throw FlutterError(
     'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
     'an issue with the localizations generation tool. Please file an issue '
     'on GitHub with a reproducible sample app and the gen-l10n configuration '
-    'that was used.',
+    'that was used.'
   );
 }

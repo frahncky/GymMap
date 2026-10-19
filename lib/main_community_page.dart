@@ -11,10 +11,14 @@ class _CommunityReportItem {
     required this.occupancyPercent,
     required this.confirmCount,
     required this.disagreeCount,
+    required this.gymPosition,
     this.userVote,
   });
 
   final String id;
+
+  /// Onde fica a academia do relato (para votar é preciso estar nela).
+  final LatLng gymPosition;
   final String gymName;
   final String address;
   final DateTime createdAt;
@@ -36,6 +40,7 @@ class _CommunityReportItem {
       occupancyPercent: occupancyPercent,
       confirmCount: report.confirmCount,
       disagreeCount: report.disagreeCount,
+      gymPosition: gymPosition,
       userVote: _communityVoteFrom(report.userVote),
     );
   }
@@ -72,6 +77,10 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
   late final List<_CommunityReportItem> _reports;
   int _communityPoints = 0;
   CrowdReportRemoteService? _remoteService;
+
+  /// Última posição conhecida de quem usa o app (para votar em relatos).
+  LatLng? _userPoint;
+  static const double _maxPresenceDistanceMeters = 200;
   final Set<String> _votingReportIds = <String>{};
   bool _isLoadingLocalizedReports = false;
   bool _isLocationScopedReports = false;
@@ -158,6 +167,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
     final loadStartedAt = DateTime.now();
     try {
       final userPoint = await _resolveCommunityUserLocation();
+      _userPoint = userPoint ?? _userPoint;
       final hasLocationContext = userPoint != null;
       final cacheService = await GymLocationCacheService.create();
       await _hydrateCommunityLocationsNearUser(
@@ -394,6 +404,7 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
           id: report.id ?? '',
           gymName: location.name,
           address: location.address,
+          gymPosition: location.position,
           createdAt: report.createdAt,
           occupancyPercent: report.occupancyPercent.clamp(0, 100).toInt(),
           confirmCount: report.confirmCount,
@@ -769,7 +780,20 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
         !_votingReportIds.add(reportId)) {
       return;
     }
-    final next = _reports[index].userVote == vote ? null : vote;
+    final item = _reports[index];
+    final next = item.userVote == vote ? null : vote;
+    // Para confirmar ou discordar é preciso estar na academia do relato.
+    final userPoint = _userPoint;
+    if (next != null &&
+        (userPoint == null ||
+            math.sqrt(_distanceSquaredMeters(userPoint, item.gymPosition)) >
+                _maxPresenceDistanceMeters)) {
+      _votingReportIds.remove(reportId);
+      _showCommunitySnack(
+        userPoint == null ? _t.presenceLocationRequired : _t.presenceVoteHint,
+      );
+      return;
+    }
     try {
       final updated = await remoteService.voteOnReport(
         reportId: reportId,
@@ -778,6 +802,8 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
           _CommunityVote.disagree => 'disagree',
           null => null,
         },
+        userPosition: userPoint,
+        gymPosition: item.gymPosition,
       );
       if (!mounted) {
         return;
@@ -791,6 +817,12 @@ class _CommunityFeedPageState extends State<_CommunityFeedPage> {
       if (next != null) {
         _showCommunitySnack(_t.communityThanksVote);
       }
+    } on StateError catch (error) {
+      _showCommunitySnack(
+        error.message == 'too_far' || error.message == 'location_required'
+            ? _t.presenceVoteHint
+            : _t.communityVoteFailed,
+      );
     } catch (_) {
       _showCommunitySnack(_t.communityVoteFailed);
     } finally {

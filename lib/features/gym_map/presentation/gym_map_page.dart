@@ -55,6 +55,7 @@ part 'gym_map_page_interactions.dart';
 part 'gym_map_page_state_cache.dart';
 part 'gym_map_page_community.dart';
 part 'gym_map_page_plan.dart';
+part 'gym_map_page_account.dart';
 part 'gym_map_page_amenities.dart';
 part 'gym_map_page_suggestions.dart';
 
@@ -142,6 +143,10 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   /// Pessoas que precisam marcar "tem" para a comodidade valer para todos
   /// (o servidor usa o mesmo número).
   static const int _amenityConfirmThreshold = 3;
+
+  /// Distância máxima da academia para relatar a lotação ou avaliar um
+  /// relato (o servidor usa a mesma).
+  static const double _maxPresenceDistanceMeters = 200;
   static const int _panelMaxFlex = 66;
   static const double _panelFlexDragSensitivity = 0.28;
   static const double _panelDragPixelThreshold = 3;

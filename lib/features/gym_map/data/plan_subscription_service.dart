@@ -163,6 +163,7 @@ class PlanSubscriptionService {
     final value = (_prefs.getString(_authUsernameKey) ?? '').trim();
     return value.isEmpty ? null : value;
   }
+
   String get userId => _userId;
   bool get isProductionMode => _productionMode;
   bool get allowsManualPixConfirmation => !_productionMode;
@@ -401,6 +402,35 @@ class PlanSubscriptionService {
     await _prefs.setString(_activePlanKey, freePlanKey);
     await _prefs.remove(_startsAtUtcKey);
     await _prefs.remove(_expiresAtUtcKey);
+  }
+
+  Uri? get privacyPolicyUri => _backendBaseUri?.resolve('/privacy');
+
+  /// Only forget local credentials after the server confirms deletion.
+  Future<void> deleteAccount({String password = ''}) async {
+    if (!hasRemoteBackend || !hasAuthSession) {
+      throw StateError('unauthorized');
+    }
+    final result = await _postRemoteJson(
+      ['v1', 'account', 'delete'],
+      <String, dynamic>{'password': password, 'confirm': true},
+      expectedSuccessCodes: const <int>{200},
+    );
+    if (result['deleted'] != true) {
+      throw const FormatException('Account deletion was not confirmed');
+    }
+    await signOut();
+    _userId = 'local-device-user';
+    await _prefs.remove(_deviceUserIdKey);
+    await _prefs.remove(_deviceSecretKey);
+    // Local account data must not leak into a new anonymous account.
+    for (final key in _prefs.getKeys().toList()) {
+      if (key.startsWith('gymmap_') ||
+          key.startsWith('gym_map.') ||
+          key.startsWith('subscription.')) {
+        await _prefs.remove(key);
+      }
+    }
   }
 
   Future<SubscriptionState> loadActiveSubscription() async {
@@ -869,10 +899,7 @@ DateTime? _extractJwtExpiry(String rawToken) {
   if (exp is! num) {
     return null;
   }
-  return DateTime.fromMillisecondsSinceEpoch(
-    exp.toInt() * 1000,
-    isUtc: true,
-  );
+  return DateTime.fromMillisecondsSinceEpoch(exp.toInt() * 1000, isUtc: true);
 }
 
 Map<dynamic, dynamic>? _decodeJwtPayload(String rawToken) {

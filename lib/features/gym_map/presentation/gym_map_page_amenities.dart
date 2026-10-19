@@ -45,6 +45,15 @@ extension _GymMapPageAmenities on _GymMapPageState {
     ];
   }
 
+  /// Se a pessoa está na academia (até 200 m): só assim ela relata a lotação
+  /// ou avalia relatos (o servidor confere).
+  bool _isUserAtGym(Gym gym) {
+    final userPoint = _userLocation;
+    return userPoint != null &&
+        math.sqrt(_distanceSquaredMeters(userPoint, gym.position)) <=
+            _GymMapPageState._maxPresenceDistanceMeters;
+  }
+
   /// O que a academia oferece, para os filtros: o mesmo que o card mostra.
   bool _gymOffers(Gym gym, GymAmenity amenity) =>
       _shownAmenitiesFor(gym).contains(amenity);
@@ -86,6 +95,8 @@ extension _GymMapPageAmenities on _GymMapPageState {
       final result = await remoteService.submitAmenityVotes(
         gymId: gym.id,
         votes: changes,
+        userPosition: _userLocation,
+        gymPosition: gym.position,
       );
       if (!mounted) {
         return true;
