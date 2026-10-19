@@ -477,7 +477,33 @@ extension _GymMapPageMapView on _GymMapPageState {
     return _GymMapPageState._mapMarkerPinTipInset * markerScale;
   }
 
+  /// Lê a altura da busca + filtros + anúncio depois do desenho e redesenha
+  /// só se ela mudou.
+  void _scheduleMapTopOverlaySync() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      final box = _mapTopOverlayKey.currentContext?.findRenderObject();
+      if (box is! RenderBox || !box.hasSize) {
+        return;
+      }
+      final height = box.size.height;
+      if ((height - _mapTopOverlayHeight).abs() > 0.5) {
+        _setStateIfMapVisible(() {
+          _mapTopOverlayHeight = height;
+        });
+      }
+    });
+  }
+
+  /// Os botões do mapa (norte, localização...) ficam logo abaixo da busca,
+  /// dos filtros e do anúncio, com folga.
   double _mapControlsTopOffset(BuildContext context) {
+    _scheduleMapTopOverlaySync();
+    if (_mapTopOverlayHeight > 0) {
+      return 12 + _mapTopOverlayHeight + 12;
+    }
     final textScale = MediaQuery.textScalerOf(context).scale(1.0);
     final normalizedScale = textScale.clamp(1.0, 1.25).toDouble();
     final searchAndFilterHeight =

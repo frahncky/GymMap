@@ -194,6 +194,7 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
   final GlobalKey _mapHintCardKey = GlobalKey();
   final GlobalKey _routeOverlayKey = GlobalKey();
   double _mapAreaHeight = 0;
+  double _mapTopOverlayHeight = 0;
 
   // Trajeto até a academia, desenhado no próprio mapa.
   final GymRouteService _routeService = GymRouteService();
@@ -630,45 +631,57 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                                 left: 14,
                                 top: 12,
                                 right: 14,
-                                child: Column(
-                                  key: _mapTopOverlayKey,
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    GymSearchField(
-                                      controller: _searchController,
-                                      searchTerm: _searchTerm,
-                                      isResolvingSearchLocation:
-                                          _isResolvingSearchLocation,
-                                      onChanged: _updateSearchTerm,
-                                      onSubmitted: _submitSearch,
-                                      onClear: _clearSearch,
-                                      onSearchTap:
-                                          () => _submitSearch(
-                                            _searchController.text,
-                                          ),
-                                    ),
-                                    const SizedBox(height: 10),
-                                    AnimatedSwitcher(
-                                      duration: const Duration(
-                                        milliseconds: 220,
-                                      ),
-                                      switchInCurve: Curves.easeOutCubic,
-                                      switchOutCurve: Curves.easeInCubic,
-                                      child: MapQuickFiltersBar(
-                                        key: ValueKey<int>(
-                                          _activeQuickFilters.length,
+                                // O anúncio muda de altura ao carregar: os
+                                // botões do mapa acompanham a altura medida.
+                                child: NotificationListener<
+                                  SizeChangedLayoutNotification
+                                >(
+                                  onNotification: (_) {
+                                    _scheduleMapTopOverlaySync();
+                                    return true;
+                                  },
+                                  child: SizeChangedLayoutNotifier(
+                                    child: Column(
+                                      key: _mapTopOverlayKey,
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        GymSearchField(
+                                          controller: _searchController,
+                                          searchTerm: _searchTerm,
+                                          isResolvingSearchLocation:
+                                              _isResolvingSearchLocation,
+                                          onChanged: _updateSearchTerm,
+                                          onSubmitted: _submitSearch,
+                                          onClear: _clearSearch,
+                                          onSearchTap:
+                                              () => _submitSearch(
+                                                _searchController.text,
+                                              ),
                                         ),
-                                        filters: quickFilterChips,
-                                        onToggle: _toggleQuickFilterById,
-                                      ),
+                                        const SizedBox(height: 10),
+                                        AnimatedSwitcher(
+                                          duration: const Duration(
+                                            milliseconds: 220,
+                                          ),
+                                          switchInCurve: Curves.easeOutCubic,
+                                          switchOutCurve: Curves.easeInCubic,
+                                          child: MapQuickFiltersBar(
+                                            key: ValueKey<int>(
+                                              _activeQuickFilters.length,
+                                            ),
+                                            filters: quickFilterChips,
+                                            onToggle: _toggleQuickFilterById,
+                                          ),
+                                        ),
+                                        if (_isFreePlan) ...[
+                                          const SizedBox(height: 8),
+                                          const AdBannerCard(),
+                                        ],
+                                      ],
                                     ),
-                                    if (_isFreePlan) ...[
-                                      const SizedBox(height: 8),
-                                      const AdBannerCard(),
-                                    ],
-                                  ],
+                                  ),
                                 ),
                               ),
                               // Com trajeto, o cartão da rota ocupa a parte
