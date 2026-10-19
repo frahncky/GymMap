@@ -302,26 +302,20 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
               );
             },
             destinations: [
-              NavigationDestination(
-                icon: const _NavIcon('nav_map'),
-                selectedIcon: const _NavIcon('nav_map_active'),
-                label: _t.navMap,
-              ),
-              NavigationDestination(
-                icon: const _NavIcon('nav_favorites'),
-                selectedIcon: const _NavIcon('nav_favorites_active'),
-                label: _t.navFavorites,
-              ),
-              NavigationDestination(
-                icon: const _NavIcon('nav_community'),
-                selectedIcon: const _NavIcon('nav_community_active'),
-                label: _t.navCommunity,
-              ),
-              NavigationDestination(
-                icon: const _NavIcon('nav_profile'),
-                selectedIcon: const _NavIcon('nav_profile_active'),
-                label: _t.navProfile,
-              ),
+              for (final (name, label) in [
+                ('nav_map', _t.navMap),
+                ('nav_favorites', _t.navFavorites),
+                ('nav_community', _t.navCommunity),
+                ('nav_profile', _t.navProfile),
+              ])
+                NavigationDestination(
+                  icon: _NavIcon(name),
+                  // A aba ativa fica na cor do plano.
+                  selectedIcon: _NavIcon(
+                    '${name}_active_${_activePlanThemeTier.name}',
+                  ),
+                  label: label,
+                ),
             ],
           ),
         ),
@@ -331,7 +325,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
 }
 
 /// Ícone da marca no menu inferior (tool/brand/gerar_marca.ps1): contorno
-/// cinza na aba inativa, preenchido na ativa.
+/// cinza na aba inativa, preenchido na cor do plano na ativa.
 class _NavIcon extends StatelessWidget {
   const _NavIcon(this.name);
 

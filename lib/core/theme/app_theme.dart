@@ -173,18 +173,14 @@ ThemeData buildAppTheme({required Color primary, required Color onPrimary}) {
       ),
     ),
     dividerTheme: const DividerThemeData(color: AppBrand.line),
-    // Menu inferior com os ícones da marca: a aba ativa fica no verde-água
-    // da marca em qualquer plano.
+    // Menu inferior com os ícones da marca: a aba ativa fica na cor do plano.
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: Colors.white,
       surfaceTintColor: Colors.transparent,
-      indicatorColor: AppBrand.teal.withValues(alpha: 0.14),
+      indicatorColor: primary.withValues(alpha: 0.14),
       labelTextStyle: WidgetStateProperty.resolveWith<TextStyle?>((states) {
         if (states.contains(WidgetState.selected)) {
-          return const TextStyle(
-            color: AppBrand.tealDeep,
-            fontWeight: FontWeight.w700,
-          );
+          return TextStyle(color: primary, fontWeight: FontWeight.w700);
         }
         return const TextStyle(fontWeight: FontWeight.w500);
       }),

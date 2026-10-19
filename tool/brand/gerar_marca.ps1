@@ -183,8 +183,8 @@ foreach ($name in $amenityIcons.Keys) {
   Render $pinDir "amenity_$name" 96 96 $icon
 }
 
-# Ícones do menu inferior: contorno cinza (aba inativa) e preenchido no
-# verde-água da marca com detalhe laranja (aba ativa).
+# Ícones do menu inferior: contorno cinza (aba inativa) e preenchido na cor
+# do plano com detalhe laranja (aba ativa).
 $gray = '#5B6673'
 $mapShape = 'M3 6.6 8.6 4.6 15.4 7 21 5v12.4l-5.6 2-6.8-2.4L3 19z'
 $pinShape = 'M12 13.6s-3.1-2.8-3.1-5.3a3.1 3.1 0 0 1 6.2 0c0 2.5-3.1 5.3-3.1 5.3z'
@@ -238,8 +238,25 @@ $navIcons = [ordered]@{
 <circle cx="12" cy="18.6" r="1" fill="$orange"/>
 "@
 }
+# A aba ativa fica na cor do plano (PlanThemePalette no app): um ícone
+# ativo para cada plano, com o mesmo detalhe laranja.
+$planColors = [ordered]@{
+  free = '#1F7FB8'
+  smart = '#0D8B6E'
+  pro = '#153A73'
+  elite = '#C79A22'
+}
 foreach ($name in $navIcons.Keys) {
-  $icon = "<svg xmlns=""http://www.w3.org/2000/svg"" viewBox=""0 0 24 24"" width=""96"" height=""96"">$($navIcons[$name])</svg>"
+  $svg = $navIcons[$name]
+  if ($name -like '*_active') {
+    foreach ($plan in $planColors.Keys) {
+      $planSvg = $svg.Replace($teal, $planColors[$plan])
+      $icon = "<svg xmlns=""http://www.w3.org/2000/svg"" viewBox=""0 0 24 24"" width=""96"" height=""96"">$planSvg</svg>"
+      Render $pinDir "$($name)_$plan" 96 96 $icon
+    }
+    continue
+  }
+  $icon = "<svg xmlns=""http://www.w3.org/2000/svg"" viewBox=""0 0 24 24"" width=""96"" height=""96"">$svg</svg>"
   Render $pinDir $name 96 96 $icon
 }
 
