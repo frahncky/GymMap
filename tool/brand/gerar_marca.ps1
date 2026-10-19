@@ -288,5 +288,5 @@ function FeatureGraphic([string]$tagline) {
 </div>
 "@
 }
-Render $storeDir 'feature_graphic_pt' 1024 500 (FeatureGraphic 'Academias perto de você, com a lotação em tempo real.')
-Render $storeDir 'feature_graphic_en' 1024 500 (FeatureGraphic 'Gyms near you, with live occupancy.')
+Render $storeDir 'feature_graphic_pt' 1024 500 (FeatureGraphic 'Veja a lotação das academias e treine na hora mais vazia.')
+Render $storeDir 'feature_graphic_en' 1024 500 (FeatureGraphic 'See how busy nearby gyms are and train when it is quiet.')
