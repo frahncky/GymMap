@@ -19,35 +19,17 @@ class NorthResetButton extends StatelessWidget {
       hint: _t.controlsNorthHint,
       child: Tooltip(
         message: _t.controlsNorthTooltip,
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(24),
-            child: Ink(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: withUiOpacity(Colors.white, 0.96),
-                shape: BoxShape.circle,
-                border: Border.all(color: primary, width: 1.6),
-                boxShadow: const [
-                  BoxShadow(
-                    blurRadius: 8,
-                    color: GymMapColors.floatingControlShadow,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Center(
-                child: Text(
-                  'N',
-                  style: TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.w900,
-                    color: primary,
-                  ),
-                ),
+        child: _MapRoundButton(
+          onTap: onTap,
+          color: withUiOpacity(Colors.white, 0.96),
+          borderColor: primary,
+          child: Center(
+            child: Text(
+              'N',
+              style: TextStyle(
+                fontSize: 19,
+                fontWeight: FontWeight.w900,
+                color: primary,
               ),
             ),
           ),
@@ -72,30 +54,12 @@ class MyLocationButton extends StatelessWidget {
       hint: _t.controlsMyLocationHint,
       child: Tooltip(
         message: _t.controlsMyLocationTooltip,
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(24),
-            child: Ink(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: withUiOpacity(Colors.white, 0.96),
-                shape: BoxShape.circle,
-                border: Border.all(color: primary, width: 1.6),
-                boxShadow: const [
-                  BoxShadow(
-                    blurRadius: 8,
-                    color: GymMapColors.floatingControlShadow,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Center(
-                child: Icon(Icons.my_location, size: 20, color: primary),
-              ),
-            ),
+        child: _MapRoundButton(
+          onTap: onTap,
+          color: withUiOpacity(Colors.white, 0.96),
+          borderColor: primary,
+          child: Center(
+            child: Icon(Icons.my_location, size: 20, color: primary),
           ),
         ),
       ),
@@ -118,33 +82,15 @@ class AddGymButton extends StatelessWidget {
       excludeSemantics: true,
       child: Tooltip(
         message: _t.suggestAddTooltip,
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(24),
-            child: Ink(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: withUiOpacity(Colors.white, 0.96),
-                shape: BoxShape.circle,
-                border: Border.all(color: primary, width: 1.6),
-                boxShadow: const [
-                  BoxShadow(
-                    blurRadius: 8,
-                    color: GymMapColors.floatingControlShadow,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Center(
-                child: Icon(
-                  Icons.add_location_alt_rounded,
-                  size: 22,
-                  color: primary,
-                ),
-              ),
+        child: _MapRoundButton(
+          onTap: onTap,
+          color: withUiOpacity(Colors.white, 0.96),
+          borderColor: primary,
+          child: Center(
+            child: Icon(
+              Icons.add_location_alt_rounded,
+              size: 22,
+              color: primary,
             ),
           ),
         ),
@@ -176,33 +122,15 @@ class BasemapPoiToggleButton extends StatelessWidget {
       label: label,
       child: Tooltip(
         message: label,
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(24),
-            child: Ink(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: hidden ? primary : withUiOpacity(Colors.white, 0.96),
-                shape: BoxShape.circle,
-                border: Border.all(color: primary, width: 1.6),
-                boxShadow: const [
-                  BoxShadow(
-                    blurRadius: 8,
-                    color: GymMapColors.floatingControlShadow,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Center(
-                child: Icon(
-                  hidden ? Icons.layers_clear_rounded : Icons.layers_rounded,
-                  size: 20,
-                  color: hidden ? Colors.white : primary,
-                ),
-              ),
+        child: _MapRoundButton(
+          onTap: onTap,
+          color: hidden ? primary : withUiOpacity(Colors.white, 0.96),
+          borderColor: primary,
+          child: Center(
+            child: Icon(
+              hidden ? Icons.layers_clear_rounded : Icons.layers_rounded,
+              size: 20,
+              color: hidden ? Colors.white : primary,
             ),
           ),
         ),
@@ -308,6 +236,48 @@ class UserLocationMarkerDot extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Botão redondo dos controles do mapa. A sombra fica fora do Material:
+/// dentro dele ela é cortada no quadrado do botão e aparece como um fundo
+/// quadrado claro.
+class _MapRoundButton extends StatelessWidget {
+  const _MapRoundButton({
+    required this.onTap,
+    required this.color,
+    required this.borderColor,
+    required this.child,
+  });
+
+  final VoidCallback onTap;
+  final Color color;
+  final Color borderColor;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            blurRadius: 8,
+            color: GymMapColors.floatingControlShadow,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: color,
+        shape: CircleBorder(side: BorderSide(color: borderColor, width: 1.6)),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: SizedBox(width: 48, height: 48, child: child),
+        ),
       ),
     );
   }
