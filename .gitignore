@@ -64,3 +64,6 @@ app.*.map.json
 /android/keystore/
 *.jks
 *.keystore
+
+# Firebase CLI cache
+.firebase/
