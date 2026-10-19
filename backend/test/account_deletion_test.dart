@@ -108,6 +108,7 @@ void main() {
         'AUTH_DEFAULT_PASSWORD': '',
         'REQUEST_LOG_DISABLED': 'true',
         'RATE_LIMIT_LOGIN_ATTEMPTS_PER_MIN': '600',
+        'ADMIN_API_TOKEN': 'test-admin-token-0123456789abcdef',
       },
     );
     final ready = Completer<void>();
@@ -226,6 +227,52 @@ void main() {
       );
     },
   );
+
+  test('admin grants a plan without charge to a registered account', () async {
+    final created = await request(
+      'POST',
+      '/v1/auth/register',
+      body: {'username': 'play_review', 'password': 'secure-password-review'},
+    );
+    expect(created.$1, 201);
+    final token = created.$2['accessToken'] as String;
+    final userId = created.$2['userId'] as String;
+    final grant = {'userId': userId, 'planKey': 'elite', 'days': 90};
+
+    expect(
+      (await request(
+        'POST',
+        '/v1/admin/subscriptions/grant',
+        token: token,
+        body: grant,
+      )).$1,
+      401,
+    );
+    expect(
+      (await request(
+        'POST',
+        '/v1/admin/subscriptions/grant',
+        token: 'test-admin-token-0123456789abcdef',
+        body: {...grant, 'userId': 'anon_b'},
+      )).$1,
+      404,
+    );
+    final granted = await request(
+      'POST',
+      '/v1/admin/subscriptions/grant',
+      token: 'test-admin-token-0123456789abcdef',
+      body: grant,
+    );
+    expect(granted.$1, 200);
+
+    final subscription = await request(
+      'GET',
+      '/v1/subscriptions/$userId',
+      token: token,
+    );
+    expect(subscription.$1, 200);
+    expect(jsonEncode(subscription.$2), contains('"activePlanKey":"elite"'));
+  });
 
   test(
     'public privacy and deletion pages are served without authentication',

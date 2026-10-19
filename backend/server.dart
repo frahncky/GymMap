@@ -2295,6 +2295,53 @@ class _PixBillingBackend {
         return await _json(req, HttpStatus.ok, result);
       }
 
+      // Libera um plano sem cobrança para uma conta cadastrada (por exemplo,
+      // a conta que a revisão do Google Play usa). Só com o token de admin.
+      if (req.method == 'POST' &&
+          segments.length == 4 &&
+          segments[0] == 'v1' &&
+          segments[1] == 'admin' &&
+          segments[2] == 'subscriptions' &&
+          segments[3] == 'grant') {
+        if (!_isAdminAuthorized(req)) {
+          return await _json(req, HttpStatus.unauthorized, <String, dynamic>{
+            'error': 'unauthorized_admin',
+            'requestId': requestId,
+          });
+        }
+        final payload = await _readJson(req);
+        final userId = '${payload['userId'] ?? ''}'.trim();
+        final planKey = '${payload['planKey'] ?? ''}'.trim().toLowerCase();
+        final days = int.tryParse('${payload['days'] ?? ''}') ?? 0;
+        final account = accounts[userId];
+        if (account == null || account['kind'] == 'anonymous') {
+          return await _json(req, HttpStatus.notFound, <String, dynamic>{
+            'error': 'account_not_found',
+          });
+        }
+        if (_planPriceCents(planKey) <= 0) {
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
+            'error': 'invalid_plan',
+          });
+        }
+        if (days < 1 || days > 366) {
+          return await _json(req, HttpStatus.badRequest, <String, dynamic>{
+            'error': 'invalid_days',
+          });
+        }
+        final now = DateTime.now().toUtc();
+        final subscription = _activate(
+          userId,
+          planKey,
+          startsAt: now,
+          expiresAt: now.add(Duration(days: days)),
+        );
+        await _persist();
+        return await _json(req, HttpStatus.ok, <String, dynamic>{
+          'subscription': subscription,
+        });
+      }
+
       if (req.method == 'POST' &&
           segments.length == 5 &&
           segments[0] == 'v1' &&
