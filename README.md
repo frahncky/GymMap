@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/readme/banner.svg" alt="GymMap — academias perto de você, com a lotação em tempo real" width="100%">
+<img src="docs/readme/banner.svg" alt="GymMap — academias perto de você, com a lotação informada pela comunidade" width="100%">
 
 <br><br>
 

@@ -22,7 +22,7 @@
     <text x="80" y="150" font-size="76" font-weight="800" fill="#FFFFFF" letter-spacing="-1">Gym<tspan fill="url(#marca)">Map</tspan></text>
     <rect x="84" y="174" width="96" height="6" rx="3" fill="url(#marca)"/>
     <text x="80" y="226" font-size="27" font-weight="600" fill="#E8EDF2">Academias perto de você,</text>
-    <text x="80" y="262" font-size="27" font-weight="600" fill="#E8EDF2">com a lotação em tempo real.</text>
+    <text x="80" y="262" font-size="27" font-weight="600" fill="#E8EDF2">com a lotação informada pela comunidade.</text>
     <text x="80" y="306" font-size="17" fill="#AEB9C5">Mapa colaborativo · Horários de pico · Previsão</text>
 
     <!-- Mapa ilustrativo -->
