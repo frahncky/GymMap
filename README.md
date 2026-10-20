@@ -19,6 +19,7 @@
 [Sobre](#-sobre) ·
 [Funcionalidades](#-funcionalidades) ·
 [Lotação](#-como-funciona-a-lotação) ·
+[Pontos](#-pontos-da-comunidade) ·
 [Planos](#-planos) ·
 [Como executar](#-como-executar) ·
 [Arquitetura](#-arquitetura)
@@ -31,7 +32,7 @@
 
 O **GymMap** mostra no mapa as academias ao seu redor e quão cheias elas estão agora. A lotação é **colaborativa**: quem está na academia informa, a comunidade confirma ou contesta, e todo mundo vê o resultado em tempo real.
 
-O app funciona **sem cadastro**: você começa com uma conta anônima no aparelho e cria usuário e senha quando quiser, sem perder favoritos nem histórico.
+O app funciona **sem cadastro**: você começa com uma conta anônima no aparelho e cria usuário e senha quando quiser, sem perder favoritos nem histórico. O app está disponível em **português** e **inglês**.
 
 ## 🧭 Funcionalidades
 
@@ -53,6 +54,13 @@ O app funciona **sem cadastro**: você começa com uma conta anônima no aparelh
   </tr>
 </table>
 
+**E mais:**
+
+- 🗺️ **Rotas até a academia** a pé, de bicicleta ou de carro, desenhadas no próprio mapa e recalculadas se você sair do caminho.
+- 🏷️ **Comodidades** (aulas, cardio, piscina e outras) como ícones abaixo do nome, marcadas e confirmadas pela comunidade; os filtros do mapa usam essas informações.
+- ➕ **Sugerir academia** que ainda não aparece no mapa; ela vira um pino provisório até a comunidade confirmar.
+- 🕒 **Horário real de funcionamento** vindo do OpenStreetMap; academias fechadas aparecem com pino cinza e um relógio.
+
 ## 📊 Como funciona a lotação
 
 Cada relato informa um percentual de ocupação. O app combina os relatos recentes, descarta os que destoam do consenso e mostra o nível no próprio pino do mapa:
@@ -63,6 +71,24 @@ Cada relato informa um percentual de ocupação. O app combina os relatos recent
 | **Moderada** | 36% a 65% | ![](https://img.shields.io/badge/-55%25-6A9ACF) |
 | **Alta** | 66% a 85% | ![](https://img.shields.io/badge/-71%25-E09F3E) |
 | **Muito alta** | acima de 85% | ![](https://img.shields.io/badge/-93%25-CC4A37) |
+
+Regras que mantêm o dado honesto:
+
+- **Só quem está lá informa.** Enviar um relato e confirmar ou contestar o de outra pessoa exige estar na academia (até 200 m); o servidor confere a distância.
+- **Nada de dado velho.** Só contam relatos das últimas 2 horas; sem eles, a academia mostra *Sem dados*. Com o mapa aberto, a lotação é atualizada a cada 5 minutos.
+- **Nada inventado.** Histórico, picos, comparativo e previsão usam apenas relatos reais.
+
+## 🏆 Pontos da comunidade
+
+| Ação | Pontos |
+| --- | :---: |
+| Enviar um relato de lotação | +1 |
+| Relato confirmado pela comunidade | +5 |
+| Relato contestado pela comunidade | −2 |
+| Academia sugerida e confirmada | +5 |
+| Voto em sugestão ou comodidade que a comunidade confirma | +2 |
+
+Os pontos alimentam o ranking semanal da região e podem ser trocados por dias do plano Essencial (**100 pontos = 7 dias**).
 
 ## 💎 Planos
 
@@ -77,6 +103,11 @@ Cada relato informa um percentual de ocupação. O app combina os relatos recent
 | Cobertura em qualquer lugar do país | | | | ✅ |
 
 <sub>Nos planos sem cobertura nacional, o mapa mostra academias em até 50 km da sua localização. Pagamento pelo Google Play ou Pix.</sub>
+
+## 🔒 Privacidade
+
+- A localização é usada **só com o app na tela**: não há serviço em segundo plano.
+- A conta pode ser apagada pelo próprio app ou pela página pública de exclusão, junto com relatos, votos, sugestões e pontos.
 
 ## 🚀 Como executar
 
@@ -127,19 +158,26 @@ flutter test
 
 </details>
 
-Deploy em produção e detalhes da API estão em **[docs/BACKEND.md](docs/BACKEND.md)**.
+Em produção, a API roda no **Cloud Run** atrás do **Firebase Hosting**, com estado no Firestore. Mais detalhes:
+
+- **[docs/BACKEND.md](docs/BACKEND.md)**: API, deploy e assinatura do app para a Play Store
+- **[docs/FIREBASE_SETUP.md](docs/FIREBASE_SETUP.md)**: projeto Firebase, Hosting e Firestore
+- **[docs/CLOSED_TEST_SETUP.md](docs/CLOSED_TEST_SETUP.md)**: teste fechado no Google Play
+- **[docs/LINGUAGEM.md](docs/LINGUAGEM.md)**: guia de linguagem dos textos do app
 
 ## 🧱 Arquitetura
 
 | Pasta | Conteúdo |
 | --- | --- |
-| `lib/features/gym_map/domain` | Modelos de academia, lotação, planos e insights |
-| `lib/features/gym_map/data` | Lotação colaborativa, assinaturas, cache de academias e serviços de mapa |
-| `lib/features/gym_map/presentation` | Tela do mapa, painéis, marcadores e controles |
-| `lib/core` | Serviços transversais, como métricas do app |
-| `backend/` | Servidor Dart de contas, assinaturas e relatos de lotação |
+| `lib/features/gym_map/domain` | Modelos de academia, lotação, horários de funcionamento, planos e insights |
+| `lib/features/gym_map/data` | Lotação colaborativa, assinaturas, rotas, cache de academias e serviços de mapa |
+| `lib/features/gym_map/presentation` | Tela do mapa, painéis, comunidade, sugestões, comodidades e controles |
+| `lib/core` | Tema da marca, traduções, widgets compartilhados e métricas do app |
+| `lib/l10n` | Textos do app em português e inglês |
+| `backend/` | Servidor Dart de contas, assinaturas, relatos, pontos, sugestões e comodidades |
+| `tool/brand` | Gerador do ícone e das imagens da loja |
 
-**Tecnologias:** Flutter · Dart · flutter_map + vector_map_tiles · OpenStreetMap (Overpass / Nominatim) · Geolocator · In-App Purchase · Google Mobile Ads
+**Tecnologias:** Flutter · Dart · flutter_map + vector_map_tiles · OpenStreetMap (Overpass / Nominatim / OSRM) · Geolocator · In-App Purchase · Google Mobile Ads · Cloud Run · Firebase Hosting · Firestore
 
 ---
 
