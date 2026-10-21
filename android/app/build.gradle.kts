@@ -67,6 +67,10 @@ android {
         release {
             // Release artifacts must never silently use the debug certificate.
             signingConfig = signingConfigs.getByName("release")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }
