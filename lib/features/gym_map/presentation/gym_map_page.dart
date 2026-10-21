@@ -688,8 +688,12 @@ class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
                                 ),
                               ),
                               // Com trajeto, o cartão da rota ocupa a parte
-                              // de baixo; a dica não aparece.
-                              if (selectedGym == null && routeGym == null)
+                              // de baixo; a dica não aparece. Sem o estilo do
+                              // mapa, o aviso de carregando/tentar de novo
+                              // usa esse espaço.
+                              if (selectedGym == null &&
+                                  routeGym == null &&
+                                  _vectorMapStyle != null)
                                 Positioned(
                                   left: 14,
                                   right: 14,

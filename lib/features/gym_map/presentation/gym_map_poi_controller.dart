@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -19,7 +20,7 @@ class GymMapPoiController {
   static const Duration _nominatimTimeout = Duration(seconds: 10);
   // Meia-largura da caixa de busca do Nominatim (~11 km).
   static const double _nominatimHalfSpanDegrees = 0.1;
-  // Servidor principal e espelhos públicos, tentados em ordem.
+  // Servidor principal e espelhos públicos, consultados em paralelo.
   static final List<Uri> _overpassUris = <Uri>[
     MapServicesConfig.overpassUri,
     Uri.parse('https://overpass.private.coffee/api/interpreter'),
@@ -178,29 +179,39 @@ class GymMapPoiController {
     required double knownGymExclusionMeters,
   }) async {
     final query = _buildOverpassQuery(center);
-    http.Response? response;
+    // Os espelhos públicos ficam lentos ou recusam (429/502) com frequência:
+    // consulta todos ao mesmo tempo e usa a primeira resposta 200.
+    final winner = Completer<http.Response?>();
+    var pending = _overpassUris.length;
     for (final uri in _overpassUris) {
-      try {
-        // A consulta vai como formulário (`data=`): o Overpass público
-        // recusa o corpo em texto puro com 502 ("at capacity").
-        final attempt = await _httpClient
-            .post(
-              uri,
-              headers: const {
-                'Accept': 'application/json',
-                'User-Agent': _overpassUserAgent,
-              },
-              body: <String, String>{'data': query},
-            )
-            .timeout(_overpassTimeout);
-        if (attempt.statusCode == 200) {
-          response = attempt;
-          break;
-        }
-      } catch (_) {
-        // Tenta o próximo espelho.
-      }
+      // A consulta vai como formulário (`data=`): o Overpass público
+      // recusa o corpo em texto puro com 502 ("at capacity").
+      _httpClient
+          .post(
+            uri,
+            headers: const {
+              'Accept': 'application/json',
+              'User-Agent': _overpassUserAgent,
+            },
+            body: <String, String>{'data': query},
+          )
+          .timeout(_overpassTimeout)
+          .then<void>(
+            (attempt) {
+              if (attempt.statusCode == 200 && !winner.isCompleted) {
+                winner.complete(attempt);
+              }
+            },
+            onError: (Object _) {
+              // Outro espelho pode responder.
+            },
+          )
+          .whenComplete(() {
+            pending--;
+            if (pending == 0 && !winner.isCompleted) winner.complete(null);
+          });
     }
+    final response = await winner.future;
     if (response == null) {
       return null;
     }
