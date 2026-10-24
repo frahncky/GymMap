@@ -119,13 +119,7 @@ extension _GymMapPageSearch on _GymMapPageState {
         return;
       }
 
-      final allowWithoutUserLocation =
-          !_hasNationwideCoverage && _userLocation == null;
-      if (!_ensurePlanCoverageForCenter(
-        center,
-        notifyIfBlocked: !allowWithoutUserLocation,
-        allowWithoutUserLocation: allowWithoutUserLocation,
-      )) {
+      if (!_ensurePlanCoverageForCenter(center, notifyIfBlocked: true)) {
         return;
       }
       _setStateIfMapVisible(() {
@@ -140,19 +134,8 @@ extension _GymMapPageSearch on _GymMapPageState {
       });
 
       _moveMapTo(center, 13.8);
-      unawaited(
-        _restoreCachedMapPoisNear(
-          center,
-          force: true,
-          allowWithoutUserLocation: allowWithoutUserLocation,
-        ),
-      );
-      unawaited(
-        _loadMapPoisAround(
-          center,
-          allowWithoutUserLocation: allowWithoutUserLocation,
-        ),
-      );
+      unawaited(_restoreCachedMapPoisNear(center, force: true));
+      unawaited(_loadMapPoisAround(center));
     } on TimeoutException {
       _showMapSnack(_t.searchTimeout);
     } catch (_) {

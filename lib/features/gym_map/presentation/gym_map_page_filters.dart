@@ -552,15 +552,7 @@ extension _GymMapPageFilters on _GymMapPageState {
     }
     _lastMapGestureAt = DateTime.now();
     final center = camera.center;
-    final allowWithoutUserLocation =
-        !_hasNationwideCoverage &&
-        _userLocation == null &&
-        camera.zoom >= _GymMapPageState._minZoomForAreaPoiSearch;
-    if (!_ensurePlanCoverageForCenter(
-      center,
-      notifyIfBlocked: _userLocation != null,
-      allowWithoutUserLocation: allowWithoutUserLocation,
-    )) {
+    if (!_ensurePlanCoverageForCenter(center, notifyIfBlocked: true)) {
       return;
     }
     final normalizedSearchTerm = _normalizeSearchTerm(_searchTerm);
@@ -582,18 +574,10 @@ extension _GymMapPageFilters on _GymMapPageState {
           _queueUiRefreshIfMapVisible();
         },
       );
-      unawaited(
-        _restoreCachedMapPoisNear(
-          center,
-          allowWithoutUserLocation: allowWithoutUserLocation,
-        ),
-      );
+      unawaited(_restoreCachedMapPoisNear(center));
     }
 
-    _scheduleMapPoiReload(
-      center,
-      allowWithoutUserLocation: allowWithoutUserLocation,
-    );
+    _scheduleMapPoiReload(center);
   }
 
   List<Gym> get _filteredGyms =>
