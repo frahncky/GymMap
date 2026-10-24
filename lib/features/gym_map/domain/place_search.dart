@@ -2,7 +2,7 @@ import 'package:latlong2/latlong.dart';
 
 /// Busca de lugares (bairro, rua, cidade) no Nominatim, preferindo o que
 /// fica perto de quem busca: "Renascença São Luís" deve levar ao bairro da
-/// cidade da pessoa, não a outro lugar do país com nome parecido.
+/// cidade da pessoa, não a outro lugar do mundo com nome parecido.
 class PlaceSearch {
   const PlaceSearch._();
 
@@ -22,7 +22,6 @@ class PlaceSearch {
       'q': query,
       'format': 'jsonv2',
       'limit': '$resultLimit',
-      'countrycodes': 'br',
       'accept-language': language,
       if (near != null) ...<String, String>{
         // left, top, right, bottom; bounded=0 só dá preferência.

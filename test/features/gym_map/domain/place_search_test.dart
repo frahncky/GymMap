@@ -28,7 +28,7 @@ void main() {
     expect(PlaceSearch.pickPosition(const <dynamic>[]), isNull);
   });
 
-  test('asks for several results in Brazil, biased around the reference', () {
+  test('asks for several worldwide results, biased around the reference', () {
     final params = PlaceSearch.queryParameters(
       'Renascença',
       near: saoLuisMa,
@@ -36,7 +36,7 @@ void main() {
     );
 
     expect(params['limit'], '10');
-    expect(params['countrycodes'], 'br');
+    expect(params.containsKey('countrycodes'), isFalse);
     expect(params['bounded'], '0');
     expect(params['viewbox'], '-44.90680,-1.93070,-43.70680,-3.13070');
     expect(

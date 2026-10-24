@@ -84,8 +84,9 @@ class GymMapPage extends StatefulWidget {
 }
 
 class _GymMapPageState extends State<GymMapPage> with WidgetsBindingObserver {
-  static const LatLng _fallbackMapCenter = LatLng(-14.2350, -51.9253);
-  static const double _fallbackMapZoom = 4.2;
+  // Sem GPS, exibe uma visão neutra do mundo em vez de assumir o Brasil.
+  static const LatLng _fallbackMapCenter = LatLng(20, 0);
+  static const double _fallbackMapZoom = 2.0;
   static const double _minZoomForAreaPoiSearch = 12.0;
   static const String _localReporterId = 'local-device-user';
   static const String _mapTutorialSeenPrefKey = 'gymmap_map_tutorial_seen_v1';
